@@ -1,47 +1,19 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="d-flex justify-content-between align-items-center">
-            <h2 class="h4 mb-0">
-                <i class="bi bi-pencil-square me-2"></i>
-                Design Form - {{ $formBuilder->name }}
-            </h2>
-            <div class="d-flex gap-2">
-                <a href="{{ route('events.form-builders.edit', [$event, $formBuilder]) }}" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left me-2"></i>Back to Form Settings
-                </a>
-            </div>
-        </div>
-    </x-slot>
+<x-event-layout :event="$event">
 
     <div class="py-4">
         <div class="container-fluid">
-            <!-- Event Header -->
-            <div class="card mb-4">
-                <div class="position-relative">
-                    <div class="bg-gradient-to-br from-blue-400 to-purple-600 d-flex align-items-center justify-content-center position-relative overflow-hidden" style="height: 150px;">
-                        @if($event->logo)
-                            <img src="{{ Storage::url($event->logo) }}" alt="{{ $event->title }}" class="w-100 h-100 object-fit-cover">
-                        @else
-                            <i class="bi bi-calendar-event text-white" style="font-size: 3rem;"></i>
-                        @endif
-                        
-                        <div class="position-absolute top-0 end-0 m-3">
-                            <span class="badge 
-                                @if($event->status === 'active') bg-success
-                                @elseif($event->status === 'published') bg-primary
-                                @elseif($event->status === 'completed') bg-info
-                                @elseif($event->status === 'cancelled') bg-danger
-                                @else bg-secondary @endif fs-6">
-                                {{ ucfirst($event->status) }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="position-absolute bottom-0 start-0 end-0 bg-dark bg-opacity-75 text-white p-3">
-                        <h1 class="h4 mb-1">{{ $event->title }}</h1>
-                        <p class="mb-0 opacity-75 small">{{ $event->start_date->format('F d, Y') }} - {{ $event->end_date->format('F d, Y') }}</p>
-                    </div>
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="h4 mb-1 fw-bold">
+                        <i class="bi bi-pencil-square me-2 text-success"></i>
+                        Design Form - {{ $formBuilder->name }}
+                    </h2>
+                    <p class="text-muted mb-0">Customize the form layout and fields for {{ $event->title }}</p>
                 </div>
+                <a href="{{ route('events.form-builders.edit', [$event, $formBuilder]) }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Form Settings
+                </a>
             </div>
 
             <form action="{{ route('events.form-builders.update', [$event, $formBuilder]) }}" method="POST" id="formBuilderForm">
@@ -145,6 +117,28 @@
                         </label>
                         <input type="text" class="form-control bg-dark border-secondary text-light" id="fieldLabel" 
                                placeholder="Enter field label">
+                    </div>
+                    
+                    <div class="mb-4" id="fieldPurposeContainer">
+                        <label for="fieldPurpose" class="form-label text-light fw-semibold">
+                            <i class="bi bi-bullseye me-2 text-warning"></i>Field Purpose
+                        </label>
+                        <select class="form-select bg-dark border-secondary text-light" id="fieldPurpose">
+                            <option value="general">General Field</option>
+                            <option value="member_name">Member Name</option>
+                            <option value="member_email">Member Email</option>
+                            <option value="member_phone">Member Phone</option>
+                            <option value="member_company">Member Company</option>
+                            <option value="member_title">Member Job Title</option>
+                            <option value="member_address">Member Address</option>
+                            <option value="member_id">Member ID Number</option>
+                            <option value="member_bio">Member Biography</option>
+                            <option value="member_notes">Member Notes</option>
+                        </select>
+                        <div class="form-text text-light small mt-2">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Choose what this field represents to properly display member information.
+                        </div>
                     </div>
                     
                     <div class="mb-4" id="fieldPlaceholderContainer">
@@ -312,6 +306,21 @@
             border-color: #63b3ed !important;
             box-shadow: 0 0 0 0.2rem rgba(99, 179, 237, 0.25) !important;
         }
+        
+        /* Preview field styling */
+        .form-control:disabled,
+        .form-select:disabled,
+        .form-check-input:disabled {
+            background-color: #f8f9fa !important;
+            border-color: #dee2e6 !important;
+            color: #6c757d !important;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
+        .form-control:disabled::placeholder {
+            color: #adb5bd !important;
+        }
     </style>
 
     @push('scripts')
@@ -353,6 +362,14 @@
                     return false;
                 }
                 
+                // Validate required fields
+                const validationErrors = validateFormFields();
+                if (validationErrors.length > 0) {
+                    const errorMessage = 'Please fix the following issues:\n\n' + validationErrors.join('\n');
+                    alert(errorMessage);
+                    return false;
+                }
+                
                 console.log('Form submission started, updating hidden fields...');
                 updateHiddenFields();
                 console.log('Hidden fields updated, submitting form...');
@@ -382,6 +399,7 @@
                 id: '{{ $field->field_id }}',
                 type: '{{ $field->type }}',
                 label: '{{ $field->label }}',
+                fieldPurpose: '{{ $field->field_purpose ?? 'general' }}',
                 required: {{ $field->required ? 'true' : 'false' }},
                 placeholder: '{{ $field->placeholder ?? '' }}',
                 helpText: '{{ $field->help_text ?? '' }}',
@@ -420,10 +438,25 @@
         function addField(type, label) {
             console.log('addField called with:', type, label);
             
+            // Set smart default field purpose based on field type
+            let defaultPurpose = 'general';
+            if (type === 'email') {
+                defaultPurpose = 'member_email';
+            } else if (type === 'phone') {
+                defaultPurpose = 'member_phone';
+            } else if (type === 'text' && (label.toLowerCase().includes('name') || label.toLowerCase().includes('full'))) {
+                defaultPurpose = 'member_name';
+            } else if (type === 'text' && label.toLowerCase().includes('company')) {
+                defaultPurpose = 'member_company';
+            } else if (type === 'text' && label.toLowerCase().includes('title')) {
+                defaultPurpose = 'member_title';
+            }
+            
             const field = {
                 id: 'field_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
                 type: type,
                 label: label,
+                fieldPurpose: defaultPurpose,
                 required: false,
                 placeholder: '',
                 helpText: '',
@@ -544,9 +577,12 @@
                                     ${field.required ? '<span class="text-danger ms-1">*</span>' : ''}
                                     <span class="badge bg-secondary ms-2">${field.width}</span>
                                 </div>
-                                <div class="form-control-plaintext small text-muted">
-                                    ${getFieldPreview(field)}
-                                </div>
+                                                                 <div class="form-control-plaintext small text-muted">
+                                     ${getFieldPreview(field)}
+                                     <small class="text-muted d-block mt-1">
+                                         <i class="bi bi-info-circle me-1"></i>Preview field (not functional)
+                                     </small>
+                                 </div>
                             </div>
                             <div class="d-flex gap-1">
                                 <button type="button" class="btn btn-sm btn-outline-primary edit-field" title="Edit Field">
@@ -619,9 +655,9 @@
                 case 'phone':
                 case 'url':
                 case 'password':
-                    return `<input type="${field.type}" class="form-control" placeholder="${field.placeholder || 'Enter ' + field.label.toLowerCase()}" ${field.required ? 'required' : ''}>`;
+                    return `<input type="${field.type}" class="form-control" placeholder="${field.placeholder || 'Enter ' + field.label.toLowerCase()}" disabled>`;
                 case 'textarea':
-                    return `<textarea class="form-control" placeholder="${field.placeholder || 'Enter ' + field.label.toLowerCase()}" ${field.required ? 'required' : ''}></textarea>`;
+                    return `<textarea class="form-control" placeholder="${field.placeholder || 'Enter ' + field.label.toLowerCase()}" disabled></textarea>`;
                 case 'select':
                     let selectOptions = `<option value="">Select ${field.label.toLowerCase()}</option>`;
                     if (field.options && field.options.length > 0) {
@@ -630,16 +666,16 @@
                             selectOptions += `<option value="${option}" ${selected}>${option}</option>`;
                         });
                     }
-                    return `<select class="form-select" ${field.required ? 'required' : ''}>${selectOptions}</select>`;
+                    return `<select class="form-select" disabled>${selectOptions}</select>`;
                 case 'checkbox':
                     let checkboxOptions = '';
                     if (field.options && field.options.length > 0) {
                         field.options.forEach(option => {
                             const checkboxChecked = field.defaultOption === option ? 'checked' : '';
-                            checkboxOptions += `<div class="form-check"><input class="form-check-input" type="checkbox" value="${option}" ${checkboxChecked} ${field.required ? 'required' : ''}><label class="form-check-label">${option}</label></div>`;
+                            checkboxOptions += `<div class="form-check"><input class="form-check-input" type="checkbox" value="${option}" ${checkboxChecked} disabled><label class="form-check-label">${option}</label></div>`;
                         });
                     } else {
-                        checkboxOptions = `<div class="form-check"><input class="form-check-input" type="checkbox" ${field.required ? 'required' : ''}><label class="form-check-label">${field.label}</label></div>`;
+                        checkboxOptions = `<div class="form-check"><input class="form-check-input" type="checkbox" disabled><label class="form-check-label">${field.label}</label></div>`;
                     }
                     return checkboxOptions;
                 case 'radio':
@@ -647,20 +683,20 @@
                     if (field.options && field.options.length > 0) {
                         field.options.forEach(option => {
                             const radioChecked = field.defaultOption === option ? 'checked' : '';
-                            radioOptions += `<div class="form-check"><input class="form-check-input" type="radio" name="${field.id}" value="${option}" ${radioChecked} ${field.required ? 'required' : ''}><label class="form-check-label">${option}</label></div>`;
+                            radioOptions += `<div class="form-check"><input class="form-check-input" type="radio" name="${field.id}" value="${option}" ${radioChecked} disabled><label class="form-check-label">${option}</label></div>`;
                         });
                     } else {
-                        radioOptions = `<div class="form-check"><input class="form-check-input" type="radio" ${field.required ? 'required' : ''}><label class="form-check-label">${field.label}</label></div>`;
+                        radioOptions = `<div class="form-check"><input class="form-check-input" type="radio" disabled><label class="form-check-label">${field.label}</label></div>`;
                     }
                     return radioOptions;
                 case 'file':
-                    return `<input type="file" class="form-control" ${field.required ? 'required' : ''}>`;
+                    return `<input type="file" class="form-control" disabled>`;
                 case 'date':
-                    return `<input type="date" class="form-control" ${field.required ? 'required' : ''}>`;
+                    return `<input type="date" class="form-control" disabled>`;
                 case 'number':
-                    return `<input type="number" class="form-control" placeholder="${field.placeholder || 'Enter ' + field.label.toLowerCase()}" ${field.required ? 'required' : ''}>`;
+                    return `<input type="number" class="form-control" placeholder="${field.placeholder || 'Enter ' + field.label.toLowerCase()}" disabled>`;
                 default:
-                    return `<input type="text" class="form-control" placeholder="${field.placeholder || 'Enter ' + field.label.toLowerCase()}" ${field.required ? 'required' : ''}>`;
+                    return `<input type="text" class="form-control" placeholder="${field.placeholder || 'Enter ' + field.label.toLowerCase()}" disabled>`;
             }
         }
 
@@ -727,6 +763,12 @@
                 fieldType.name = `fields[${index}][type]`;
                 fieldType.value = field.type;
                 container.appendChild(fieldType);
+                
+                const fieldPurpose = document.createElement('input');
+                fieldPurpose.type = 'hidden';
+                fieldPurpose.name = `fields[${index}][field_purpose]`;
+                fieldPurpose.value = field.fieldPurpose || 'general';
+                container.appendChild(fieldPurpose);
                 
                 if (field.type !== 'section') {
                     const fieldRequired = document.createElement('input');
@@ -929,6 +971,7 @@
             
             // Populate form fields
             document.getElementById('fieldLabel').value = field.label;
+            document.getElementById('fieldPurpose').value = field.fieldPurpose || 'general';
             document.getElementById('fieldPlaceholder').value = field.placeholder || '';
             document.getElementById('fieldHelpText').value = field.helpText || '';
             
@@ -1075,6 +1118,36 @@
                       .map(option => option.trim())
                       .filter(option => option.length > 0);
         }
+        
+        function validateFormFields() {
+            const errors = [];
+            
+            formFields.forEach((field, index) => {
+                // Check if field has a label
+                if (!field.label || field.label.trim() === '') {
+                    errors.push(`Field ${index + 1}: Label is required`);
+                }
+                
+                // Check if required fields have proper configuration
+                if (field.required && field.type !== 'section') {
+                    if (field.type === 'select' || field.type === 'checkbox' || field.type === 'radio') {
+                        if (!field.options || field.options.length === 0) {
+                            errors.push(`Field "${field.label}": Required ${field.type} fields must have options`);
+                        }
+                    }
+                }
+                
+                // Check if fields with options have valid options
+                if (field.options && field.options.length > 0) {
+                    const validOptions = field.options.filter(option => option && option.trim() !== '');
+                    if (validOptions.length === 0) {
+                        errors.push(`Field "${field.label}": Options cannot be empty`);
+                    }
+                }
+            });
+            
+            return errors;
+        }
 
         // Handle form submission for field properties
         document.getElementById('fieldPropertiesForm').addEventListener('submit', function(e) {
@@ -1085,6 +1158,9 @@
                 
                 // Update field properties
                 field.label = document.getElementById('fieldLabel').value;
+                field.fieldPurpose = document.getElementById('fieldPurpose').value;
+                
+                console.log('Updated field purpose to:', field.fieldPurpose);
                 
                 if (field.type !== 'section') {
                     field.placeholder = document.getElementById('fieldPlaceholder').value;
@@ -1126,4 +1202,4 @@
         });
     </script>
     @endpush
-</x-app-layout>
+</x-event-layout>

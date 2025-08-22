@@ -3,15 +3,42 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\FormBuilderController;
+use App\Http\Controllers\BookingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
+// Public event routes (no authentication required)
+Route::get('/event/{event}', [EventController::class, 'publicShow'])->name('events.public.show');
+Route::get('/event/{event}/floorplan', [EventController::class, 'publicFloorplan'])->name('events.public.floorplan');
+Route::get('/event/{event}/floorplan/{accessToken}', [EventController::class, 'publicFloorplanWithToken'])->name('events.public.floorplan-token');
+
+// Public booking routes (no authentication required)
+Route::get('/event/{eventSlug}/book/{itemId}', [BookingController::class, 'showOwnerForm'])->name('bookings.owner-form');
+Route::get('/event/{eventSlug}/booking/{accessToken}/owner', [BookingController::class, 'showOwnerFormWithToken'])->name('bookings.owner-form-token');
+Route::post('/event/{eventSlug}/book/{itemId}', [BookingController::class, 'processOwnerForm'])->name('bookings.process-owner');
+Route::post('/event/{eventSlug}/booking/{accessToken}/owner', [BookingController::class, 'processOwnerFormWithToken'])->name('bookings.process-owner-token');
+Route::post('/event/{eventSlug}/booking/{accessToken}/remove', [BookingController::class, 'removeBooking'])->name('bookings.remove');
+Route::get('/event/{eventSlug}/booking/{accessToken}/members', [BookingController::class, 'showMemberForm'])->name('bookings.member-form');
+Route::post('/event/{eventSlug}/booking/{accessToken}/members', [BookingController::class, 'processMemberForm'])->name('bookings.process-members');
+Route::post('/event/{eventSlug}/booking/{accessToken}/save-members', [BookingController::class, 'saveMembers'])->name('bookings.save-members');
+Route::get('/event/{eventSlug}/booking/{accessToken}/payment', [BookingController::class, 'showPayment'])->name('bookings.payment');
+Route::post('/event/{eventSlug}/booking/{accessToken}/payment', [BookingController::class, 'processPayment'])->name('bookings.process-payment');
+Route::get('/event/{eventSlug}/booking/{accessToken}/paystack/callback', [BookingController::class, 'paystackCallback'])->name('bookings.paystack.callback');
+Route::get('/event/{eventSlug}/booking/{accessToken}/success', [BookingController::class, 'showSuccess'])->name('bookings.success');
+
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+// Admin routes
+Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('payment-methods', \App\Http\Controllers\Admin\PaymentMethodController::class);
+    Route::patch('payment-methods/{paymentMethod}/toggle-status', [\App\Http\Controllers\Admin\PaymentMethodController::class, 'toggleStatus'])->name('payment-methods.toggle-status');
+    Route::patch('payment-methods/{paymentMethod}/set-default', [\App\Http\Controllers\Admin\PaymentMethodController::class, 'setDefault'])->name('payment-methods.set-default');
+});
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

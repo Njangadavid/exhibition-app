@@ -16,6 +16,7 @@ class FormField extends Model
         'section_id',
         'label',
         'type',
+        'field_purpose',
         'sort_order',
         'required',
         'help_text',
@@ -66,6 +67,22 @@ class FormField extends Model
             'url' => 'URL Input',
             'password' => 'Password',
             'hidden' => 'Hidden Field',
+        ];
+    }
+
+    public static function getFieldPurposes()
+    {
+        return [
+            'general' => 'General Field',
+            'member_name' => 'Member Name',
+            'member_email' => 'Member Email',
+            'member_phone' => 'Member Phone',
+            'member_company' => 'Member Company',
+            'member_title' => 'Member Job Title',
+            'member_address' => 'Member Address',
+            'member_id' => 'Member ID Number',
+            'member_bio' => 'Member Biography',
+            'member_notes' => 'Member Notes',
         ];
     }
 

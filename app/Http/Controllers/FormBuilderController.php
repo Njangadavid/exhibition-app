@@ -39,6 +39,7 @@ class FormBuilderController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'type' => 'required|in:member_registration,exhibitor_registration,speaker_registration,delegate_registration,general',
             'description' => 'nullable|string',
             'status' => 'required|in:draft,published,archived',
             'allow_multiple_submissions' => 'boolean',
@@ -56,6 +57,7 @@ class FormBuilderController extends Controller
             // Create form builder
             $formBuilder = $event->formBuilders()->create([
                 'name' => $validated['name'],
+                'type' => $validated['type'],
                 'description' => $validated['description'],
                 'status' => $validated['status'],
                 'allow_multiple_submissions' => $validated['allow_multiple_submissions'] ?? false,
@@ -113,6 +115,7 @@ class FormBuilderController extends Controller
         // Handle form settings update
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'type' => 'required|in:member_registration,exhibitor_registration,speaker_registration,delegate_registration,general',
             'description' => 'nullable|string',
             'status' => 'required|in:draft,published,archived',
             'allow_multiple_submissions' => 'boolean',
@@ -130,6 +133,7 @@ class FormBuilderController extends Controller
             // Update form builder
             $formBuilder->update([
                 'name' => $validated['name'],
+                'type' => $validated['type'],
                 'description' => $validated['description'],
                 'status' => $validated['status'],
                 'allow_multiple_submissions' => $validated['allow_multiple_submissions'] ?? false,
@@ -164,6 +168,7 @@ class FormBuilderController extends Controller
             'fields.*.original_id' => 'required|string',
             'fields.*.label' => 'required|string|max:255',
             'fields.*.type' => 'required|string',
+            'fields.*.field_purpose' => 'nullable|string',
             'fields.*.required' => 'boolean',
             'fields.*.placeholder' => 'nullable|string',
             'fields.*.help_text' => 'nullable|string',
@@ -197,6 +202,7 @@ class FormBuilderController extends Controller
                     'field_id' => $newFieldId,
                     'label' => $fieldData['label'],
                     'type' => $fieldData['type'],
+                    'field_purpose' => $fieldData['field_purpose'] ?? 'general',
                     'sort_order' => $index,
                     'required' => $fieldData['required'] ?? false,
                     'placeholder' => $fieldData['placeholder'] ?? null,

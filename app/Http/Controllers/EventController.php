@@ -45,6 +45,9 @@ class EventController extends Controller
             'end_date' => 'required|date|after:start_date',
         ]);
 
+        // Generate slug from title
+        $validated['slug'] = Event::generateSlug($validated['title']);
+
         // Handle logo upload
         if ($request->hasFile('logo')) {
             $logoPath = $request->file('logo')->store('events/logos', 'public');
@@ -89,6 +92,11 @@ class EventController extends Controller
             'end_date' => 'required|date|after:start_date',
         ]);
 
+        // Generate slug from title (only if title changed)
+        if ($event->title !== $validated['title']) {
+            $validated['slug'] = Event::generateSlug($validated['title']);
+        }
+
         // Handle logo upload
         if ($request->hasFile('logo')) {
             // Delete old logo if exists
@@ -120,6 +128,178 @@ class EventController extends Controller
 
         return redirect()->route('events.index')
             ->with('success', 'Event deleted successfully!');
+    }
+
+    /**
+     * Public event display (no authentication required).
+     */
+    public function publicShow(Event $event)
+    {
+        // Check if event is published or active
+        if (!in_array($event->status, ['published', 'active'])) {
+            abort(404, 'Event not found.');
+        }
+
+        return view('events.public.show', compact('event'));
+    }
+
+    /**
+     * Public floorplan view (no authentication required).
+     */
+    public function publicFloorplan(Event $event, Request $request)
+    {
+        // Check if event is published or active
+        if (!in_array($event->status, ['published', 'active'])) {
+            abort(404, 'Event not found.');
+        }
+
+        // Check if user has an existing booking via access token
+        $existingBooking = null;
+        $accessToken = $request->query('access_token');
+        
+        if ($accessToken) {
+            $existingBooking = $event->bookings()
+                ->where('access_token', $accessToken)
+                ->where('access_token_expires_at', '>', now())
+                ->with(['floorplanItem'])
+                ->first();
+        }
+
+        // Load floorplan data with items if exists
+        $floorplanDesign = $event->floorplanDesign;
+        if ($floorplanDesign) {
+            $floorplanDesign->load('items');
+            
+            // Load booking information for each item to determine availability
+            $items = $floorplanDesign->items;
+            foreach ($items as $item) {
+                // Check if there's an active booking for this item
+                $activeBooking = $item->bookings()
+                    ->whereIn('status', ['pending', 'confirmed'])
+                    ->with('payments')
+                    ->latest()
+                    ->first();
+                
+                // Add booking status to item for frontend use
+                if ($activeBooking) {
+                    // Determine status based on booking and payment status
+                    if ($activeBooking->status === 'confirmed') {
+                        $item->booking_status = 'confirmed';
+                    } elseif ($activeBooking->hasPayments()) {
+                        $item->booking_status = 'pending';
+                    } else {
+                        $item->booking_status = 'pending';
+                    }
+                    
+                    $item->booking_reference = $activeBooking->booking_reference;
+                    $item->payment_status = $activeBooking->payment_status;
+                    $item->total_paid = $activeBooking->total_paid;
+                    $item->remaining_amount = $activeBooking->remaining_amount;
+                    
+                    // Check if this is the user's current booking
+                    if ($existingBooking && $existingBooking->floorplan_item_id == $item->id) {
+                        $item->is_current_booking = true;
+                        $item->current_booking_status = $existingBooking->status;
+                        $item->current_booking_progress = $this->getBookingProgress($existingBooking);
+                    }
+                } else {
+                    $item->booking_status = 'available';
+                    $item->booking_reference = null;
+                    $item->payment_status = null;
+                    $item->total_paid = 0;
+                    $item->remaining_amount = 0;
+                }
+            }
+        }
+        
+        return view('events.public.floorplan', compact('event', 'floorplanDesign', 'existingBooking', 'accessToken'));
+    }
+
+    /**
+     * Public floorplan view with access token in route (for existing bookings)
+     */
+    public function publicFloorplanWithToken(Event $event, $accessToken)
+    {
+        // Check if event is published or active
+        if (!in_array($event->status, ['published', 'active'])) {
+            abort(404, 'Event not found.');
+        }
+
+        // Find existing booking via access token
+        $existingBooking = $event->bookings()
+            ->where('access_token', $accessToken)
+            ->where('access_token_expires_at', '>', now())
+            ->with(['floorplanItem'])
+            ->first();
+
+        if (!$existingBooking) {
+            abort(404, 'Invalid or expired access link.');
+        }
+
+        // Load floorplan data with items if exists
+        $floorplanDesign = $event->floorplanDesign;
+        if ($floorplanDesign) {
+            $floorplanDesign->load('items');
+            
+            // Load booking information for each item to determine availability
+            $items = $floorplanDesign->items;
+            foreach ($items as $item) {
+                // Check if there's an active booking for this item
+                $activeBooking = $item->bookings()
+                    ->whereIn('status', ['pending', 'confirmed'])
+                    ->with('payments')
+                    ->latest()
+                    ->first();
+                
+                // Add booking status to item for frontend use
+                if ($activeBooking) {
+                    // Determine status based on booking and payment status
+                    if ($activeBooking->status === 'confirmed') {
+                        $item->booking_status = 'confirmed';
+                    } elseif ($activeBooking->hasPayments()) {
+                        $item->booking_status = 'pending';
+                    } else {
+                        $item->booking_status = 'pending';
+                    }
+                    
+                    $item->booking_reference = $activeBooking->booking_reference;
+                    $item->payment_status = $activeBooking->payment_status;
+                    $item->total_paid = $activeBooking->total_paid;
+                    $item->remaining_amount = $activeBooking->remaining_amount;
+                    
+                    // Check if this is the user's current booking
+                    if ($existingBooking->floorplan_item_id == $item->id) {
+                        $item->is_current_booking = true;
+                        $item->current_booking_status = $existingBooking->status;
+                        $item->current_booking_progress = $this->getBookingProgress($existingBooking);
+                    }
+                } else {
+                    $item->booking_status = 'available';
+                    $item->booking_reference = null;
+                    $item->payment_status = null;
+                    $item->total_paid = 0;
+                    $item->remaining_amount = 0;
+                }
+            }
+        }
+        
+        return view('events.public.floorplan', compact('event', 'floorplanDesign', 'existingBooking', 'accessToken'));
+    }
+
+    /**
+     * Get the current progress step for a booking
+     */
+    private function getBookingProgress($booking)
+    {
+        if ($booking->status === 'confirmed') {
+            return 4; // Payment completed
+        } elseif ($booking->member_details && count($booking->member_details) > 0) {
+            return 3; // Members added
+        } elseif ($booking->owner_details) {
+            return 2; // Owner details submitted
+        } else {
+            return 1; // Just started
+        }
     }
 
     /**

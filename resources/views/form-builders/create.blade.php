@@ -66,6 +66,19 @@
                                         </div>
 
                                         <div class="mb-3">
+                                            <label for="type" class="form-label">Form Type *</label>
+                                            <select class="form-select" id="type" name="type" required>
+                                                <option value="">Select Form Type</option>
+                                                <option value="member_registration">Member Registration</option>
+                                                <option value="exhibitor_registration">Exhibitor Registration</option>
+                                                <option value="speaker_registration">Speaker Registration</option>
+                                                <option value="delegate_registration">Delegate Registration</option>
+                                                <option value="general">General Form</option>
+                                            </select>
+                                            <div class="form-text">Choose the purpose of this form</div>
+                                        </div>
+
+                                        <div class="mb-3">
                                             <label for="description" class="form-label">Description</label>
                                             <textarea class="form-control" id="description" name="description" rows="3"
                                                       placeholder="Describe the purpose of this form"></textarea>

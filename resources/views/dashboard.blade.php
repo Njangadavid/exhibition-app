@@ -162,6 +162,25 @@
                                     Events Analytics
                                 </a>
                             </div>
+                            
+                            <!-- Public Links Section -->
+                            <div class="mt-3 pt-3 border-top">
+                                <h6 class="text-muted mb-2">
+                                    <i class="bi bi-globe me-2"></i>Public Access
+                                </h6>
+                                <div class="d-grid gap-2">
+                                    @if(App\Models\Event::where('status', 'published')->orWhere('status', 'active')->count() > 0)
+                                        <a href="{{ route('events.index') }}" class="btn btn-outline-success btn-sm">
+                                            <i class="bi bi-globe me-2"></i>
+                                            View Public Events
+                                        </a>
+                                    @else
+                                        <div class="text-muted small text-center py-2">
+                                            No public events available
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

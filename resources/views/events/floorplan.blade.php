@@ -1,50 +1,4 @@
-<x-app-layout>
-    <x-slot name="header">
-        <!-- Event Info Header -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="d-flex align-items-center">
-                <div class="me-3">
-                    <div class="bg-gradient-to-br from-blue-400 to-purple-600 rounded d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                        @if($event->logo)
-                            <img src="{{ Storage::url($event->logo) }}" alt="{{ $event->title }}" class="rounded" style="width: 40px; height: 40px; object-fit: cover;">
-                        @else
-                            <i class="bi bi-calendar-event text-white"></i>
-                        @endif
-                    </div>
-                </div>
-                <div>
-                    <h2 class="h5 mb-0">{{ $event->title }}</h2>
-                    <small class="text-muted">{{ $event->start_date->format('M d, Y') }} - {{ $event->end_date->format('M d, Y') }}</small>
-                </div>
-            </div>
-            <a href="{{ route('events.index') }}" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-arrow-left me-1"></i>
-                Back to Events
-            </a>
-        </div>
-
-        <!-- Event Navigation Menu -->
-        <ul class="nav nav-tabs">
-            <li class="nav-item">
-                <a href="{{ route('events.dashboard', $event) }}" class="nav-link">
-                    <i class="bi bi-speedometer2 me-2"></i>
-                    Event Dashboard
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('events.floorplan', $event) }}" class="nav-link active">
-                    <i class="bi bi-map me-2"></i>
-                    Floorplan
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('events.registration', $event) }}" class="nav-link">
-                    <i class="bi bi-person-plus me-2"></i>
-                    Registration Form
-                </a>
-            </li>
-        </ul>
-    </x-slot>
+<x-event-layout :event="$event">
 
     <div class="py-4">
         <div class="container-fluid">
@@ -930,15 +884,15 @@
                         return;
                         
                     case 'text':
-                        const centerX = shape.x + (shape.width || 120) / 2;
-                        const centerY = shape.y + (shape.height || 30) / 2;
+                        const textCenterX = shape.x + (shape.width || 120) / 2;
+                        const textCenterY = shape.y + (shape.height || 30) / 2;
                         
                         // Apply rotation if shape has rotation
                         if (shape.rotation && shape.rotation !== 0) {
                             ctx.save();
-                            ctx.translate(centerX, centerY);
+                            ctx.translate(textCenterX, textCenterY);
                             ctx.rotate(shape.rotation * Math.PI / 180);
-                            ctx.translate(-centerX, -centerY);
+                            ctx.translate(-textCenterX, -textCenterY);
                         }
                         
                         // Set text properties
@@ -948,7 +902,7 @@
                         ctx.textBaseline = 'middle';
                         
                         // Draw text at center of the shape
-                        ctx.fillText(shape.text, centerX, centerY);
+                        ctx.fillText(shape.text, textCenterX, textCenterY);
                         
                         // Draw text boundary rectangle for visual feedback
                         ctx.strokeStyle = selectedShape === shape ? '#007bff' : 'rgba(0,0,0,0.1)';
@@ -2445,9 +2399,30 @@
                     ctx.translate(-centerX, -centerY);
                 }
                 
+                // Calculate proportional scaling for persons inside the group
+                const baseWidth = 60; // Original group width
+                const baseHeight = 25; // Original group height
+                const scaleX = width / baseWidth;
+                const scaleY = height / baseHeight;
+                
+                // Draw 3 persons with proportional scaling
                 for (let i = 0; i < 3; i++) {
-                    const offset = i * 15;
-                    const personShape = { x: shape.x + offset, y: shape.y, size: 15 };
+                    const personWidth = Math.max(15 * scaleX, 8); // Minimum 8px width
+                    const personHeight = Math.max(20 * scaleY, 10); // Minimum 10px height
+                    
+                    // Calculate proportional spacing between persons
+                    const totalPersonWidth = personWidth * 3;
+                    const spacing = Math.max((width - totalPersonWidth) / 4, 2); // Minimum 2px spacing
+                    
+                    const personX = shape.x + spacing + i * (personWidth + spacing);
+                    const personY = shape.y + (height - personHeight) / 2; // Center vertically
+                    
+                    const personShape = { 
+                        x: personX, 
+                        y: personY, 
+                        width: personWidth, 
+                        height: personHeight 
+                    };
                     drawPerson(personShape);
                 }
                 
@@ -4722,8 +4697,27 @@
                         if (distance <= shape.radius) {
                             return shape;
                         }
-                    } else if (shape.type === 'chair' || shape.type === 'person' || shape.type === 'projector' ||
-                               shape.type === 'triangle' || shape.type === 'pentagon' || shape.type === 'hexagon') {
+                    } else if (shape.type === 'chair') {
+                        const size = shape.size || 30;
+                        if (x >= shape.x && x <= shape.x + size &&
+                            y >= shape.y && y <= shape.y + size) {
+                            return shape;
+                        }
+                    } else if (shape.type === 'person') {
+                        const width = shape.width || 20;
+                        const height = shape.height || 25;
+                        if (x >= shape.x && x <= shape.x + width &&
+                            y >= shape.y && y <= shape.y + height) {
+                            return shape;
+                        }
+                    } else if (shape.type === 'projector') {
+                        const width = shape.width || 30;
+                        const height = shape.height || 15;
+                        if (x >= shape.x && x <= shape.x + width &&
+                            y >= shape.y && y <= shape.y + height) {
+                            return shape;
+                        }
+                    } else if (shape.type === 'triangle' || shape.type === 'pentagon' || shape.type === 'hexagon') {
                         const size = shape.size || 30;
                         if (x >= shape.x && x <= shape.x + size &&
                             y >= shape.y && y <= shape.y + size) {
@@ -4738,9 +4732,11 @@
                             return shape;
                         }
                     } else if (shape.type === 'group') {
-                        // Group has 3 people, so wider area
-                        if (x >= shape.x && x <= shape.x + 45 &&
-                            y >= shape.y && y <= shape.y + 20) {
+                        // Group uses width and height from shape properties
+                        const width = shape.width || 60;
+                        const height = shape.height || 25;
+                        if (x >= shape.x && x <= shape.x + width &&
+                            y >= shape.y && y <= shape.y + height) {
                             return shape;
                         }
                     } else if (shape.type === 'text') {
@@ -5131,8 +5127,8 @@
                         height = shape.height || shape.size || 40;
                     }
                     
-                    const centerX = shape.type === 'circle' ? (shape.x + (shape.radius || width/2)) : (shape.x + width / 2);
-                    const centerY = shape.type === 'circle' ? (shape.y + (shape.radius || height/2)) : (shape.y + height / 2);
+                    let centerX = shape.type === 'circle' ? (shape.x + (shape.radius || width/2)) : (shape.x + width / 2);
+                    let centerY = shape.type === 'circle' ? (shape.y + (shape.radius || height/2)) : (shape.y + height / 2);
 
                     // Measure text to size background
                     ctx.font = 'bold 10px Arial';
@@ -5168,6 +5164,12 @@
                         boxY = centerY - boxH / 2;
                     }
 
+                    // Round coordinates to prevent blurring
+                    boxX = Math.round(boxX);
+                    boxY = Math.round(boxY);
+                    const textX = Math.round(boxX + boxW / 2);
+                    const textY = Math.round(boxY + boxH / 2);
+
                     // Draw label background and border
                     ctx.fillStyle = 'rgba(0, 123, 255, 0.9)';
                     ctx.fillRect(boxX, boxY, boxW, boxH);
@@ -5175,9 +5177,12 @@
                     ctx.lineWidth = 1;
                     ctx.strokeRect(boxX, boxY, boxW, boxH);
 
-                    // Draw text
+                    // Draw text with improved rendering
                     ctx.fillStyle = '#ffffff';
-                    ctx.fillText(shape.label, boxX + boxW / 2, boxY + boxH / 2);
+                    ctx.font = 'bold 10px Arial'; // Re-set font for consistency
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(shape.label, textX, textY);
 
                     // reset alignments for other drawings
                     ctx.textAlign = 'start';
@@ -5435,5 +5440,5 @@
             initCanvas();
         });
     </script>
-</x-app-layout>
+</x-event-layout>
 

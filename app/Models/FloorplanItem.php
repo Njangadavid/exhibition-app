@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class FloorplanItem extends Model
 {
@@ -54,6 +55,14 @@ class FloorplanItem extends Model
     public function floorplanDesign(): BelongsTo
     {
         return $this->belongsTo(FloorplanDesign::class);
+    }
+
+    /**
+     * Get the bookings for this item
+     */
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class, 'floorplan_item_id');
     }
 
     /**

@@ -181,6 +181,11 @@
                                     Edit Event
                                 </a>
                                 
+                                <a href="{{ route('admin.payment-methods.index', ['event' => $event->id]) }}" class="btn btn-outline-info">
+                                    <i class="bi bi-credit-card me-2"></i>
+                                    Payment Methods
+                                </a>
+                                
                                 <form method="POST" action="{{ route('events.destroy', $event) }}" onsubmit="return confirm('Are you sure you want to delete this event? This action cannot be undone.')">
                                     @csrf
                                     @method('DELETE')

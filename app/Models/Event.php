@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class Event extends Model
 {
@@ -17,6 +18,7 @@ class Event extends Model
      */
     protected $fillable = [
         'title',
+        'slug',
         'description',
         'status',
         'logo',
@@ -97,6 +99,31 @@ class Event extends Model
     }
 
     /**
+     * Generate a unique slug for the event.
+     */
+    public static function generateSlug($title)
+    {
+        $slug = Str::slug($title);
+        $originalSlug = $slug;
+        $counter = 1;
+
+        while (static::where('slug', $slug)->exists()) {
+            $slug = $originalSlug . '-' . $counter;
+            $counter++;
+        }
+
+        return $slug;
+    }
+
+    /**
+     * Get the route key name for the model.
+     */
+    public function getRouteKeyName()
+    {
+        return 'slug';
+    }
+
+    /**
      * Scope for active events.
      */
     public function scopeActive($query)
@@ -142,5 +169,21 @@ class Event extends Model
     public function formBuilders(): HasMany
     {
         return $this->hasMany(FormBuilder::class);
+    }
+
+    /**
+     * Get the payment methods for the event
+     */
+    public function paymentMethods(): HasMany
+    {
+        return $this->hasMany(PaymentMethod::class);
+    }
+
+    /**
+     * Get the bookings for the event
+     */
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
     }
 }
