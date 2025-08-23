@@ -71,10 +71,11 @@
                                     @enderror
                                 </div>
 
-                                <div class="mb-3">
+                                                                <div class="mb-3">
                                     <label for="content" class="form-label fw-medium">Email Content <span class="text-danger">*</span></label>
+                                    <div id="quill-editor" class="quill-container"></div>
                                     <textarea class="form-control @error('content') is-invalid @enderror" 
-                                              id="content" name="content" rows="15" required>{{ old('content', $emailTemplate->content) }}</textarea>
+                                               id="content" name="content" rows="15" required style="display: none;">{{ old('content', $emailTemplate->content) }}</textarea>
                                     @error('content')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -222,40 +223,66 @@
     </div>
 
     @push('styles')
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.7.3/tinymce.min.js" referrerpolicy="origin"></script>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <style>
         .merge-field-btn {
             font-size: 0.75rem;
             padding: 0.25rem 0.5rem;
         }
-        .tox-tinymce {
+        .ql-editor {
+            min-height: 300px;
+            font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
+            font-size: 14px;
+        }
+        #content {
+            display: none;
+        }
+        .quill-container {
             border-radius: 0.375rem;
+            border: 1px solid #ced4da;
         }
     </style>
     @endpush
 
     @push('scripts')
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize TinyMCE
-            tinymce.init({
-                selector: '#content',
-                height: 400,
-                plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
-                toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
-                content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 14px; }',
-                menubar: false,
-                branding: false,
-                promotion: false,
-                setup: function(editor) {
-                    // Insert merge field at cursor position
-                    window.insertMergeField = function(field) {
-                        const placeholder = '{{ ' + field + ' }}';
-                        editor.insertContent(placeholder);
-                        editor.focus();
-                    };
-                }
+            // Initialize Quill.js
+            var quill = new Quill('#quill-editor', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        [{ 'header': [1, 2, 3, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'align': [] }],
+                        ['link', 'image'],
+                        ['clean']
+                    ]
+                },
+                placeholder: 'Start writing your email template...'
             });
+
+            // Load existing content if editing
+            const existingContent = document.getElementById('content').value;
+            if (existingContent) {
+                quill.root.innerHTML = existingContent;
+            }
+
+            // Insert merge field at cursor position
+            window.insertMergeField = function(field) {
+                const placeholder = '{{ ' + field + ' }}';
+                const range = quill.getSelection();
+                if (range) {
+                    quill.insertText(range.index, placeholder);
+                    quill.setSelection(range.index + placeholder.length);
+                } else {
+                    quill.insertText(quill.getLength(), placeholder);
+                }
+                quill.focus();
+            };
 
             // Merge field insertion
             document.querySelectorAll('.merge-field-btn').forEach(btn => {
@@ -265,6 +292,12 @@
                         window.insertMergeField(field);
                     }
                 });
+            });
+
+            // Form submission - copy Quill content to hidden textarea
+            document.querySelector('form').addEventListener('submit', function() {
+                const content = quill.root.innerHTML;
+                document.getElementById('content').value = content;
             });
 
             // Test template functionality
