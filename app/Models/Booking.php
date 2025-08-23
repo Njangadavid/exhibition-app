@@ -59,6 +59,14 @@ class Booking extends Model
     }
 
     /**
+     * Get the email logs for this booking.
+     */
+    public function emailLogs(): HasMany
+    {
+        return $this->hasMany(EmailLog::class);
+    }
+
+    /**
      * Generate a unique booking reference.
      */
     public static function generateReference(): string
@@ -130,11 +138,20 @@ class Booking extends Model
     }
 
     /**
-     * Calculate remaining amount to be paid.
+     * Calculate remaining balance to be paid.
+     */
+    public function getBalanceAttribute(): float
+    {
+        $totalAmount = $this->floorplanItem->price ?? 0;
+        return max(0, $totalAmount - $this->total_paid);
+    }
+
+    /**
+     * Calculate remaining amount to be paid (alias for balance).
      */
     public function getRemainingAmountAttribute(): float
     {
-        return max(0, $this->total_amount - $this->total_paid);
+        return $this->balance;
     }
 
     /**
@@ -142,7 +159,15 @@ class Booking extends Model
      */
     public function isFullyPaid(): bool
     {
-        return $this->remaining_amount <= 0;
+        return $this->balance <= 0;
+    }
+
+    /**
+     * Check if booking has any completed payments.
+     */
+    public function hasCompletedPayments(): bool
+    {
+        return $this->payments()->where('status', 'completed')->exists();
     }
 
     /**
@@ -150,7 +175,7 @@ class Booking extends Model
      */
     public function hasPayments(): bool
     {
-        return $this->payments()->where('status', 'completed')->exists();
+        return $this->payments()->exists();
     }
 
     /**
@@ -181,5 +206,59 @@ class Booking extends Model
                 'confirmed_at' => now(),
             ]);
         }
+    }
+
+    /**
+     * Check if changing to a new booth would be an upgrade (more expensive).
+     */
+    public function isBoothUpgrade(FloorplanItem $newBooth): bool
+    {
+        $currentBooth = $this->floorplanItem;
+        if (!$currentBooth) {
+            return false;
+        }
+
+        $currentPrice = $currentBooth->price ?? 0;
+        $newPrice = $newBooth->price ?? 0;
+
+        return $newPrice > $currentPrice;
+    }
+
+    /**
+     * Get the price difference for upgrading to a new booth.
+     */
+    public function getBoothUpgradePriceDifference(FloorplanItem $newBooth): float
+    {
+        if (!$this->isBoothUpgrade($newBooth)) {
+            return 0;
+        }
+
+        $currentBooth = $this->floorplanItem;
+        $currentPrice = $currentBooth->price ?? 0;
+        $newPrice = $newBooth->price ?? 0;
+
+        return $newPrice - $currentPrice;
+    }
+
+    /**
+     * Check if there are pending payments after an upgrade.
+     */
+    public function hasPendingUpgradePayments(): bool
+    {
+        $totalAmount = $this->floorplanItem->price ?? 0;
+        $totalPaid = $this->total_paid;
+        
+        return $totalAmount > $totalPaid;
+    }
+
+    /**
+     * Get the amount due after an upgrade.
+     */
+    public function getUpgradeAmountDue(): float
+    {
+        $totalAmount = $this->floorplanItem->price ?? 0;
+        $totalPaid = $this->total_paid;
+        
+        return max(0, $totalAmount - $totalPaid);
     }
 }

@@ -21,20 +21,20 @@
 
                         <!-- Title -->
                         <div class="mb-3">
-                            <label for="title" class="form-label">
+                            <label for="name" class="form-label">
                                 <i class="bi bi-type me-2"></i>
-                                Event Title *
+                                Event Name *
                             </label>
                             <input 
                                 type="text" 
-                                id="title" 
-                                name="title" 
-                                value="{{ old('title') }}"
+                                id="name" 
+                                name="name" 
+                                value="{{ old('name') }}"
                                 class="form-control"
-                                placeholder="Enter event title"
+                                placeholder="Enter event name"
                                 required
                             />
-                            @error('title')
+                            @error('name')
                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                             @enderror
                         </div>

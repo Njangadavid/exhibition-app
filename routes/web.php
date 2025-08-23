@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\FormBuilderController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\PaystackController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -12,8 +13,8 @@ Route::get('/', function () {
 
 // Public event routes (no authentication required)
 Route::get('/event/{event}', [EventController::class, 'publicShow'])->name('events.public.show');
-Route::get('/event/{event}/floorplan', [EventController::class, 'publicFloorplan'])->name('events.public.floorplan');
-Route::get('/event/{event}/floorplan/{accessToken}', [EventController::class, 'publicFloorplanWithToken'])->name('events.public.floorplan-token');
+Route::get('/event/{event}/floorplan', [BookingController::class, 'publicFloorplan'])->name('events.public.floorplan');
+Route::get('/event/{event}/floorplan/{accessToken}', [BookingController::class, 'publicFloorplanWithToken'])->name('events.public.floorplan-token');
 
 // Public booking routes (no authentication required)
 Route::get('/event/{eventSlug}/book/{itemId}', [BookingController::class, 'showOwnerForm'])->name('bookings.owner-form');
@@ -21,12 +22,14 @@ Route::get('/event/{eventSlug}/booking/{accessToken}/owner', [BookingController:
 Route::post('/event/{eventSlug}/book/{itemId}', [BookingController::class, 'processOwnerForm'])->name('bookings.process-owner');
 Route::post('/event/{eventSlug}/booking/{accessToken}/owner', [BookingController::class, 'processOwnerFormWithToken'])->name('bookings.process-owner-token');
 Route::post('/event/{eventSlug}/booking/{accessToken}/remove', [BookingController::class, 'removeBooking'])->name('bookings.remove');
+Route::get('/event/{eventSlug}/booking/{accessToken}/change-space/{itemId}', [BookingController::class, 'changeSpace'])->name('bookings.change-space');
 Route::get('/event/{eventSlug}/booking/{accessToken}/members', [BookingController::class, 'showMemberForm'])->name('bookings.member-form');
 Route::post('/event/{eventSlug}/booking/{accessToken}/members', [BookingController::class, 'processMemberForm'])->name('bookings.process-members');
 Route::post('/event/{eventSlug}/booking/{accessToken}/save-members', [BookingController::class, 'saveMembers'])->name('bookings.save-members');
 Route::get('/event/{eventSlug}/booking/{accessToken}/payment', [BookingController::class, 'showPayment'])->name('bookings.payment');
-Route::post('/event/{eventSlug}/booking/{accessToken}/payment', [BookingController::class, 'processPayment'])->name('bookings.process-payment');
-Route::get('/event/{eventSlug}/booking/{accessToken}/paystack/callback', [BookingController::class, 'paystackCallback'])->name('bookings.paystack.callback');
+Route::post('/event/{eventSlug}/booking/{accessToken}/payment', [PaystackController::class, 'initializePayment'])->name('bookings.process-payment');
+Route::get('/event/{eventSlug}/booking/{accessToken}/paystack/callback', [PaystackController::class, 'handleCallback'])->name('paystack.callback');
+Route::get('/event/{eventSlug}/booking/{accessToken}/paystack/status', [PaystackController::class, 'showPaymentStatus'])->name('paystack.status');
 Route::get('/event/{eventSlug}/booking/{accessToken}/success', [BookingController::class, 'showSuccess'])->name('bookings.success');
 
 Route::get('/dashboard', function () {
@@ -56,11 +59,29 @@ Route::middleware('auth')->group(function () {
     Route::get('/events/{event}/floorplan/load', [EventController::class, 'loadFloorplan'])->name('events.floorplan.load');
     Route::get('/events/{event}/registration', [EventController::class, 'registration'])->name('events.registration');
     
+    // Floorplan maintenance routes
+    Route::get('/events/{event}/floorplan/check-orphaned-bookings', [EventController::class, 'checkOrphanedBookings'])->name('events.floorplan.check-orphaned');
+    Route::post('/events/{event}/floorplan/cleanup-orphaned-bookings', [EventController::class, 'cleanupOrphanedBookings'])->name('events.floorplan.cleanup-orphaned');
+    
     // Form Builder routes
     Route::resource('events.form-builders', FormBuilderController::class);
     Route::get('/events/{event}/form-builders/{formBuilder}/design', [FormBuilderController::class, 'design'])->name('events.form-builders.design');
     Route::get('/events/{event}/form-builders/{formBuilder}/preview', [FormBuilderController::class, 'preview'])->name('events.form-builders.preview');
     Route::get('/events/{event}/form-builders/{formBuilder}/json', [FormBuilderController::class, 'getFormJson'])->name('events.form-builders.json');
+    
+    // Email Template routes
+    Route::resource('events.email-templates', \App\Http\Controllers\Admin\EmailTemplateController::class);
+    Route::post('/events/{event}/email-templates/{emailTemplate}/clone', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'clone'])->name('events.email-templates.clone');
+    Route::post('/events/{event}/email-templates/{emailTemplate}/test', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'test'])->name('events.email-templates.test');
+    Route::patch('/events/{event}/email-templates/{emailTemplate}/toggle-status', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'toggleStatus'])->name('events.email-templates.toggle-status');
 });
+
+// Paystack routes
+Route::post('/event/{eventSlug}/booking/{accessToken}/process-payment', [PaystackController::class, 'initializePayment'])->name('bookings.process-payment');
+Route::get('/event/{eventSlug}/booking/{accessToken}/paystack-callback', [PaystackController::class, 'handleCallback'])->name('paystack.callback');
+Route::get('/event/{eventSlug}/booking/{accessToken}/paystack-status', [PaystackController::class, 'showPaymentStatus'])->name('paystack.status');
+
+// Receipt generation route
+Route::get('/event/{eventSlug}/booking/{accessToken}/receipt', [PaystackController::class, 'generateReceipt'])->name('bookings.receipt');
 
 require __DIR__.'/auth.php';

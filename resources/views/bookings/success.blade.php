@@ -8,147 +8,182 @@
         <div class="col-lg-8">
             <!-- Success Header -->
             <div class="text-center mb-5">
-                @if($booking->status === 'confirmed')
-                    <div class="mb-4">
-                        <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
-                    </div>
-                    <h1 class="h2 text-success mb-3">Booking Confirmed!</h1>
-                    <p class="lead text-muted">Your payment has been processed successfully and your booking is confirmed.</p>
-                @else
-                    <div class="mb-4">
-                        <i class="bi bi-clock-fill text-warning" style="font-size: 4rem;"></i>
-                    </div>
-                    <h1 class="h2 text-warning mb-3">Booking Pending</h1>
-                    <p class="lead text-muted">Your booking has been created. Please complete the bank transfer to confirm your reservation.</p>
-                @endif
+                <div class="mb-4">
+                    <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+                </div>
+                <h1 class="h2 text-success mb-3">🎉 Payment Successful!</h1>
+                <p class="lead text-muted">Your booking has been confirmed and payment processed successfully.</p>
+                <div class="alert alert-success d-inline-block">
+                    <strong>Status:</strong> 
+                    <span class="badge bg-success fs-6">{{ ucfirst($booking->status) }}</span>
+                </div>
             </div>
 
-            <!-- Booking Details Card -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
+            <!-- Booking Summary Card -->
+            <div class="card shadow-sm mb-4 border-success">
+                <div class="card-header bg-success text-white">
                     <h5 class="card-title mb-0">
-                        <i class="bi bi-receipt me-2"></i>Booking Details
+                        <i class="bi bi-receipt me-2"></i>Booking Summary
                     </h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <h6 class="fw-bold text-primary mb-3">Event & Space</h6>
-                            <div class="mb-2">
-                                <strong>Booking ID:</strong> #{{ $booking->id }}
+                            <h6 class="fw-bold text-success mb-3">
+                                <i class="bi bi-calendar-event me-2"></i>Event Details
+                            </h6>
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-building text-muted me-2"></i>
+                                    <strong>Event:</strong>
+                                </div>
+                                <div class="ms-4">{{ $event->name }}</div>
                             </div>
-                            <div class="mb-2">
-                                <strong>Event:</strong> {{ $event->name }}
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-geo-alt text-muted me-2"></i>
+                                    <strong>Space:</strong>
+                                </div>
+                                <div class="ms-4">
+                                    {{ $booking->floorplanItem->label ?? 'N/A' }}
+                                    <span class="badge bg-primary ms-2">{{ ucfirst($booking->floorplanItem->type ?? 'booth') }}</span>
+                                </div>
                             </div>
-                            <div class="mb-2">
-                                <strong>Space:</strong> {{ $booking->floorplanItem->label ?? 'N/A' }}
-                            </div>
-                            <div class="mb-2">
-                                <strong>Type:</strong> {{ ucfirst($booking->floorplanItem->type ?? 'booth') }}
-                            </div>
-                            <div class="mb-2">
-                                <strong>Members:</strong> {{ count($booking->member_details ?? []) }} registered
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-people text-muted me-2"></i>
+                                    <strong>Team Members:</strong>
+                                </div>
+                                <div class="ms-4">
+                                    {{ count($booking->member_details ?? []) + 1 }} total
+                                    <small class="text-muted d-block">(including you)</small>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <h6 class="fw-bold text-primary mb-3">Contact Information</h6>
-                            <div class="mb-2">
-                                <strong>Owner:</strong> {{ $booking->owner_name }}
+                            <h6 class="fw-bold text-success mb-3">
+                                <i class="bi bi-person-circle me-2"></i>Your Information
+                            </h6>
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-person text-muted me-2"></i>
+                                    <strong>Name:</strong>
+                                </div>
+                                <div class="ms-4">{{ $booking->owner_details['name'] ?? 'N/A' }}</div>
                             </div>
-                            <div class="mb-2">
-                                <strong>Email:</strong> {{ $booking->owner_email }}
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-envelope text-muted me-2"></i>
+                                    <strong>Email:</strong>
+                                </div>
+                                <div class="ms-4">{{ $booking->owner_details['email'] ?? 'N/A' }}</div>
                             </div>
-                            <div class="mb-2">
-                                <strong>Phone:</strong> {{ $booking->owner_phone }}
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-telephone text-muted me-2"></i>
+                                    <strong>Phone:</strong>
+                                </div>
+                                <div class="ms-4">{{ $booking->owner_details['phone'] ?? 'N/A' }}</div>
                             </div>
-                            <div class="mb-2">
-                                <strong>Company:</strong> {{ $booking->company_name }}
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-briefcase text-muted me-2"></i>
+                                    <strong>Company:</strong>
+                                </div>
+                                <div class="ms-4">{{ $booking->owner_details['company_name'] ?? 'N/A' }}</div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Payment Information -->
-                    @if($booking->payments && $booking->payments->count() > 0)
-                        <hr class="my-4">
-                        <h6 class="fw-bold text-primary mb-3">Payment Information</h6>
-                        @foreach($booking->payments as $payment)
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span>Payment #{{ $payment->id }}</span>
-                                <span class="badge bg-{{ $payment->status === 'completed' ? 'success' : ($payment->status === 'pending' ? 'warning' : 'danger') }}">
-                                    {{ ucfirst($payment->status) }}
-                                </span>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span>Amount</span>
-                                <span class="fw-bold">${{ number_format($payment->amount, 2) }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span>Method</span>
-                                <span>{{ ucfirst(str_replace('_', ' ', $payment->payment_method)) }}</span>
-                            </div>
-                            @if($payment->gateway_transaction_id)
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span>Transaction ID</span>
-                                    <span class="font-monospace small">{{ $payment->gateway_transaction_id }}</span>
-                                </div>
-                            @endif
-                        @endforeach
-                    @endif
                 </div>
             </div>
 
-            <!-- Next Steps -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header">
+            <!-- Next Steps Card -->
+            <div class="card shadow-sm mb-4 border-info">
+                <div class="card-header bg-info text-white">
                     <h5 class="card-title mb-0">
-                        <i class="bi bi-list-check me-2"></i>What's Next?
+                        <i class="bi bi-list-check me-2"></i>What Happens Next?
                     </h5>
                 </div>
                 <div class="card-body">
-                    @if($booking->status === 'confirmed')
-                        <div class="alert alert-success">
-                            <h6 class="alert-heading">Your booking is confirmed!</h6>
-                            <hr>
-                            <ul class="mb-0">
-                                <li>You will receive a confirmation email shortly with your booking details</li>
-                                <li>Login credentials will be sent to {{ $booking->owner_email }}</li>
-                                <li>You can manage your booking and add more members through your dashboard</li>
-                                <li>Event details and updates will be sent to your registered email</li>
-                            </ul>
-                        </div>
-                    @else
-                        <div class="alert alert-warning">
-                            <h6 class="alert-heading">Complete your payment</h6>
-                            <p>To confirm your booking, please complete the bank transfer:</p>
-                            <hr>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <strong>Bank Name:</strong> Exhibition Bank<br>
-                                    <strong>Account Name:</strong> {{ $event->name }}<br>
-                                    <strong>Account Number:</strong> 1234567890
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3">
+                                    <i class="bi bi-envelope text-info"></i>
                                 </div>
-                                <div class="col-md-6">
-                                    <strong>Sort Code:</strong> 12-34-56<br>
-                                    <strong>Reference:</strong> BOOKING-{{ $booking->id }}<br>
-                                    <strong>Amount:</strong> ${{ number_format($booking->floorplanItem->price ?? 0, 2) }}
+                                <div>
+                                    <h6 class="fw-bold">Confirmation Email</h6>
+                                    <p class="small text-muted mb-0">You'll receive a detailed confirmation email shortly</p>
                                 </div>
                             </div>
-                            <hr class="mb-2">
-                            <p class="mb-0 small">Your booking will be confirmed once payment is verified (usually within 24 hours).</p>
                         </div>
-                    @endif
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3">
+                                    <i class="bi bi-calendar-check text-info"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold">Event Updates</h6>
+                                    <p class="small text-muted mb-0">Stay tuned for event details and important updates</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3">
+                                    <i class="bi bi-gear text-info"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold">Manage Your Booking</h6>
+                                    <p class="small text-muted mb-0">Use your access link to modify details anytime</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3">
+                                    <i class="bi bi-people text-info"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold">Team Management</h6>
+                                    <p class="small text-muted mb-0">Add or update team members as needed</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Action Buttons -->
+            <!-- Important Information -->
+            <div class="alert alert-info">
+                <div class="d-flex align-items-start">
+                    <i class="bi bi-info-circle-fill me-3 mt-1"></i>
+                    <div>
+                        <h6 class="alert-heading">Important Information</h6>
+                        <ul class="mb-0 small">
+                            <li>Keep your access link safe - you'll need it to manage your booking</li>
+                            <li>All communications will be sent to: <strong>{{ $booking->owner_details['email'] ?? 'N/A' }}</strong></li>
+                            <li>For any questions, contact the event organizers</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Next Step: View Receipt -->
             <div class="text-center">
-                <a href="{{ route('events.public.floorplan-token', ['event' => $event->slug, 'accessToken' => $booking->access_token]) }}" class="btn btn-outline-primary me-3">
-                    <i class="bi bi-arrow-left me-2"></i>Back to Event
-                </a>
-                @if($booking->status === 'confirmed')
-                    <button type="button" class="btn btn-success" onclick="window.print()">
-                        <i class="bi bi-printer me-2"></i>Print Confirmation
-                    </button>
+                <div class="mb-3">
+                    <h5 class="text-success">Next Step: Get Your Receipt</h5>
+                    <p class="text-muted">Download and print your payment receipt for your records</p>
+                </div>
+                @if($booking->payments && $booking->payments->where('status', 'completed')->count() > 0)
+                    <a href="{{ route('bookings.receipt', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]) }}" class="btn btn-success btn-lg">
+                        <i class="bi bi-receipt me-2"></i>View & Print Receipt
+                    </a>
+                @else
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Receipt will be available once payment is confirmed
+                    </div>
                 @endif
             </div>
         </div>
@@ -168,6 +203,15 @@
         margin: 0 !important;
         padding: 0 !important;
     }
+    
+    .card {
+        border: 1px solid #000 !important;
+        box-shadow: none !important;
+    }
+}
+
+.bg-opacity-10 {
+    background-color: rgba(var(--bs-info-rgb), 0.1) !important;
 }
 </style>
 @endpush

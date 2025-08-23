@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('event_id')->constrained()->onDelete('cascade');
             $table->foreignId('floorplan_item_id')->constrained()->onDelete('cascade');
             $table->string('booking_reference')->unique();
-            $table->enum('status', ['pending', 'confirmed', 'cancelled', 'completed'])->default('pending');
+            $table->enum('status', ['reserved', 'booked', 'cancelled', 'completed'])->default('reserved');
             $table->decimal('total_amount', 10, 2);
             $table->json('owner_details')->nullable(); // Store owner form submission data
             $table->json('member_details')->nullable(); // Store member form submission data

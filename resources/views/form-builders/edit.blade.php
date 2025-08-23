@@ -20,7 +20,7 @@
                 <div class="position-relative">
                     <div class="bg-gradient-to-br from-blue-400 to-purple-600 d-flex align-items-center justify-content-center position-relative overflow-hidden" style="height: 150px;">
                         @if($event->logo)
-                            <img src="{{ Storage::url($event->logo) }}" alt="{{ $event->title }}" class="w-100 h-100 object-fit-cover">
+                            <img src="{{ Storage::url($event->logo) }}" alt="{{ $event->name }}" class="w-100 h-100 object-fit-cover">
                         @else
                             <i class="bi bi-calendar-event text-white" style="font-size: 3rem;"></i>
                         @endif
@@ -38,7 +38,7 @@
                     </div>
 
                     <div class="position-absolute bottom-0 start-0 end-0 bg-dark bg-opacity-75 text-white p-3">
-                        <h1 class="h4 mb-1">{{ $event->title }}</h1>
+                        <h1 class="h4 mb-1">{{ $event->name }}</h1>
                         <p class="mb-0 opacity-75 small">{{ $event->start_date->format('F d, Y') }} - {{ $event->end_date->format('F d, Y') }}</p>
                     </div>
                 </div>
@@ -166,20 +166,97 @@
                     <!-- Form Preview -->
                     <div class="col-lg-8">
                         <div class="card">
-                            <div class="card-header">
+                            <div class="card-header d-flex justify-content-between align-items-center">
                                 <h5 class="mb-0">
                                     <i class="bi bi-eye me-2"></i>Form Preview
                                 </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="text-center text-muted py-5">
-                                    <i class="bi bi-file-earmark-text fs-1 d-block mb-3"></i>
-                                    <h6>Form Design</h6>
-                                    <p class="mb-3">Click "Design Form" to add fields and customize your form layout</p>
-                                    <a href="{{ route('events.form-builders.design', [$event, $formBuilder]) }}" class="btn btn-primary">
-                                        <i class="bi bi-pencil-square me-2"></i>Open Form Designer
+                                <div class="d-flex gap-2">
+                                    <a href="{{ route('events.form-builders.design', [$event, $formBuilder]) }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-pencil-square me-2"></i>Edit Form
+                                    </a>
+                                    <a href="{{ route('events.form-builders.preview', [$event, $formBuilder]) }}" class="btn btn-outline-info btn-sm" target="_blank">
+                                        <i class="bi bi-eye-fill me-2"></i>Full Preview
                                     </a>
                                 </div>
+                            </div>
+                            <div class="card-body">
+                                @if($formBuilder->fields->count() > 0)
+                                    <div class="form-preview" style="max-width: 800px; margin: 0 auto;">
+                                        <form class="needs-validation" novalidate>
+                                            @php
+                                                $currentSection = null;
+                                                $sectionFields = collect();
+                                            @endphp
+                                            
+                                            @foreach($formBuilder->fields as $field)
+                                                @if($field->type === 'section')
+                                                    @if($currentSection && $sectionFields->count() > 0)
+                                                        <!-- Render previous section -->
+                                                        <div class="card mb-4">
+                                                            <div class="card-header bg-light">
+                                                                <h6 class="mb-0">{{ $currentSection->label }}</h6>
+                                                            </div>
+                                                            <div class="card-body">
+                                                                <div class="row">
+                                                                    @foreach($sectionFields as $sectionField)
+                                                                        @include('form-builders.partials.field-preview', ['field' => $sectionField])
+                                                                    @endforeach
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        @php $sectionFields = collect(); @endphp
+                                                    @endif
+                                                    @php $currentSection = $field; @endphp
+                                                @else
+                                                    @if($currentSection)
+                                                        @php $sectionFields->push($field); @endphp
+                                                    @else
+                                                        <!-- Fields outside sections -->
+                                                        <div class="row">
+                                                            @include('form-builders.partials.field-preview', ['field' => $field])
+                                                        </div>
+                                                    @endif
+                                                @endif
+                                            @endforeach
+                                            
+                                            @if($currentSection && $sectionFields->count() > 0)
+                                                <!-- Render last section -->
+                                                <div class="card mb-4">
+                                                    <div class="card-header bg-light">
+                                                        <h6 class="mb-0">{{ $currentSection->label }}</h6>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div class="row">
+                                                            @foreach($sectionFields as $sectionField)
+                                                                @include('form-builders.partials.field-preview', ['field' => $sectionField])
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endif
+                                            
+                                            <!-- Submit Button -->
+                                            <div class="row">
+                                                <div class="col-12">
+                                                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                                        <button type="submit" class="btn btn-primary" disabled>
+                                                            {{ $formBuilder->submit_button_text ?: 'Submit Registration' }}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                @else
+                                    <div class="text-center text-muted py-5">
+                                        <i class="bi bi-file-earmark-text fs-1 d-block mb-3"></i>
+                                        <h6>No Form Fields Yet</h6>
+                                        <p class="mb-3">Click "Edit Form" to add fields and customize your form layout</p>
+                                        <a href="{{ route('events.form-builders.design', [$event, $formBuilder]) }}" class="btn btn-primary">
+                                            <i class="bi bi-pencil-square me-2"></i>Add Form Fields
+                                        </a>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -187,6 +264,4 @@
             </form>
         </div>
     </div>
-
-
 </x-app-layout>

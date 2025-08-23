@@ -155,7 +155,7 @@
                     @foreach($events as $event)
                         <div class="col-lg-6 col-xl-4 event-card" 
                              data-status="{{ $event->status }}"
-                             data-title="{{ strtolower($event->title) }}"
+                             data-title="{{ strtolower($event->name) }}"
                              data-description="{{ strtolower($event->description) }}"
                              data-date="{{ $event->start_date->format('Y-m-d') }}">
                             <div class="card border-0 shadow-sm h-100 event-item">
@@ -165,9 +165,11 @@
                                         <div class="d-flex align-items-center">
                                             <div class="bg-gradient-to-br from-blue-400 to-purple-600 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
                                                 @if($event->logo)
-                                                    <img src="{{ Storage::url($event->logo) }}" alt="{{ $event->title }}" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
+                                                    <img src="{{ Storage::url($event->logo) }}" alt="{{ $event->name }}" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
                                                 @else
-                                                    <i class="bi bi-calendar-event text-white fs-5"></i>
+                                                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                                        <i class="bi bi-calendar-event text-white"></i>
+                                                    </div>
                                                 @endif
                                             </div>
                                             <div>
@@ -220,8 +222,10 @@
 
                                 <!-- Event Content -->
                                 <div class="card-body pt-2">
-                                    <h5 class="card-title fw-bold mb-2 text-truncate" title="{{ $event->title }}">
-                                        {{ $event->title }}
+                                    <h5 class="card-title fw-bold mb-2 text-truncate" title="{{ $event->name }}">
+                                        <a href="{{ route('events.dashboard', $event) }}" class="text-decoration-none text-dark hover-text-primary" style="transition: color 0.2s ease;">
+                                            {{ $event->name }}
+                                        </a>
                                     </h5>
                                     
                                     <p class="text-muted small mb-3 line-clamp-2" title="{{ $event->description }}">

@@ -17,7 +17,7 @@ class Event extends Model
      * The attributes that are mass assignable.
      */
     protected $fillable = [
-        'title',
+        'name',
         'slug',
         'description',
         'status',
@@ -101,9 +101,9 @@ class Event extends Model
     /**
      * Generate a unique slug for the event.
      */
-    public static function generateSlug($title)
+    public static function generateSlug($name)
     {
-        $slug = Str::slug($title);
+        $slug = Str::slug($name);
         $originalSlug = $slug;
         $counter = 1;
 
@@ -185,5 +185,108 @@ class Event extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    /**
+     * Get the email templates for the event
+     */
+    public function emailTemplates(): HasMany
+    {
+        return $this->hasMany(EmailTemplate::class);
+    }
+
+    /**
+     * Get the count of booked booths for this event
+     */
+    public function getBookedBoothsCountAttribute(): int
+    {
+        if (!$this->floorplanDesign) {
+            return 0;
+        }
+
+        $bookableItemIds = $this->floorplanDesign->items()
+            ->where('bookable', true)
+            ->pluck('id');
+
+        return $this->bookings()
+            ->whereIn('floorplan_item_id', $bookableItemIds)
+            ->where('status', 'booked')
+            ->count();
+    }
+
+    /**
+     * Get the count of reserved booths for this event
+     */
+    public function getReservedBoothsCountAttribute(): int
+    {
+        if (!$this->floorplanDesign) {
+            return 0;
+        }
+
+        $bookableItemIds = $this->floorplanDesign->items()
+            ->where('bookable', true)
+            ->pluck('id');
+
+        return $this->bookings()
+            ->whereIn('floorplan_item_id', $bookableItemIds)
+            ->where('status', 'reserved')
+            ->count();
+    }
+
+    /**
+     * Get the count of available booths for this event
+     */
+    public function getAvailableBoothsCountAttribute(): int
+    {
+        if (!$this->floorplanDesign) {
+            return 0;
+        }
+
+        $totalBookableItems = $this->floorplanDesign->items()
+            ->where('bookable', true)
+            ->count();
+
+        $bookedOrReservedCount = $this->bookings()
+            ->whereIn('status', ['booked', 'reserved'])
+            ->whereHas('floorplanItem', function($query) {
+                $query->where('bookable', true);
+            })
+            ->count();
+
+        return max(0, $totalBookableItems - $bookedOrReservedCount);
+    }
+
+    /**
+     * Get the total revenue collected for this event
+     */
+    public function getTotalRevenueAttribute(): float
+    {
+        return $this->bookings()
+            ->with('payments')
+            ->get()
+            ->sum(function($booking) {
+                return $booking->payments()
+                    ->where('status', 'completed')
+                    ->sum('amount');
+            });
+    }
+
+    /**
+     * Get the payment rate percentage for this event
+     */
+    public function getPaymentRateAttribute(): int
+    {
+        $totalBookings = $this->bookings()->count();
+        if ($totalBookings === 0) {
+            return 0;
+        }
+
+        $paidBookings = $this->bookings()
+            ->whereHas('payments', function($query) {
+                $query->where('status', 'completed');
+            })
+            ->count();
+
+        return round(($paidBookings / $totalBookings) * 100);
     }
 }

@@ -1,9 +1,10 @@
+@section('title', $event->name)
 <x-app-layout>
     <x-slot name="header">
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="h4 mb-0">
                 <i class="bi bi-calendar-event me-2"></i>
-                {{ $event->title }}
+                {{ $event->name }}
             </h2>
             <div class="d-flex gap-2">
                 <a href="{{ route('events.edit', $event) }}" class="btn btn-primary">
@@ -46,7 +47,7 @@
 
                     <!-- Event Title Overlay -->
                     <div class="position-absolute bottom-0 start-0 end-0 bg-dark bg-opacity-75 p-4">
-                        <h1 class="h2 mb-0 text-white">{{ $event->title }}</h1>
+                        <h1 class="h2 mb-0 text-white">{{ $event->name }}</h1>
                     </div>
                 </div>
 

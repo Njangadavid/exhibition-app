@@ -1,9 +1,10 @@
+@section('title', __('Edit Event') . ': ' . $event->name)
 <x-app-layout>
     <x-slot name="header">
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="h4 mb-0">
                 <i class="bi bi-pencil me-2"></i>
-                {{ __('Edit Event') }}: {{ $event->title }}
+                {{ __('Edit Event') }}: {{ $event->name }}
             </h2>
             <div class="d-flex gap-2">
                 <a href="{{ route('events.show', $event) }}" class="btn btn-secondary">
@@ -28,21 +29,13 @@
 
                         <!-- Title -->
                         <div class="mb-3">
-                            <label for="title" class="form-label">
-                                <i class="bi bi-type me-2"></i>
-                                Event Title *
-                            </label>
-                            <input 
-                                type="text" 
-                                id="title" 
-                                name="title" 
-                                value="{{ old('title', $event->title) }}"
-                                class="form-control"
-                                placeholder="Enter event title"
-                                required
-                            />
-                            @error('title')
-                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            <label for="name" class="form-label">{{ __('Event Name') }}</label>
+                            <input type="text" class="form-control @error('name') is-invalid @enderror" 
+                                   id="name" name="name" 
+                                   value="{{ old('name', $event->name) }}" 
+                                   placeholder="{{ __('Enter event name') }}" required>
+                            @error('name')
+                                <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
 

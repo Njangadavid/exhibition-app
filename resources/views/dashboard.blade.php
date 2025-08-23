@@ -94,20 +94,20 @@
                 </div>
                 <div class="list-group list-group-flush">
                     @forelse(App\Models\Event::latest()->take(3)->get() as $event)
-                        <a href="{{ route('events.show', $event) }}" class="list-group-item list-group-item-action">
+                        <a href="{{ route('events.dashboard', $event) }}" class="list-group-item list-group-item-action">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div class="d-flex align-items-center">
                                     <div class="me-3">
                                         <div class="bg-gradient-to-br from-blue-400 to-purple-600 rounded d-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
                                             @if($event->logo)
-                                                <img src="{{ Storage::url($event->logo) }}" alt="{{ $event->title }}" class="rounded" style="width: 64px; height: 64px; object-fit: cover;">
+                                                <img src="{{ Storage::url($event->logo) }}" alt="{{ $event->name }}" class="rounded" style="width: 64px; height: 64px; object-fit: cover;">
                                             @else
                                                 <i class="bi bi-calendar-event text-white fs-3"></i>
                                             @endif
                                         </div>
                                     </div>
                                     <div>
-                                        <h5 class="mb-1">{{ $event->title }}</h5>
+                                        <h5 class="mb-1">{{ $event->name }}</h5>
                                         <p class="mb-1 text-muted small">{{ Str::limit($event->description, 100) }}</p>
                                         <small class="text-muted">
                                             {{ $event->start_date->format('M d, Y') }} - {{ $event->end_date->format('M d, Y') }}
@@ -145,40 +145,57 @@
                     <div class="card">
                         <div class="card-body">
                             <h3 class="h5 mb-3">
-                                <i class="bi bi-plus-circle me-2"></i>
+                                <i class="bi bi-lightning me-2"></i>
                                 Quick Actions
                             </h3>
-                            <div class="d-grid gap-2">
+                            
+                            <!-- Primary Actions -->
+                            <div class="d-grid gap-2 mb-3">
                                 <a href="{{ route('events.create') }}" class="btn btn-primary">
-                                    <i class="bi bi-plus me-2"></i>
+                                    <i class="bi bi-plus-circle me-2"></i>
                                     Create New Event
-                                </a>
-                                <a href="{{ route('events.index') }}" class="btn btn-outline-secondary">
-                                    <i class="bi bi-list me-2"></i>
-                                    View All Events
-                                </a>
-                                <a href="{{ route('events.index') }}" class="btn btn-outline-secondary">
-                                    <i class="bi bi-graph-up me-2"></i>
-                                    Events Analytics
                                 </a>
                             </div>
                             
-                            <!-- Public Links Section -->
+                            <!-- Secondary Actions -->
+                            <div class="d-grid gap-2">
+                                <a href="{{ route('events.index') }}" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-calendar-event me-2"></i>
+                                    Manage Events
+                                </a>
+                                <a href="{{ route('admin.payment-methods.index') }}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-credit-card me-2"></i>
+                                    Payment Methods
+                                </a>
+                            </div>
+                            
+                            <!-- Quick Stats -->
                             <div class="mt-3 pt-3 border-top">
                                 <h6 class="text-muted mb-2">
-                                    <i class="bi bi-globe me-2"></i>Public Access
+                                    <i class="bi bi-bar-chart me-2"></i>Quick Overview
                                 </h6>
-                                <div class="d-grid gap-2">
-                                    @if(App\Models\Event::where('status', 'published')->orWhere('status', 'active')->count() > 0)
-                                        <a href="{{ route('events.index') }}" class="btn btn-outline-success btn-sm">
-                                            <i class="bi bi-globe me-2"></i>
-                                            View Public Events
-                                        </a>
-                                    @else
-                                        <div class="text-muted small text-center py-2">
-                                            No public events available
+                                <div class="d-flex flex-column gap-2">
+                                    <div class="d-flex justify-content-between align-items-center bg-light rounded p-2">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-calendar-check text-primary me-2"></i>
+                                            <small class="text-muted">Active Events</small>
                                         </div>
-                                    @endif
+                                        <span class="badge bg-primary fs-6">{{ App\Models\Event::where('status', 'active')->count() }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center bg-light rounded p-2">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-bookmark-star text-success me-2"></i>
+                                            <small class="text-muted">Total Bookings</small>
+                                        </div>
+                                        <span class="badge bg-success fs-6">{{ App\Models\Booking::count() }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center bg-light rounded p-2">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-credit-card text-info me-2"></i>
+                                            <small class="text-muted">Payment Methods</small>
+                                        </div>
+                                        <span class="badge bg-info fs-6">{{ App\Models\PaymentMethod::count() }}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -193,33 +210,108 @@
                                 Recent Activity
                             </h3>
                             <div class="d-flex flex-column gap-3">
-                                <div class="d-flex align-items-start">
-                                    <div class="flex-shrink-0">
-                                        <div class="bg-primary rounded-circle" style="width: 8px; height: 8px; margin-top: 8px;"></div>
+                                @php
+                                    // Get recent activities
+                                    $recentActivities = collect();
+                                    
+                                    // Recent events (last 7 days)
+                                    $recentEvents = App\Models\Event::where('created_at', '>=', now()->subDays(7))
+                                        ->latest()
+                                        ->take(2)
+                                        ->get()
+                                        ->map(function($event) {
+                                            return [
+                                                'type' => 'event_created',
+                                                'message' => "New event '{$event->name}' created",
+                                                'time' => $event->created_at,
+                                                'color' => 'primary',
+                                                'icon' => 'bi-calendar-plus',
+                                                'link' => route('events.dashboard', $event)
+                                            ];
+                                        });
+                                    
+                                    // Recent bookings (last 7 days)
+                                    $recentBookings = App\Models\Booking::with(['event', 'floorplanItem'])
+                                        ->where('created_at', '>=', now()->subDays(7))
+                                        ->latest()
+                                        ->take(2)
+                                        ->get()
+                                        ->map(function($booking) {
+                                            return [
+                                                'type' => 'booking_created',
+                                                'message' => "New booking for '{$booking->event->name}'",
+                                                'time' => $booking->created_at,
+                                                'color' => 'success',
+                                                'icon' => 'bi-bookmark-check',
+                                                'link' => route('events.dashboard', $booking->event)
+                                            ];
+                                        });
+                                    
+                                    // Recent payments (last 7 days)
+                                    $recentPayments = App\Models\Payment::with(['booking.event'])
+                                        ->where('created_at', '>=', now()->subDays(7))
+                                        ->where('status', 'completed')
+                                        ->latest()
+                                        ->take(2)
+                                        ->get()
+                                        ->map(function($payment) {
+                                            return [
+                                                'type' => 'payment_completed',
+                                                'message' => "Payment received for '{$payment->booking->event->name}'",
+                                                'time' => $payment->created_at,
+                                                'color' => 'info',
+                                                'icon' => 'bi-credit-card',
+                                                'link' => route('events.dashboard', $payment->booking->event)
+                                            ];
+                                        });
+                                    
+                                    // Combine and sort all activities by time
+                                    $recentActivities = $recentEvents
+                                        ->concat($recentBookings)
+                                        ->concat($recentPayments)
+                                        ->sortByDesc('time')
+                                        ->take(5);
+                                @endphp
+                                
+                                @forelse($recentActivities as $activity)
+                                    <div class="d-flex align-items-start">
+                                        <div class="flex-shrink-0">
+                                            <div class="bg-{{ $activity['color'] }} rounded-circle" style="width: 8px; height: 8px; margin-top: 8px;"></div>
+                                        </div>
+                                        <div class="ms-3 flex-grow-1">
+                                            <a href="{{ $activity['link'] }}" class="text-decoration-none">
+                                                <p class="mb-1 small text-dark">
+                                                    <i class="bi {{ $activity['icon'] }} me-1"></i>
+                                                    {{ $activity['message'] }}
+                                                </p>
+                                            </a>
+                                            <small class="text-muted">
+                                                @if($activity['time']->diffInHours(now()) < 1)
+                                                    {{ $activity['time']->diffInMinutes(now()) }} minutes ago
+                                                @elseif($activity['time']->diffInDays(now()) < 1)
+                                                    {{ $activity['time']->diffInHours(now()) }} hours ago
+                                                @else
+                                                    {{ $activity['time']->diffInDays(now()) }} days ago
+                                                @endif
+                                            </small>
+                                        </div>
                                     </div>
-                                    <div class="ms-3">
-                                        <p class="mb-1 small">Dashboard updated with real event data</p>
-                                        <small class="text-muted">Just now</small>
+                                @empty
+                                    <div class="text-center py-3">
+                                        <i class="bi bi-activity text-muted fs-4 d-block mb-2"></i>
+                                        <p class="text-muted small mb-0">No recent activity</p>
+                                        <small class="text-muted">Activities will appear here as they happen</small>
                                     </div>
-                                </div>
-                                <div class="d-flex align-items-start">
-                                    <div class="flex-shrink-0">
-                                        <div class="bg-success rounded-circle" style="width: 8px; height: 8px; margin-top: 8px;"></div>
+                                @endforelse
+                                
+                                @if($recentActivities->count() > 0)
+                                    <div class="text-center mt-2">
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock me-1"></i>
+                                            Showing last 7 days of activity
+                                        </small>
                                     </div>
-                                    <div class="ms-3">
-                                        <p class="mb-1 small">Event model and database created</p>
-                                        <small class="text-muted">Recently</small>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-start">
-                                    <div class="flex-shrink-0">
-                                        <div class="bg-info rounded-circle" style="width: 8px; height: 8px; margin-top: 8px;"></div>
-                                    </div>
-                                    <div class="ms-3">
-                                        <p class="mb-1 small">Sample events seeded successfully</p>
-                                        <small class="text-muted">Recently</small>
-                                    </div>
-                                </div>
+                                @endif
                             </div>
                         </div>
                     </div>

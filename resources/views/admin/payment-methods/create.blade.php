@@ -56,11 +56,16 @@
                                     </div>
                                     
                                     <div class="col-md-6">
-                                        <label for="code" class="form-label fw-medium">Payment Code *</label>
-                                        <input type="text" class="form-control @error('code') is-invalid @enderror" 
-                                               id="code" name="code" value="{{ old('code') }}" 
-                                               placeholder="e.g., paystack, stripe, bank_transfer" required>
-                                        <small class="text-muted">Unique identifier for this payment method</small>
+                                        <label for="code" class="form-label fw-medium">Payment Code</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control bg-light @error('code') is-invalid @enderror" 
+                                                   id="code" name="code" value="{{ old('code') }}" 
+                                                   placeholder="Auto-generated from name" readonly>
+                                            <button class="btn btn-outline-secondary" type="button" id="generateCode">
+                                                <i class="bi bi-arrow-clockwise"></i>
+                                            </button>
+                                        </div>
+                                        <small class="text-muted">Auto-generated unique identifier (can be customized if needed)</small>
                                         @error('code')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -77,11 +82,28 @@
                                     </div>
                                     
                                     <div class="col-md-6">
-                                        <label for="icon" class="form-label fw-medium">Icon Class</label>
-                                        <input type="text" class="form-control @error('icon') is-invalid @enderror" 
-                                               id="icon" name="icon" value="{{ old('icon') }}" 
-                                               placeholder="e.g., bi bi-credit-card">
-                                        <small class="text-muted">Bootstrap Icons class (optional)</small>
+                                        <label for="icon" class="form-label fw-medium">Icon</label>
+                                        <select class="form-select @error('icon') is-invalid @enderror" id="icon" name="icon">
+                                            <option value="">Select an Icon</option>
+                                            <optgroup label="Payment Icons">
+                                                <option value="bi bi-credit-card" {{ old('icon') == 'bi bi-credit-card' ? 'selected' : '' }}>💳 Credit Card</option>
+                                                <option value="bi bi-bank" {{ old('icon') == 'bi bi-bank' ? 'selected' : '' }}>🏦 Bank</option>
+                                                <option value="bi bi-wallet2" {{ old('icon') == 'bi bi-wallet2' ? 'selected' : '' }}>👛 Wallet</option>
+                                                <option value="bi bi-phone" {{ old('icon') == 'bi bi-phone' ? 'selected' : '' }}>📱 Mobile</option>
+                                                <option value="bi bi-currency-exchange" {{ old('icon') == 'bi bi-currency-exchange' ? 'selected' : '' }}>💱 Currency</option>
+                                                <option value="bi bi-cash-coin" {{ old('icon') == 'bi bi-cash-coin' ? 'selected' : '' }}>🪙 Cash</option>
+                                                <option value="bi bi-paypal" {{ old('icon') == 'bi bi-paypal' ? 'selected' : '' }}>PayPal</option>
+                                                <option value="bi bi-stripe" {{ old('icon') == 'bi bi-stripe' ? 'selected' : '' }}>Stripe</option>
+                                            </optgroup>
+                                            <optgroup label="General Icons">
+                                                <option value="bi bi-shield-check" {{ old('icon') == 'bi bi-shield-check' ? 'selected' : '' }}>🛡️ Security</option>
+                                                <option value="bi bi-lightning" {{ old('icon') == 'bi bi-lightning' ? 'selected' : '' }}>⚡ Fast</option>
+                                                <option value="bi bi-globe" {{ old('icon') == 'bi bi-globe' ? 'selected' : '' }}>🌐 Global</option>
+                                                <option value="bi bi-star" {{ old('icon') == 'bi bi-star' ? 'selected' : '' }}>⭐ Premium</option>
+                                                <option value="bi bi-heart" {{ old('icon') == 'bi bi-heart' ? 'selected' : '' }}>❤️ Favorite</option>
+                                            </optgroup>
+                                        </select>
+                                        <small class="text-muted">Choose an icon that represents this payment method</small>
                                         @error('icon')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -163,6 +185,34 @@
                                                    placeholder="https://yourdomain.com/webhooks/paystack">
                                             <small class="text-muted">For payment notifications</small>
                                         </div>
+                                        
+                                        <!-- Currency Selection -->
+                                        <div class="mb-3">
+                                            <label for="currency" class="form-label fw-medium">Currency *</label>
+                                            <select class="form-select" id="currency" name="config[currency]" required>
+                                                <option value="">Select Currency</option>
+                                                <option value="USD" {{ old('config.currency') == 'USD' ? 'selected' : '' }}>USD - US Dollar</option>
+                                                <option value="NGN" {{ old('config.currency') == 'NGN' ? 'selected' : '' }}>NGN - Nigerian Naira</option>
+                                                <option value="EUR" {{ old('config.currency') == 'EUR' ? 'selected' : '' }}>EUR - Euro</option>
+                                                <option value="GBP" {{ old('config.currency') == 'GBP' ? 'selected' : '' }}>GBP - British Pound</option>
+                                                <option value="KES" {{ old('config.currency') == 'KES' ? 'selected' : '' }}>KES - Kenyan Shilling</option>
+                                                <option value="GHS" {{ old('config.currency') == 'GHS' ? 'selected' : '' }}>GHS - Ghanaian Cedi</option>
+                                                <option value="ZAR" {{ old('config.currency') == 'ZAR' ? 'selected' : '' }}>ZAR - South African Rand</option>
+                                            </select>
+                                            <small class="text-muted">Primary currency for transactions</small>
+                                        </div>
+                                        
+                                        <!-- Test Mode Toggle -->
+                                        <div class="mb-3">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="test_mode" 
+                                                       name="config[test_mode]" value="1" {{ old('config.test_mode') ? 'checked' : '' }}>
+                                                <label class="form-check-label fw-medium" for="test_mode">
+                                                    Test Mode
+                                                </label>
+                                            </div>
+                                            <small class="text-muted">Use sandbox/test keys for development</small>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -213,3 +263,63 @@
         </div>
     </div>
 </x-event-layout>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const nameInput = document.getElementById('name');
+    const codeInput = document.getElementById('code');
+    const generateCodeBtn = document.getElementById('generateCode');
+    
+    // Function to generate payment code from name
+    function generatePaymentCode(name) {
+        if (!name) return '';
+        
+        // Convert to lowercase, replace spaces with underscores, remove special characters
+        let code = name.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+            .replace(/\s+/g, '_') // Replace spaces with underscores
+            .replace(/_+/g, '_') // Replace multiple underscores with single
+            .trim();
+        
+        // Ensure it's not empty
+        if (!code) {
+            code = 'payment_method';
+        }
+        
+        return code;
+    }
+    
+    // Auto-generate code when name changes
+    nameInput.addEventListener('input', function() {
+        const generatedCode = generatePaymentCode(this.value);
+        codeInput.value = generatedCode;
+    });
+    
+    // Generate code button click
+    generateCodeBtn.addEventListener('click', function() {
+        const generatedCode = generatePaymentCode(nameInput.value);
+        codeInput.value = generatedCode;
+    });
+    
+    // Make code field editable on double-click
+    codeInput.addEventListener('dblclick', function() {
+        this.readOnly = false;
+        this.classList.remove('bg-light');
+        this.focus();
+    });
+    
+    // Make code field readonly again when it loses focus
+    codeInput.addEventListener('blur', function() {
+        this.readOnly = true;
+        this.classList.add('bg-light');
+    });
+    
+    // Generate initial code if name is pre-filled
+    if (nameInput.value) {
+        const generatedCode = generatePaymentCode(nameInput.value);
+        codeInput.value = generatedCode;
+    }
+});
+</script>
+@endpush

@@ -23,30 +23,30 @@ class BookingController extends Controller
     {
         // Find the event
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        
+
         // Find the existing booking by access token
         $booking = $event->bookings()
             ->where('access_token', $accessToken)
             ->where('access_token_expires_at', '>', now())
             ->firstOrFail();
-        
+
         // Check if access token is valid
         if (!$booking->isAccessTokenValid()) {
             return redirect()->route('events.public.floorplan', $eventSlug)
                 ->with('error', 'Access token has expired or is invalid.');
         }
-        
+
         // Get the floorplan item
         $item = $booking->floorplanItem;
         if (!$item) {
             return redirect()->route('events.public.floorplan', $eventSlug)
                 ->with('error', 'Floorplan item not found.');
         }
-        
+
         // Check if this is a new booking or editing existing
         $isEditing = true;
         $existingBooking = $booking;
-        
+
         return view('bookings.owner-form', compact('event', 'item', 'isEditing', 'existingBooking', 'booking'));
     }
 
@@ -57,32 +57,32 @@ class BookingController extends Controller
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
         $item = FloorplanItem::findOrFail($itemId);
-        
+
         // Check if item is available for booking (only for new bookings)
         $currentBookingId = session('current_booking_id');
         if (!$currentBookingId) {
             // Only check availability for new bookings
             $existingBooking = Booking::where('floorplan_item_id', $itemId)
                 ->where('event_id', $event->id)
-                ->whereIn('status', ['pending', 'confirmed'])
+                ->whereIn('status', ['reserved', 'booked'])
                 ->first();
-            
+
             if ($existingBooking) {
                 return redirect()->back()->with('error', 'This item is already booked or reserved.');
             }
         }
-        
+
         // Check if there's an existing booking for this item
         $existingBooking = Booking::where('floorplan_item_id', $itemId)
             ->where('event_id', $event->id)
-            ->whereIn('status', ['pending', 'confirmed'])
+            ->whereIn('status', ['reserved', 'booked'])
             ->latest()
             ->first();
-        
+
         // Determine if we're editing an existing booking
         $isEditing = false;
         $currentBookingId = session('current_booking_id');
-        
+
         if ($existingBooking) {
             // If there's an existing booking, check if it's the current session booking
             if ($currentBookingId && $existingBooking->id == $currentBookingId) {
@@ -95,7 +95,7 @@ class BookingController extends Controller
                 session(['current_booking_id' => $existingBooking->id]);
             }
         }
-        
+
         return view('bookings.owner-form', compact('event', 'item', 'existingBooking', 'isEditing'));
     }
 
@@ -129,61 +129,75 @@ class BookingController extends Controller
 
         $event = Event::where('slug', $eventSlug)->firstOrFail();
         $item = FloorplanItem::findOrFail($itemId);
-        
+
         Log::info('Event and item loaded', [
             'event_id' => $event->id,
             'item_id' => $item->id,
             'item_label' => $item->label
         ]);
-        
-        // Check if there's already a booking for this item (for new bookings only)
+
+        // Check if there's already a booking for this item by someone else
         $currentBookingId = session('current_booking_id');
         Log::info('Checking booking availability', [
             'current_booking_id' => $currentBookingId,
             'is_new_booking' => !$currentBookingId
         ]);
-        
+
+        // Check if item is booked by someone else (not the current user)
+        $otherUserBooking = null;
         if (!$currentBookingId) {
-            // Only check availability for new bookings
-            $existingBooking = Booking::where('floorplan_item_id', $itemId)
+            // Only check for other users' bookings when starting fresh
+            $otherUserBooking = Booking::where('floorplan_item_id', $itemId)
                 ->where('event_id', $event->id)
-                ->whereIn('status', ['pending', 'confirmed'])
+                ->whereIn('status', ['reserved', 'booked'])
                 ->first();
-            
-            Log::info('Availability check result', [
-                'existing_booking_found' => $existingBooking ? true : false,
-                'existing_booking_id' => $existingBooking?->id
+
+            Log::info('Other user booking check result', [
+                'other_booking_found' => $otherUserBooking ? true : false,
+                'other_booking_id' => $otherUserBooking?->id
             ]);
-            
-            if ($existingBooking) {
-                Log::warning('Redirecting back - item already booked');
-                return redirect()->back()->with('error', 'This item is already booked or reserved.');
-            }
+        } else {
+            // Check if current user's session booking is still valid
+            $otherUserBooking = Booking::where('floorplan_item_id', $itemId)
+                ->where('event_id', $event->id)
+                ->whereIn('status', ['reserved', 'booked'])
+                ->where('id', '!=', $currentBookingId) // Exclude current user's booking
+                ->first();
+
+            Log::info('Current user session validation', [
+                'other_booking_found' => $otherUserBooking ? true : false,
+                'other_booking_id' => $otherUserBooking?->id
+            ]);
         }
-        
+
+        if ($otherUserBooking) {
+            Log::warning('Redirecting back - item booked by another user');
+            return redirect()->back()->with('error', 'This item is already booked or reserved by another user.');
+        }
+
         try {
             DB::beginTransaction();
             Log::info('Transaction started');
-            
+
             // Check if we're updating an existing booking
             $existingBooking = null;
             $currentBookingId = session('current_booking_id');
-            
+
             Log::info('Looking for existing booking', [
                 'current_booking_id' => $currentBookingId
             ]);
-            
+
             if ($currentBookingId) {
                 $existingBooking = Booking::where('id', $currentBookingId)
                     ->where('floorplan_item_id', $itemId)
                     ->where('event_id', $event->id)
                     ->first();
-                    
+
                 Log::info('Existing booking search result', [
                     'booking_found' => $existingBooking ? true : false,
                     'booking_id' => $existingBooking?->id
                 ]);
-                    
+
                 if (!$existingBooking) {
                     // Session booking ID doesn't match, clear session and treat as new
                     Log::warning('Session booking ID invalid, clearing session');
@@ -191,7 +205,7 @@ class BookingController extends Controller
                     $currentBookingId = null;
                 }
             }
-            
+
             // Handle logo upload if provided
             $logoPath = null;
             if ($request->hasFile('company_logo')) {
@@ -206,7 +220,7 @@ class BookingController extends Controller
                     'booking_id' => $existingBooking->id,
                     'booking_reference' => $existingBooking->booking_reference
                 ]);
-                
+
                 // Update existing booking
                 $existingBooking->update([
                     'owner_details' => [
@@ -228,13 +242,13 @@ class BookingController extends Controller
                 if (!$existingBooking->access_token) {
                     $existingBooking->refreshAccessToken();
                 }
-                
+
                 $booking = $existingBooking;
-                
+
                 Log::info('Existing booking updated successfully');
             } else {
                 Log::info('Creating new booking');
-                
+
                 // Create new booking
                 $booking = Booking::create([
                     'event_id' => $event->id,
@@ -242,8 +256,8 @@ class BookingController extends Controller
                     'booking_reference' => Booking::generateReference(),
                     'access_token' => Booking::generateAccessToken(),
                     'access_token_expires_at' => now()->addYear(),
-                    'status' => 'pending',
-                    'total_amount' => $item->price,
+                    'status' => 'reserved',
+                    'total_amount' => $item->price ?? 0.00,
                     'owner_details' => [
                         'name' => $request->owner_name,
                         'email' => $request->owner_email,
@@ -259,29 +273,27 @@ class BookingController extends Controller
                     ],
                     'booking_date' => now(),
                 ]);
-                
+
                 Log::info('New booking created', [
                     'booking_id' => $booking->id,
                     'booking_reference' => $booking->booking_reference
                 ]);
-                
             }
-            
+
             DB::commit();
             Log::info('Transaction committed successfully');
-            
+
             Log::info('Redirecting to member form', [
                 'route' => 'bookings.member-form',
                 'event_slug' => $eventSlug,
                 'access_token' => $booking->access_token
             ]);
-            
+
             // Redirect to member registration using access token
             return redirect()->route('bookings.member-form', [
                 'eventSlug' => $eventSlug,
                 'accessToken' => $booking->access_token
             ]);
-            
         } catch (\Exception $e) {
             Log::error('Exception in processOwnerForm', [
                 'error_message' => $e->getMessage(),
@@ -289,13 +301,13 @@ class BookingController extends Controller
                 'error_line' => $e->getLine(),
                 'stack_trace' => $e->getTraceAsString()
             ]);
-            
+
             DB::rollBack();
             Log::info('Transaction rolled back due to exception');
-            
+
             return redirect()->back()->with('error', 'Failed to save booking. Please try again.');
         }
-        
+
         Log::warning('Reached end of processOwnerForm without return - this should not happen');
     }
 
@@ -308,15 +320,15 @@ class BookingController extends Controller
             'event_slug' => $eventSlug,
             'access_token' => $accessToken
         ]);
-        
+
         $event = Event::where('slug', $eventSlug)->firstOrFail();
         $booking = Booking::where('access_token', $accessToken)->firstOrFail();
-        
+
         Log::info('Event and booking loaded', [
             'event_id' => $event->id,
             'booking_reference' => $booking->booking_reference
         ]);
-        
+
         // Verify access token is valid
         if (!$booking->isAccessTokenValid()) {
             Log::warning('Invalid or expired access token', [
@@ -326,15 +338,15 @@ class BookingController extends Controller
             return redirect()->route('events.public.floorplan', $eventSlug)
                 ->with('error', 'Invalid or expired access link. Please start over.');
         }
-        
+
         Log::info('Access token verification passed');
-        
+
         // Get the member registration form for this event
         // First try to find a member_registration form, then fall back to any form
         $memberForm = FormBuilder::where('event_id', $event->id)
             ->where('type', 'member_registration')
             ->first();
-            
+
         if (!$memberForm) {
             // Fallback: use any available form for this event
             $memberForm = FormBuilder::where('event_id', $event->id)->first();
@@ -344,19 +356,19 @@ class BookingController extends Controller
                 'fallback_form_type' => $memberForm?->type
             ]);
         }
-            
+
         Log::info('Member form search result', [
             'form_found' => $memberForm ? true : false,
             'form_id' => $memberForm?->id,
             'form_name' => $memberForm?->name,
             'form_type' => $memberForm?->type
         ]);
-            
+
         if (!$memberForm) {
             Log::warning('No forms found for this event - redirecting back');
             return redirect()->back()->with('error', 'No registration forms found for this event. Please contact the organizer.');
         }
-        
+
         Log::info('Member form view loading successfully');
         return view('bookings.member-form', compact('event', 'booking', 'memberForm'));
     }
@@ -372,32 +384,31 @@ class BookingController extends Controller
 
         $event = Event::where('slug', $eventSlug)->firstOrFail();
         $booking = Booking::where('access_token', $accessToken)->firstOrFail();
-        
+
         // Verify access token is valid
         if (!$booking->isAccessTokenValid()) {
             return redirect()->route('events.public.floorplan', $eventSlug)
                 ->with('error', 'Invalid or expired access link. Please start over.');
         }
-        
+
         try {
             // Update booking with member details
             $booking->update([
                 'member_details' => $request->form_data,
             ]);
-            
+
             // Store member form submission
             FormSubmission::create([
                 'form_builder_id' => $request->member_form_id,
                 'submission_data' => $request->form_data,
                 'submitted_at' => now(),
             ]);
-            
+
             // Redirect to payment
             return redirect()->route('bookings.payment', [
                 'eventSlug' => $eventSlug,
                 'accessToken' => $booking->access_token
             ]);
-            
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Failed to save member details. Please try again.');
         }
@@ -414,7 +425,7 @@ class BookingController extends Controller
 
         $event = Event::where('slug', $eventSlug)->firstOrFail();
         $booking = Booking::where('access_token', $accessToken)->firstOrFail();
-        
+
         // Verify access token is valid
         if (!$booking->isAccessTokenValid()) {
             return response()->json([
@@ -422,42 +433,41 @@ class BookingController extends Controller
                 'message' => 'Invalid or expired access link. Please start over.'
             ], 400);
         }
-        
+
         try {
             // Decode JSON member details
             $memberDetails = json_decode($request->member_details, true);
-            
+
             if (json_last_error() !== JSON_ERROR_NONE) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid member data format.'
                 ], 400);
             }
-            
+
             // Update booking with member details
             $booking->update([
                 'member_details' => $memberDetails,
             ]);
-            
+
             Log::info('Members saved successfully', [
                 'booking_id' => $booking->id,
                 'member_count' => count($memberDetails),
                 'event_slug' => $eventSlug
             ]);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Members saved successfully!',
                 'member_count' => count($memberDetails)
             ]);
-            
         } catch (\Exception $e) {
             Log::error('Failed to save members', [
                 'booking_id' => $booking->id,
                 'error' => $e->getMessage(),
                 'event_slug' => $eventSlug
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to save members. Please try again.'
@@ -472,13 +482,13 @@ class BookingController extends Controller
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
         $booking = Booking::where('access_token', $accessToken)->firstOrFail();
-        
+
         // Verify access token is valid
         if (!$booking->isAccessTokenValid()) {
             return redirect()->route('events.public.floorplan', $eventSlug)
                 ->with('error', 'Invalid or expired access link. Please start over.');
         }
-        
+
         return view('bookings.payment', compact('event', 'booking'));
     }
 
@@ -489,7 +499,7 @@ class BookingController extends Controller
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
         $booking = Booking::where('access_token', $accessToken)->firstOrFail();
-        
+
         // Verify access token is valid
         if (!$booking->isAccessTokenValid()) {
             return redirect()->route('events.public.floorplan', $eventSlug)
@@ -499,7 +509,7 @@ class BookingController extends Controller
         try {
             // Get the default payment method for this event
             $paymentMethod = $event->paymentMethods->where('is_active', true)->where('is_default', true)->first();
-            
+
             if (!$paymentMethod) {
                 return back()->with('error', 'No payment method available for this event.');
             }
@@ -511,7 +521,6 @@ class BookingController extends Controller
 
             // For other payment methods, use the old logic
             return $this->processLegacyPayment($request, $event, $booking);
-
         } catch (\Exception $e) {
             Log::error('Payment processing failed', [
                 'booking_id' => $booking->id,
@@ -530,21 +539,21 @@ class BookingController extends Controller
     {
         try {
             $paystackService = app(\App\Services\PaystackService::class);
-            
+
             if (!$paystackService->isConfigured()) {
                 return back()->with('error', 'Paystack payment is not configured. Please contact support.');
             }
 
             // Generate unique reference
             $reference = 'BK_' . $booking->id . '_' . time();
-            
+
             // Initialize Paystack transaction
             $transactionData = [
                 'amount' => $booking->floorplanItem->price,
                 'email' => $booking->owner_details['email'],
                 'reference' => $reference,
                 'callback_url' => route('bookings.paystack.callback', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]),
-                'currency' => 'NGN', // Paystack default currency
+                'currency' => 'USD', // Use USD for international compatibility
                 'metadata' => [
                     'booking_id' => $booking->id,
                     'event_id' => $event->id,
@@ -560,7 +569,7 @@ class BookingController extends Controller
                 $payment = new \App\Models\Payment();
                 $payment->booking_id = $booking->id;
                 $payment->amount = $booking->floorplanItem->price;
-                $payment->currency = 'NGN';
+                $payment->currency = 'USD';
                 $payment->payment_method = 'paystack';
                 $payment->gateway = 'paystack';
                 $payment->gateway_transaction_id = $reference;
@@ -568,8 +577,8 @@ class BookingController extends Controller
                 $payment->gateway_response = json_encode($transaction);
                 $payment->save();
 
-                // Update booking status to pending
-                $booking->status = 'pending';
+                // Update booking status to reserved
+                $booking->status = 'reserved';
                 $booking->save();
 
                 Log::info('Paystack transaction initialized', [
@@ -580,17 +589,15 @@ class BookingController extends Controller
 
                 // Redirect to Paystack payment page
                 return redirect($transaction->data->authorization_url);
-
             } else {
                 throw new \Exception('Failed to initialize Paystack transaction: ' . $transaction->message);
             }
-
         } catch (\Exception $e) {
             Log::error('Paystack payment initialization failed', [
                 'booking_id' => $booking->id,
                 'error' => $e->getMessage()
             ]);
-            
+
             return back()->with('error', 'Failed to initialize payment. Please try again.');
         }
     }
@@ -649,11 +656,10 @@ class BookingController extends Controller
                     'card_last4' => substr(str_replace(' ', '', $validated['card_number']), -4),
                     'cardholder_name' => $validated['cardholder_name'],
                 ]);
-                
-                // Update booking status to confirmed
-                $booking->status = 'confirmed';
-                $booking->save();
 
+                // Update booking status to booked
+                $booking->status = 'booked';
+                $booking->save();
             } else {
                 // Bank transfer - set as pending
                 $payment->gateway = 'bank_transfer';
@@ -663,7 +669,7 @@ class BookingController extends Controller
                     'message' => 'Awaiting bank transfer confirmation',
                     'reference' => 'BOOKING-' . $booking->id,
                 ]);
-                
+
                 // Keep booking status as pending until transfer is confirmed
                 $booking->status = 'pending';
                 $booking->save();
@@ -689,7 +695,6 @@ class BookingController extends Controller
                 return redirect()->route('bookings.success', ['eventSlug' => $event->slug, 'bookingId' => $booking->id])
                     ->with('info', 'Booking created! Please complete the bank transfer to confirm your booking.');
             }
-
         } catch (\Exception $e) {
             Log::error('Legacy payment processing failed', [
                 'booking_id' => $booking->id,
@@ -709,10 +714,10 @@ class BookingController extends Controller
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
         $booking = Booking::where('access_token', $accessToken)->firstOrFail();
-        
+
         try {
             $paystackService = app(\App\Services\PaystackService::class);
-            
+
             // Verify the transaction
             $reference = $request->query('reference');
             if (!$reference) {
@@ -720,11 +725,11 @@ class BookingController extends Controller
             }
 
             $transaction = $paystackService->verifyTransaction($reference);
-            
+
             if ($transaction->status && $transaction->data->status === 'success') {
                 // Payment successful
                 $payment = \App\Models\Payment::where('gateway_transaction_id', $reference)->first();
-                
+
                 if ($payment) {
                     $payment->status = 'completed';
                     $payment->gateway_response = json_encode($transaction);
@@ -732,22 +737,21 @@ class BookingController extends Controller
                 }
 
                 // Update booking status
-                $booking->status = 'confirmed';
+                $booking->status = 'booked';
                 $booking->save();
 
-                                   Log::info('Paystack payment successful', [
-                       'booking_id' => $booking->id,
-                       'reference' => $reference,
-                       'amount' => $transaction->data->amount / 100
-                   ]);
-   
-                   return redirect()->route('bookings.success', ['eventSlug' => $eventSlug, 'accessToken' => $booking->access_token])
-                       ->with('success', 'Payment successful! Your booking has been confirmed.');
+                Log::info('Paystack payment successful', [
+                    'booking_id' => $booking->id,
+                    'reference' => $reference,
+                    'amount' => $transaction->data->amount / 100
+                ]);
 
+                return redirect()->route('bookings.success', ['eventSlug' => $eventSlug, 'accessToken' => $booking->access_token])
+                    ->with('success', 'Payment successful! Your booking has been confirmed.');
             } else {
                 // Payment failed
                 $payment = \App\Models\Payment::where('gateway_transaction_id', $reference)->first();
-                
+
                 if ($payment) {
                     $payment->status = 'failed';
                     $payment->gateway_response = json_encode($transaction);
@@ -763,7 +767,6 @@ class BookingController extends Controller
                 return redirect()->route('bookings.payment', ['eventSlug' => $eventSlug, 'accessToken' => $booking->access_token])
                     ->with('error', 'Payment failed. Please try again.');
             }
-
         } catch (\Exception $e) {
             Log::error('Paystack callback processing failed', [
                 'booking_id' => $booking->id,
@@ -777,20 +780,30 @@ class BookingController extends Controller
     }
 
     /**
-     * Show booking success page.
+     * Show success page after payment.
      */
     public function showSuccess($eventSlug, $accessToken)
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
         $booking = Booking::with(['floorplanItem', 'payments'])->where('access_token', $accessToken)->firstOrFail();
-        
+
         // Verify access token is valid
         if (!$booking->isAccessTokenValid()) {
             return redirect()->route('events.public.floorplan', $eventSlug)
                 ->with('error', 'Invalid or expired access link. Please start over.');
         }
-        
-        return view('bookings.success', compact('event', 'booking'));
+
+        // Verify that a successful payment exists
+        if (!$booking->hasCompletedPayments()) {
+            return redirect()->route('bookings.payment', ['eventSlug' => $eventSlug, 'accessToken' => $accessToken])
+                ->with('error', 'No successful payment found. Please complete your payment first.');
+        }
+
+        // Set current step to 5 (Receipt) and show progress
+        $currentStep = 5;
+        $showProgress = true;
+
+        return view('bookings.success', compact('event', 'booking', 'currentStep', 'showProgress'));
     }
 
     /**
@@ -800,19 +813,19 @@ class BookingController extends Controller
     {
         // Find the event
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        
+
         // Find the existing booking by access token
         $booking = $event->bookings()
             ->where('access_token', $accessToken)
             ->where('access_token_expires_at', '>', now())
             ->firstOrFail();
-        
+
         // Check if access token is valid
         if (!$booking->isAccessTokenValid()) {
             return redirect()->route('events.public.floorplan', $eventSlug)
                 ->with('error', 'Access token has expired or is invalid.');
         }
-        
+
         // Validate the request
         $request->validate([
             'owner_name' => 'required|string|max:255',
@@ -827,10 +840,10 @@ class BookingController extends Controller
             'social_linkedin' => 'nullable|url|max:255',
             'social_instagram' => 'nullable|url|max:255',
         ]);
-        
+
         try {
             DB::beginTransaction();
-            
+
             // Handle logo upload
             $logoPath = null;
             if ($request->hasFile('company_logo')) {
@@ -839,7 +852,7 @@ class BookingController extends Controller
                 // Keep existing logo if no new one uploaded
                 $logoPath = $booking->owner_details['company_logo'] ?? null;
             }
-            
+
             // Update existing booking
             $booking->update([
                 'owner_details' => [
@@ -856,28 +869,27 @@ class BookingController extends Controller
                     'social_instagram' => $request->social_instagram,
                 ],
             ]);
-            
+
             DB::commit();
-            
+
             Log::info('Owner details updated successfully for existing booking', [
                 'booking_id' => $booking->id,
                 'access_token' => $accessToken
             ]);
-            
+
             // Redirect to member form using access token
             return redirect()->route('bookings.member-form', [
                 'eventSlug' => $eventSlug,
                 'accessToken' => $accessToken
             ]);
-            
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             Log::error('Failed to update owner details for existing booking', [
                 'access_token' => $accessToken,
                 'error' => $e->getMessage()
             ]);
-            
+
             return redirect()->back()->with('error', 'Failed to update owner details. Please try again.');
         }
     }
@@ -892,7 +904,7 @@ class BookingController extends Controller
             ->where('access_token', $accessToken)
             ->where('access_token_expires_at', '>', now())
             ->firstOrFail();
-        
+
         // Check if access token is valid
         if (!$booking->isAccessTokenValid()) {
             return response()->json([
@@ -900,33 +912,304 @@ class BookingController extends Controller
                 'message' => 'Access token has expired or is invalid.'
             ], 400);
         }
-        
+
         try {
             // Delete the booking
             $booking->delete();
-            
+
             Log::info('Booking removed for space change', [
                 'event_slug' => $eventSlug,
                 'booking_id' => $booking->id,
                 'floorplan_item_id' => $booking->floorplan_item_id
             ]);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Booking removed successfully. You can now select a new space.'
             ]);
-            
         } catch (\Exception $e) {
             Log::error('Failed to remove booking', [
                 'event_slug' => $eventSlug,
                 'booking_id' => $booking->id,
                 'error' => $e->getMessage()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to remove booking. Please try again.'
             ], 500);
+        }
+    }
+
+    /**
+     * Public floorplan view (no authentication required).
+     */
+    public function publicFloorplan(Event $event, Request $request)
+    {
+        // Check if event is published or active
+        if (!in_array($event->status, ['published', 'active'])) {
+            abort(404, 'Event not found.');
+        }
+
+        // Check if user has an existing booking via access token
+        $existingBooking = null;
+        $accessToken = $request->query('access_token');
+
+        if ($accessToken) {
+            $existingBooking = $event->bookings()
+                ->where('access_token', $accessToken)
+                ->where('access_token_expires_at', '>', now())
+                ->with(['floorplanItem'])
+                ->first();
+        }
+
+        // Load floorplan data with items if exists
+        $floorplanDesign = $event->floorplanDesign;
+        if ($floorplanDesign) {
+            $floorplanDesign->load('items');
+
+            // Load booking information for each item to determine availability
+            $items = $floorplanDesign->items;
+            foreach ($items as $item) {
+                // Check if there's an active booking for this item
+                $activeBooking = $item->bookings()
+                    ->whereIn('status', ['reserved', 'booked'])
+                    ->with('payments')
+                    ->latest()
+                    ->first();
+
+                // Add booking status to item for frontend use
+                if ($activeBooking) {
+                    // Determine status based on booking status
+                    $item->booking_status = $activeBooking->status;
+
+
+                    $item->booking_reference = $activeBooking->booking_reference;
+                    $item->payment_status = $activeBooking->payment_status;
+                    $item->total_paid = $activeBooking->total_paid;
+                    $item->remaining_amount = $activeBooking->remaining_amount;
+
+                    // Add owner details for company information display
+                    $item->owner_details = $activeBooking->owner_details;
+
+                    // Check if this is the user's current booking
+                    if ($existingBooking && $existingBooking->floorplan_item_id == $item->id) {
+                        $item->is_current_booking = true;
+                        $item->current_booking_status = $existingBooking->status;
+                        $item->current_booking_progress = $this->getBookingProgress($existingBooking);
+                    }
+                } else {
+                    $item->booking_status = 'available';
+                    $item->booking_reference = null;
+                    $item->payment_status = null;
+                    $item->total_paid = 0;
+                    $item->remaining_amount = 0;
+                }
+            }
+        }
+
+        // Set $booking for the layout to use (when access token exists)
+        $booking = $existingBooking;
+
+        return view('bookings.floorplan', compact('event', 'floorplanDesign', 'existingBooking', 'accessToken', 'booking'));
+    }
+
+    /**
+     * Public floorplan view with access token in route (for existing bookings)
+     */
+    public function publicFloorplanWithToken(Event $event, $accessToken)
+    {
+        // Check if event is published or active
+        if (!in_array($event->status, ['published', 'active'])) {
+            abort(404, 'Event not found.');
+        }
+
+        // Find existing booking via access token
+        $existingBooking = $event->bookings()
+            ->where('access_token', $accessToken)
+            ->where('access_token_expires_at', '>', now())
+            ->with(['floorplanItem'])
+            ->first();
+
+        if (!$existingBooking) {
+            abort(404, 'Invalid or expired access link.');
+        }
+
+        // Load floorplan data with items if exists
+        $floorplanDesign = $event->floorplanDesign;
+        if ($floorplanDesign) {
+            $floorplanDesign->load('items');
+
+            // Load booking information for each item to determine availability
+            $items = $floorplanDesign->items;
+            foreach ($items as $item) {
+                // Check if there's an active booking for this item
+                $activeBooking = $item->bookings()
+                    ->whereIn('status', ['reserved', 'booked'])
+                    ->with('payments')
+                    ->latest()
+                    ->first();
+
+                // Add booking status to item for frontend use
+                if ($activeBooking) {
+                    // Determine status based on booking and payment status
+                    $item->booking_status = $activeBooking->status;
+
+
+                    $item->booking_reference = $activeBooking->booking_reference;
+                    $item->payment_status = $activeBooking->payment_status;
+                    $item->total_paid = $activeBooking->total_paid;
+                    $item->remaining_amount = $activeBooking->remaining_amount;
+
+                    // Add owner details for company information display
+                    $item->owner_details = $activeBooking->owner_details;
+
+                    // Check if this is the user's current booking
+                    if ($existingBooking->floorplan_item_id == $item->id) {
+                        $item->is_current_booking = true;
+                        $item->current_booking_status = $existingBooking->status;
+                        $item->current_booking_progress = $this->getBookingProgress($existingBooking);
+                    }
+                } else {
+                    $item->booking_status = 'available';
+                    $item->booking_reference = null;
+                    $item->payment_status = null;
+                    $item->total_paid = 0;
+                    $item->remaining_amount = 0;
+                }
+            }
+        }
+
+        // Set $booking for the layout to use
+        $booking = $existingBooking;
+
+        return view('bookings.floorplan', compact('event', 'floorplanDesign', 'existingBooking', 'accessToken', 'booking'));
+    }
+
+    /**
+     * Get the current progress step for a booking
+     */
+    private function getBookingProgress(Booking $booking): int
+    {
+        // Step 1: Space selected (always true if booking exists)
+        if (!$booking->owner_details || empty($booking->owner_details['name'])) {
+            return 1;
+        }
+
+        // Step 2: Owner details completed
+        if (!$booking->member_details || empty($booking->member_details)) {
+            return 2;
+        }
+
+        // Step 3: Members added
+        if (!$booking->payments || $booking->payments->isEmpty()) {
+            return 3;
+        }
+
+        // Step 4: Payment completed
+        return 4;
+    }
+
+    /**
+     * Change the space for an existing booking (upgrade only)
+     */
+    public function changeSpace($eventSlug, $accessToken, $itemId)
+    {
+        $event = Event::where('slug', $eventSlug)->firstOrFail();
+        $booking = $event->bookings()
+            ->where('access_token', $accessToken)
+            ->where('access_token_expires_at', '>', now())
+            ->firstOrFail();
+
+        // Check if access token is valid
+        if (!$booking->isAccessTokenValid()) {
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'Access token has expired or is invalid.');
+        }
+
+        $newItem = FloorplanItem::findOrFail($itemId);
+        $currentItem = $booking->floorplanItem;
+
+        // Validate that this is an upgrade (new booth must be more expensive)
+        if (!$currentItem) {
+            return redirect()->route('events.public.floorplan-token', [
+                'event' => $event->slug,
+                'accessToken' => $accessToken
+            ])->with('error', 'Current space information not found.');
+        }
+
+        $currentPrice = $currentItem->price ?? 0;
+        $newPrice = $newItem->price ?? 0;
+
+        // Only allow upgrades (new price must be higher)
+        if ($newPrice <= $currentPrice) {
+            return redirect()->route('events.public.floorplan-token', [
+                'event' => $event->slug,
+                'accessToken' => $accessToken
+            ])->with('error', 'You can only change to a more expensive space. This space costs the same or less than your current space.');
+        }
+
+        // Check if the new item is available
+        $existingBooking = Booking::where('floorplan_item_id', $itemId)
+            ->where('event_id', $event->id)
+            ->where('id', '!=', $booking->id) // Exclude current user's booking
+            ->whereIn('status', ['reserved', 'booked'])
+            ->first();
+
+        if ($existingBooking) {
+            return redirect()->route('events.public.floorplan-token', [
+                'event' => $event->slug,
+                'accessToken' => $accessToken
+            ])->with('error', 'This space is already booked by another user.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Calculate price difference
+            $priceDifference = $newPrice - $currentPrice;
+
+            // Update the booking with the new floorplan item
+            $booking->update([
+                'floorplan_item_id' => $itemId,
+                'total_amount' => $newPrice,
+            ]);
+
+            DB::commit();
+
+            Log::info('Space upgraded successfully', [
+                'booking_id' => $booking->id,
+                'old_item_id' => $currentItem->id,
+                'new_item_id' => $itemId,
+                'old_price' => $currentPrice,
+                'new_price' => $newPrice,
+                'price_difference' => $priceDifference,
+                'access_token' => $accessToken
+            ]);
+
+            $message = "Space upgraded successfully! New total: $" . number_format($newPrice, 2);
+            if ($priceDifference > 0) {
+                $message .= " (Additional amount due: $" . number_format($priceDifference, 2) . ")";
+            }
+
+            return redirect()->route('events.public.floorplan-token', [
+                'event' => $event->slug,
+                'accessToken' => $accessToken
+            ])->with('success', $message);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('Failed to change space', [
+                'booking_id' => $booking->id,
+                'new_item_id' => $itemId,
+                'access_token' => $accessToken,
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->route('events.public.floorplan-token', [
+                'event' => $event->slug,
+                'accessToken' => $accessToken
+            ])->with('error', 'Failed to change space. Please try again.');
         }
     }
 }

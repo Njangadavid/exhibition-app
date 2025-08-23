@@ -57,7 +57,7 @@ class PaymentMethodController extends Controller
         $validated = $request->validate([
             'event_id' => 'required|exists:events,id',
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:100',
+            'code' => 'nullable|string|max:100', // Made optional since it's auto-generated
             'type' => 'required|string|in:card,bank_transfer,digital_wallet,mobile_money,crypto',
             'description' => 'nullable|string',
             'is_active' => 'boolean',
@@ -67,6 +67,11 @@ class PaymentMethodController extends Controller
             'color' => 'nullable|string|max:7',
             'config' => 'array',
         ]);
+
+        // Auto-generate code if not provided
+        if (empty($validated['code'])) {
+            $validated['code'] = $this->generatePaymentCode($validated['name']);
+        }
 
         // Make code unique per event
         $validated['code'] = $validated['code'] . '_' . $validated['event_id'];
@@ -139,7 +144,7 @@ class PaymentMethodController extends Controller
         $validated = $request->validate([
             'event_id' => 'required|exists:events,id',
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:100|unique:payment_methods,code,' . $paymentMethod->id,
+            'code' => 'nullable|string|max:100|unique:payment_methods,code,' . $paymentMethod->id, // Made optional
             'type' => 'required|string|in:card,bank_transfer,digital_wallet,mobile_money,crypto',
             'description' => 'nullable|string',
             'is_active' => 'boolean',
@@ -149,6 +154,14 @@ class PaymentMethodController extends Controller
             'color' => 'nullable|string|max:7',
             'config' => 'array',
         ]);
+
+        // Auto-generate code if not provided
+        if (empty($validated['code'])) {
+            $validated['code'] = $this->generatePaymentCode($validated['name']);
+        }
+
+        // Make code unique per event
+        $validated['code'] = $validated['code'] . '_' . $validated['event_id'];
 
         // If setting as default, unset other defaults for the same event
         if ($validated['is_default']) {
@@ -313,5 +326,20 @@ class PaymentMethodController extends Controller
             default:
                 return $config;
         }
+    }
+
+    /**
+     * Generate a unique payment code.
+     */
+    private function generatePaymentCode($name)
+    {
+        // Convert name to lowercase and replace spaces with underscores
+        $slug = \Illuminate\Support\Str::slug($name);
+
+        // Add a timestamp to make it unique
+        $timestamp = now()->timestamp;
+
+        // Combine slug and timestamp
+        return "{$slug}_{$timestamp}";
     }
 }

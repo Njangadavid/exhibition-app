@@ -204,6 +204,18 @@
                                         <i class="bi bi-arrow-clockwise me-1"></i>
                                         <span class="small">Reset to Defaults</span>
                                     </button>
+                                    
+                                    <!-- Floorplan Maintenance -->
+                                    <hr class="my-3">
+                                    <div class="small text-muted mb-2">Floorplan Maintenance</div>
+                                    <button type="button" class="btn btn-outline-warning btn-sm w-100 mb-2 py-2" id="checkOrphanedBookingsBtn">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>
+                                        <span class="small">Check Orphaned Bookings</span>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm w-100 py-2" id="cleanupOrphanedBookingsBtn" style="display: none;">
+                                        <i class="bi bi-trash me-1"></i>
+                                        <span class="small">Clean Up Orphaned Bookings</span>
+                                    </button>
                                 </div>
                             </form>
                         </div>
@@ -5438,6 +5450,91 @@
             
             // Initialize canvas
             initCanvas();
+            
+            // Orphaned Bookings Management
+            document.getElementById('checkOrphanedBookingsBtn').addEventListener('click', function() {
+                checkOrphanedBookings();
+            });
+            
+            document.getElementById('cleanupOrphanedBookingsBtn').addEventListener('click', function() {
+                if (confirm('Are you sure you want to clean up orphaned bookings? This action cannot be undone and will permanently delete bookings that reference non-existent floorplan items.')) {
+                    cleanupOrphanedBookings();
+                }
+            });
+            
+            function checkOrphanedBookings() {
+                const button = document.getElementById('checkOrphanedBookingsBtn');
+                const originalText = button.innerHTML;
+                
+                button.disabled = true;
+                button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i><span class="small">Checking...</span>';
+                
+                fetch(`/events/{{ $event->slug }}/floorplan/check-orphaned-bookings`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (data.count > 0) {
+                                showNotification('warning', `Found ${data.count} orphaned bookings out of ${data.total_bookings} total bookings! Click "Clean Up" to remove them.`);
+                                document.getElementById('cleanupOrphanedBookingsBtn').style.display = 'block';
+                                
+                                // Log details to console for debugging
+                                console.log('Orphaned bookings found:', data.orphaned_bookings);
+                                console.log('Debug info:', data.debug_info);
+                            } else {
+                                showNotification('success', `No orphaned bookings found. All ${data.total_bookings} bookings are properly linked to floorplan items.`);
+                                document.getElementById('cleanupOrphanedBookingsBtn').style.display = 'none';
+                            }
+                        } else {
+                            showNotification('error', data.message || 'Unknown error occurred');
+                            console.error('Error response:', data);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking orphaned bookings:', error);
+                        showNotification('error', 'An error occurred while checking for orphaned bookings. Check the console for details.');
+                    })
+                    .finally(() => {
+                        button.disabled = false;
+                        button.innerHTML = originalText;
+                    });
+            }
+            
+            function cleanupOrphanedBookings() {
+                const button = document.getElementById('cleanupOrphanedBookingsBtn');
+                const originalText = button.innerHTML;
+                
+                button.disabled = true;
+                button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i><span class="small">Cleaning...</span>';
+                
+                fetch(`/events/{{ $event->slug }}/floorplan/cleanup-orphaned-bookings`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Content-Type': 'application/json',
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showNotification('success', data.message);
+                            document.getElementById('cleanupOrphanedBookingsBtn').style.display = 'none';
+                            
+                            // Log cleanup details
+                            console.log('Cleanup completed:', data);
+                        } else {
+                            showNotification('error', data.message || 'Unknown error occurred');
+                            console.error('Cleanup error response:', data);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error cleaning up orphaned bookings:', error);
+                        showNotification('error', 'An error occurred while cleaning up orphaned bookings. Check the console for details.');
+                    })
+                    .finally(() => {
+                        button.disabled = false;
+                        button.innerHTML = originalText;
+                    });
+            }
         });
     </script>
 </x-event-layout>

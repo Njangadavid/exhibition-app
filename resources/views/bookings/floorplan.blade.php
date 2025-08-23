@@ -20,8 +20,8 @@
         <div class="container-fluid">
             <!-- Current Booking Status Banner (if user has access token) -->
             @if($existingBooking)
-                <div class="row mb-4">
-                    <div class="col-12">
+                <div class="row mb-1 justify-content-center">
+                    <div class="col-lg-10">
                         <div class="card border-primary">
                             <div class="card-header bg-primary text-white">
                                 <h6 class="mb-0">
@@ -49,9 +49,6 @@
                                         <div class="btn-group" role="group">
                                             <!-- All buttons always available if access token exists -->
                                              
-                                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="showChangeBoothModal()">
-                                                <i class="bi bi-arrow-repeat me-1"></i>Change Space
-                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -62,9 +59,9 @@
             @endif
 
             <!-- Floorplan Display Interface -->
-            <div class="row">
+            <div class="row justify-content-center">
                 <!-- Floorplan Canvas - Full Width -->
-                <div class="col-12">
+                <div class="col-lg-10">
                     <div class="card">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -77,6 +74,26 @@
                                             Click on items to view details and book your space
                                         @endif
                                     </span>
+                                </div>
+                                
+                                <!-- Color Legend (Bookable Items Only) - Floating Right -->
+                                <div class="d-flex align-items-center gap-3 text-sm">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-1" style="width: 16px; height: 16px; background-color: #10b981; border: 2px solid #059669; border-radius: 2px;"></div>
+                                        <span class="text-muted small">My Booking</span>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-1" style="width: 16px; height: 16px; background-color: #e5e7eb; border: 2px solid #d1d5db; border-radius: 2px;"></div>
+                                        <span class="text-muted small">Available</span>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-1" style="width: 16px; height: 16px; background-color: #f59e0b; border: 2px solid #d97706; border-radius: 2px;"></div>
+                                        <span class="text-muted small">Reserved</span>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-1" style="width: 16px; height: 16px; background-color: #1e40af; border: 2px solid #1e3a8a; border-radius: 2px;"></div>
+                                        <span class="text-muted small">Booked</span>
+                                    </div>
                                 </div>
                                 
 
@@ -100,7 +117,7 @@
                                                 <h6 class="fw-bold text-dark mb-1" id="itemName">Booth A1</h6>
                                                 <div class="d-flex align-items-center gap-2">
                                                     <span class="badge bg-success" id="itemStatus">Available</span>
-                                                    <small class="text-muted">Ready to book</small>
+                                                    <small class="text-muted" id="statusText">Ready to book</small>
                                                 </div>
                                             </div>
                                             
@@ -108,7 +125,7 @@
                                             <div class="row g-2 mb-3">
                                                 <div class="col-6">
                                                     <div class="text-center p-2 bg-light rounded">
-                                                        <div class="text-primary fw-bold" id="itemMaxCapacity">5</div>
+                                                        <div class="text-primary fw-bold" id="itemMaxCapacity">0</div>
                                                         <small class="text-muted">Capacity</small>
                                                     </div>
                                                 </div>
@@ -116,6 +133,26 @@
                                                     <div class="text-center p-2 bg-light rounded">
                                                         <div class="text-success fw-bold" id="itemPrice">$100</div>
                                                         <small class="text-muted">Price</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Company Information (for reserved/booked booths) -->
+                                            <div id="companyInfo" class="mb-3" style="display: none;">
+                                                <div class="p-2 bg-light rounded border-start border-3 border-warning">
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        <i class="bi bi-building text-warning me-2"></i>
+                                                        <small class="fw-bold text-dark">Occupied by</small>
+                                                    </div>
+                                                    <div id="companyDetails">
+                                                        <div class="d-flex align-items-center mb-1">
+                                                            <i class="bi bi-briefcase text-muted me-2" style="font-size: 0.75rem;"></i>
+                                                            <span id="companyName" class="fw-medium text-dark" style="font-size: 0.85rem;">-</span>
+                                                        </div>
+                                                        <div class="d-flex align-items-center">
+                                                            <i class="bi bi-person text-muted me-2" style="font-size: 0.75rem;"></i>
+                                                            <span id="companyContact" class="text-muted" style="font-size: 0.8rem;">-</span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -189,6 +226,8 @@
                                     </div>
                                 </div>
                             </div>
+                            
+
                         </div>
                     </div>
                 </div>
@@ -196,7 +235,8 @@
         </div>
     </div>
 
-    <!-- Change Booth Modal -->
+    <!-- Change Booth Modal (only for existing bookings) -->
+    @if($existingBooking)
     <div class="modal fade" id="changeBoothModal" tabindex="-1" aria-labelledby="changeBoothModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -253,6 +293,7 @@
             </div>
         </div>
     </div>
+    @endif
 
 @endsection
 
@@ -350,6 +391,9 @@
                     
                     if (floorplanData && floorplanData.items && floorplanData.items.length > 0) {
                         shapes = floorplanData.items;
+                        
+
+                        
                         redrawCanvas();
                         document.getElementById('canvasInstructions').classList.add('hidden');
                     } else {
@@ -389,9 +433,41 @@
                 shape.size = parseFloat(shape.size) || 50;
                 shape.borderWidth = parseInt(shape.borderWidth) || 2;
                 
-                // Set fill and stroke from database values, fallback to global colors
-                ctx.fillStyle = shape.fill_color || (window.globalFloorplanColors ? window.globalFloorplanColors.fillColor : '#e5e7eb');
-                ctx.strokeStyle = shape.stroke_color || (window.globalFloorplanColors ? window.globalFloorplanColors.strokeColor : '#374151');
+                // Set fill and stroke based on booking status with professional color scheme
+                let fillColor, strokeColor;
+                
+                // Only apply status-based colors to bookable items
+                if (shape.bookable && shape.booking_status) {
+                    // First check if it's my own current booking (regardless of status)
+                    if (shape.is_current_booking) {
+                        // My own booking - Green (Success/Ownership) regardless of status
+                        fillColor = '#10b981';
+                        strokeColor = '#059669';
+                    } else if (shape.booking_status === 'booked') {
+                        // Booked/Confirmed by others - Dark Blue (Professional)
+                        fillColor = '#1e40af';
+                        strokeColor = '#1e3a8a';
+                    } else if (shape.booking_status === 'reserved') {
+                        // Reserved by others - Orange (Attention)
+                        fillColor = '#f59e0b';
+                        strokeColor = '#d97706';
+                    } else if (shape.booking_status === 'available') {
+                        // Available - Light Gray (Neutral/Available)
+                        fillColor = '#e5e7eb';
+                        strokeColor = '#d1d5db';
+                    } else {
+                        // Fallback to database values, then global colors
+                        fillColor = shape.fill_color || (window.globalFloorplanColors ? window.globalFloorplanColors.fillColor : '#e5e7eb');
+                        strokeColor = shape.stroke_color || (window.globalFloorplanColors ? window.globalFloorplanColors.strokeColor : '#d1d5db');
+                    }
+                } else {
+                    // Non-bookable items use their original colors
+                    fillColor = shape.fill_color || (window.globalFloorplanColors ? window.globalFloorplanColors.fillColor : '#e5e7eb');
+                    strokeColor = shape.stroke_color || (window.globalFloorplanColors ? window.globalFloorplanColors.strokeColor : '#d1d5db');
+                }
+                
+                ctx.fillStyle = fillColor;
+                ctx.strokeStyle = strokeColor;
                 ctx.lineWidth = shape.borderWidth || (window.globalFloorplanColors ? window.globalFloorplanColors.borderWidth : 2);
                 
                 // Apply rotation if exists
@@ -461,51 +537,51 @@
                         break;
                         
                     case 'booth':
-                        drawBooth(shape);
+                        drawBooth(shape, fillColor, strokeColor);
                         break;
                         
                     case 'table':
-                        drawTable(shape);
+                        drawTable(shape, fillColor, strokeColor);
                         break;
                         
                     case 'chair':
-                        drawChair(shape);
+                        drawChair(shape, fillColor, strokeColor);
                         break;
                         
                     case 'desk':
-                        drawDesk(shape);
+                        drawDesk(shape, fillColor, strokeColor);
                         break;
                         
                     case 'counter':
-                        drawCounter(shape);
+                        drawCounter(shape, fillColor, strokeColor);
                         break;
                         
                     case 'stage':
-                        drawStage(shape);
+                        drawStage(shape, fillColor, strokeColor);
                         break;
                         
                     case 'screen':
-                        drawScreen(shape);
+                        drawScreen(shape, fillColor, strokeColor);
                         break;
                         
                     case 'projector':
-                        drawProjector(shape);
+                        drawProjector(shape, fillColor, strokeColor);
                         break;
                         
                     case 'banner':
-                        drawBanner(shape);
+                        drawBanner(shape, fillColor, strokeColor);
                         break;
                         
                     case 'kiosk':
-                        drawKiosk(shape);
+                        drawKiosk(shape, fillColor, strokeColor);
                         break;
                         
                     case 'person':
-                        drawPerson(shape);
+                        drawPerson(shape, fillColor, strokeColor);
                         break;
                         
                     case 'group':
-                        drawGroup(shape);
+                        drawGroup(shape, fillColor, strokeColor);
                         break;
                         
                     case 'entrance':
@@ -747,13 +823,10 @@
                 }
                 
                 if (clickedShape) {
-                    // Only show popup for available items
-                    const isAvailable = clickedShape.booking_status === 'available';
-                    
-                    if (isAvailable) {
+                    // Only show popup for bookable items
+                    if (clickedShape.bookable) {
                         showItemInfo(clickedShape, e);
                     } else {
-                        // For non-available items, do nothing (no popup)
                         hideItemInfo();
                     }
                 } else {
@@ -770,11 +843,17 @@
                 const typeLabels = {
                     'booth': 'Booth Details',
                     'table': 'Table Details',
-                    'desk': 'Desk Details',
+                    'desk': 'Desk Details', 
                     'counter': 'Counter Details',
-                    'stage': 'Stage Details'
+                    'stage': 'Stage Details',
+                    'rectangle': 'Space Details',
+                    'circle': 'Space Details',
+                    'triangle': 'Space Details',
+                    'pentagon': 'Space Details',
+                    'hexagon': 'Space Details'
                 };
-                itemTypeLabel.textContent = typeLabels[shape.type] || 'Item Details';
+                
+                itemTypeLabel.textContent = typeLabels[shape.type] || 'Space Details';
                 
                 // Populate panel with shape data
                 document.getElementById('itemName').textContent = shape.item_name || shape.label || shape.type;
@@ -783,46 +862,86 @@
                 
                 // Set status based on booking status
                 const statusElement = document.getElementById('itemStatus');
+                const statusText = document.getElementById('statusText');
                 const bookNowGroup = document.getElementById('bookNowGroup');
                 const bookNowBtn = document.getElementById('bookNowBtn');
+                
+                // Show/hide company info section
+                const companyInfo = document.getElementById('companyInfo');
+                
+                // Reset button state for each popup
+                bookNowBtn.style.display = 'block';
+                bookNowBtn.className = 'btn btn-primary w-100 fw-bold text-decoration-none';
+                bookNowBtn.innerHTML = '<i class="bi bi-bookmark-plus me-2"></i>Book Now';
+                bookNowBtn.href = '#';
+                statusText.textContent = 'Ready to book';
                 
                 if (shape.booking_status === 'available') {
                     statusElement.textContent = 'Available';
                     statusElement.className = 'badge bg-success';
+                    statusText.textContent = 'Ready to book';
                     bookNowGroup.style.display = 'block';
+                    companyInfo.style.display = 'none';
                     
                     // Check if user has current booking
                     @if($existingBooking)
-                    if ({{ $existingBooking->floorplan_item_id }} === shape.id) {
+                    if ({{ $existingBooking->floorplan_item_id ?? 0 }} === shape.id) {
                         // This is the user's current space
                         statusElement.textContent = 'Your Current Space';
                         statusElement.className = 'badge bg-primary';
+                        statusText.textContent = 'Manage your booking';
                         bookNowBtn.innerHTML = '<i class="bi bi-eye me-2"></i>View Details';
-                        bookNowBtn.href = '{{ route("bookings.owner-form-token", ["eventSlug" => $event->slug, "accessToken" => $existingBooking->access_token]) }}';
+                        bookNowBtn.href = '{{ $existingBooking ? route("bookings.owner-form-token", ["eventSlug" => $event->slug, "accessToken" => $existingBooking->access_token]) : "#" }}';
                         bookNowBtn.className = 'btn btn-outline-primary w-100 fw-bold text-decoration-none';
                     } else {
-                        // Available space for changing
-                        bookNowBtn.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>Change to This Space';
-                        bookNowBtn.href = `/event/{{ $event->slug }}/book/${shape.id}`;
-                        bookNowBtn.className = 'btn btn-warning w-100 fw-bold text-decoration-none';
+                        // Check if this is an upgrade (more expensive booth)
+                        const currentPrice = {{ $existingBooking->floorplanItem->price ?? 0 }};
+                        const newPrice = shape.price || 0;
+                        
+                        if (newPrice > currentPrice) {
+                            // Show upgrade option
+                            bookNowBtn.innerHTML = '<i class="bi bi-arrow-up-circle me-2"></i>Upgrade to This Space';
+                            bookNowBtn.href = `/event/{{ $event->slug }}/booking/{{ $existingBooking->access_token }}/change-space/${shape.id}`;
+                            bookNowBtn.className = 'btn btn-success w-100 fw-bold text-decoration-none';
+                            
+                            // Add price difference info
+                            const priceDiff = newPrice - currentPrice;
+                            statusText.innerHTML = `Upgrade available! Additional cost: $${priceDiff.toFixed(2)}`;
+                        } else {
+                            // Hide button for same price or cheaper booths
+                            bookNowBtn.style.display = 'none';
+                            statusText.textContent = 'This space is not an upgrade option';
+                        }
                     }
                     @else
                     // Set the booking URL for new users
                     const eventSlug = '{{ $event->slug }}';
                     bookNowBtn.href = `/event/${eventSlug}/book/${shape.id}`;
                     @endif
-                } else if (shape.booking_status === 'pending') {
+                } else if (shape.booking_status === 'reserved') {
                     statusElement.textContent = 'Reserved';
                     statusElement.className = 'badge bg-warning';
+                    statusText.textContent = 'This booth is not available for booking';
                     bookNowGroup.style.display = 'none';
-                } else if (shape.booking_status === 'confirmed') {
+                    companyInfo.style.display = 'block';
+                    
+                    // Show company information for reserved booths
+                    showCompanyInfo(shape);
+                } else if (shape.booking_status === 'booked') {
                     statusElement.textContent = 'Booked';
                     statusElement.className = 'badge bg-secondary';
+                    statusText.textContent = 'This booth is not available for booking';
                     bookNowGroup.style.display = 'none';
+                    companyInfo.style.display = 'block';
+                    
+                    // Show company information for booked booths
+                    showCompanyInfo(shape);
                 } else {
                     statusElement.textContent = 'Unavailable';
                     statusElement.className = 'badge bg-danger';
+                    statusText.textContent = 'This booth is not available for booking';
                     bookNowGroup.style.display = 'none';
+                    companyInfo.style.display = 'none';
                 }
                 
                 // Position popup intelligently
@@ -830,6 +949,21 @@
                 
                 // Show panel
                 panel.style.display = 'block';
+            }
+            
+            // Show company information for reserved/booked booths
+            function showCompanyInfo(shape) {
+                const companyName = document.getElementById('companyName');
+                const companyContact = document.getElementById('companyContact');
+                
+                // Get company details from the shape data
+                if (shape.owner_details) {
+                    companyName.textContent = shape.owner_details.company_name || 'Company not specified';
+                    companyContact.textContent = shape.owner_details.name || 'Contact not specified';
+                } else {
+                    companyName.textContent = 'Company not specified';
+                    companyContact.textContent = 'Contact not specified';
+                }
             }
             
 
@@ -887,10 +1021,115 @@
                 hideItemInfo();
             });
             
+            // Hide popup when clicking outside
+            document.addEventListener('click', function(e) {
+                const panel = document.getElementById('itemInfoPanel');
+                const canvas = document.getElementById('floorplanCanvas');
+                
+                if (!panel.contains(e.target) && !canvas.contains(e.target)) {
+                    hideItemInfo();
+                }
+            });
+            
+            // Make popup draggable
+            let isDragging = false;
+            let dragOffsetX = 0;
+            let dragOffsetY = 0;
+            
+            // Add drag functionality to popup header
+            const popupHeader = document.querySelector('#itemInfoPanel .card-header');
+            if (popupHeader) {
+                popupHeader.style.cursor = 'move';
+                popupHeader.style.userSelect = 'none'; // Prevent text selection while dragging
+                popupHeader.title = 'Drag to move popup';
+                
+                // Add visual feedback for draggable area
+                popupHeader.style.position = 'relative';
+                
+                popupHeader.addEventListener('mousedown', startDrag);
+                
+                // Add touch support for mobile devices
+                popupHeader.addEventListener('touchstart', startTouchDrag);
+            }
+            
+            function startDrag(e) {
+                if (e.target.closest('.btn-close')) return; // Don't drag when clicking close button
+                
+                isDragging = true;
+                const panel = document.getElementById('itemInfoPanel');
+                const rect = panel.getBoundingClientRect();
+                
+                dragOffsetX = e.clientX - rect.left;
+                dragOffsetY = e.clientY - rect.top;
+                
+                document.addEventListener('mousemove', drag);
+                document.addEventListener('mouseup', stopDrag);
+                
+                e.preventDefault();
+            }
+            
+            function startTouchDrag(e) {
+                if (e.target.closest('.btn-close')) return; // Don't drag when touching close button
+                
+                isDragging = true;
+                const panel = document.getElementById('itemInfoPanel');
+                const rect = panel.getBoundingClientRect();
+                const touch = e.touches[0];
+                
+                dragOffsetX = touch.clientX - rect.left;
+                dragOffsetY = touch.clientY - rect.top;
+                
+                document.addEventListener('touchmove', touchDrag);
+                document.addEventListener('touchend', stopDrag);
+                
+                e.preventDefault();
+            }
+            
+            function drag(e) {
+                if (!isDragging) return;
+                
+                const panel = document.getElementById('itemInfoPanel');
+                const newX = e.clientX - dragOffsetX;
+                const newY = e.clientY - dragOffsetY;
+                
+                // Keep popup within viewport bounds
+                const maxX = window.innerWidth - panel.offsetWidth;
+                const maxY = window.innerHeight - panel.offsetHeight;
+                
+                panel.style.left = Math.max(0, Math.min(newX, maxX)) + 'px';
+                panel.style.top = Math.max(0, Math.min(newY, maxY)) + 'px';
+            }
+            
+            function touchDrag(e) {
+                if (!isDragging) return;
+                
+                const panel = document.getElementById('itemInfoPanel');
+                const touch = e.touches[0];
+                const newX = touch.clientX - dragOffsetX;
+                const newY = touch.clientY - dragOffsetY;
+                
+                // Keep popup within viewport bounds
+                const maxX = window.innerWidth - panel.offsetWidth;
+                const maxY = window.innerHeight - panel.offsetHeight;
+                
+                panel.style.left = Math.max(0, Math.min(newX, maxX)) + 'px';
+                panel.style.top = Math.max(0, Math.min(newY, maxY)) + 'px';
+                
+                e.preventDefault();
+            }
+            
+            function stopDrag() {
+                isDragging = false;
+                document.removeEventListener('mousemove', drag);
+                document.removeEventListener('mouseup', stopDrag);
+                document.removeEventListener('touchmove', touchDrag);
+                document.removeEventListener('touchend', stopDrag);
+            }
+            
             // Book Now button is now a link, no click handler needed
             
             // Drawing functions for different item types
-            function drawBooth(shape) {
+            function drawBooth(shape, fillColor, strokeColor) {
                 const width = shape.width || 80;
                 const height = shape.height || 80;
                 const centerX = shape.x + width/2;
@@ -904,10 +1143,10 @@
                     ctx.translate(-centerX, -centerY);
                 }
                 
-                // Main booth floor/base
-                ctx.fillStyle = '#F5F5DC'; // Beige floor
+                // Main booth floor/base - use passed colors for status indication
+                ctx.fillStyle = fillColor;
                 ctx.fillRect(shape.x, shape.y, width, height);
-                ctx.strokeStyle = '#8B4513';
+                ctx.strokeStyle = strokeColor;
                 ctx.lineWidth = 2;
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 
@@ -1014,14 +1253,14 @@
                 }
             }
             
-            function drawTable(shape) {
+            function drawTable(shape, fillColor, strokeColor) {
                 const width = shape.width || 80;
                 const height = shape.height || 60;
                 
-                // Table top
-                ctx.fillStyle = '#8B4513'; // Brown wood
+                // Table top - use passed colors for status indication
+                ctx.fillStyle = fillColor;
                 ctx.fillRect(shape.x, shape.y, width, height);
-                ctx.strokeStyle = '#654321';
+                ctx.strokeStyle = strokeColor;
                 ctx.lineWidth = 2;
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 
@@ -1035,7 +1274,7 @@
                 ctx.fillRect(shape.x + width - 9, shape.y + height, legWidth, legHeight);
             }
             
-            function drawChair(shape) {
+            function drawChair(shape, fillColor, strokeColor) {
                 const width = shape.width || 25;
                 const height = shape.height || 25;
                 const centerX = shape.x + width/2;
@@ -1049,15 +1288,15 @@
                     ctx.translate(-centerX, -centerY);
                 }
                 
-                // Backrest (upper part)
-                ctx.fillStyle = '#654321';
+                // Backrest (upper part) - use passed colors for status indication
+                ctx.fillStyle = fillColor;
                 ctx.fillRect(shape.x, shape.y, width, height * 0.4);
-                ctx.strokeStyle = '#4A4A4A';
+                ctx.strokeStyle = strokeColor;
                 ctx.lineWidth = 1;
                 ctx.strokeRect(shape.x, shape.y, width, height * 0.4);
                 
-                // Seat (lower part)
-                ctx.fillStyle = '#8B4513';
+                // Seat (lower part) - use passed colors for status indication
+                ctx.fillStyle = fillColor;
                 ctx.fillRect(shape.x, shape.y + height * 0.4, width, height * 0.6);
                 ctx.strokeRect(shape.x, shape.y + height * 0.4, width, height * 0.6);
                 
@@ -1091,7 +1330,7 @@
                 }
             }
             
-            function drawDesk(shape) {
+            function drawDesk(shape, fillColor, strokeColor) {
                 const width = shape.width || 100;
                 const height = shape.height || 60;
                 const centerX = shape.x + width/2;
@@ -1105,10 +1344,10 @@
                     ctx.translate(-centerX, -centerY);
                 }
                 
-                // Main desk surface
-                ctx.fillStyle = '#8B4513';
+                // Main desk surface - use passed colors for status indication
+                ctx.fillStyle = fillColor;
                 ctx.fillRect(shape.x, shape.y, width, height);
-                ctx.strokeStyle = '#654321';
+                ctx.strokeStyle = strokeColor;
                 ctx.lineWidth = 2;
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 
@@ -1203,7 +1442,7 @@
                 }
             }
             
-               function drawCounter(shape) {
+               function drawCounter(shape, fillColor, strokeColor) {
                 const width = shape.width || 120;
                 const height = shape.height || 30;
                 const centerX = shape.x + width/2;
@@ -1217,10 +1456,10 @@
                     ctx.translate(-centerX, -centerY);
                 }
                 
-                // Counter base/cabinet
-                ctx.fillStyle = '#8B4513'; // Dark brown wood
+                // Counter base/cabinet - use passed colors for status indication
+                ctx.fillStyle = fillColor;
                 ctx.fillRect(shape.x, shape.y, width, height);
-                ctx.strokeStyle = '#654321';
+                ctx.strokeStyle = strokeColor;
                 ctx.lineWidth = 2;
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 
@@ -1352,7 +1591,7 @@
                 }
             }
             
-            function drawStage(shape) {
+            function drawStage(shape, fillColor, strokeColor) {
                 const width = shape.width || 120;
                 const height = shape.height || 60;
                 const rotationCenterX = shape.x + width/2;
@@ -1366,10 +1605,10 @@
                     ctx.translate(-rotationCenterX, -rotationCenterY);
                 }
                 
-                // Stage platform/floor (raised surface)
-                ctx.fillStyle = '#8B0000'; // Dark red stage floor
+                // Stage platform/floor (raised surface) - use passed colors for status indication
+                ctx.fillStyle = fillColor;
                 ctx.fillRect(shape.x, shape.y, width, height);
-                ctx.strokeStyle = '#654321'; // Brown border
+                ctx.strokeStyle = strokeColor;
                 ctx.lineWidth = 3;
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 
@@ -1483,7 +1722,7 @@
                 }
             }
             
-            function drawScreen(shape) {
+            function drawScreen(shape, fillColor, strokeColor) {
                 const width = shape.width || 80;
                 const height = shape.height || 60;
                 const centerX = shape.x + width/2;
@@ -1497,10 +1736,10 @@
                     ctx.translate(-centerX, -centerY);
                 }
                 
-                // Screen bezel/frame (outer black frame)
-                ctx.fillStyle = '#2F2F2F'; // Dark gray bezel
+                // Screen bezel/frame (outer black frame) - use passed colors for status indication
+                ctx.fillStyle = fillColor;
                 ctx.fillRect(shape.x, shape.y, width, height);
-                ctx.strokeStyle = '#000';
+                ctx.strokeStyle = strokeColor;
                 ctx.lineWidth = 3;
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 

@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Exhibition App') }} - {{ $event->title ?? 'Event' }}</title>
+        <title>{{ config('app.name', 'Exhibition App') }} - {{ $event->name ?? 'Event' }}</title>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -27,14 +27,14 @@
                             <div class="me-4">
                                 <div class="bg-gradient-to-br from-blue-400 to-purple-600 rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 64px; height: 64px;">
                                     @if($event->logo)
-                                        <img src="{{ Storage::url($event->logo) }}" alt="{{ $event->title }}" class="rounded-circle" style="width: 64px; height: 64px; object-fit: cover;">
+                                        <img src="{{ Storage::url($event->logo) }}" alt="{{ $event->name }}" class="rounded-circle" style="width: 64px; height: 64px; object-fit: cover;">
                                     @else
-                                        <i class="bi bi-calendar-event text-white fs-3"></i>
+                                        <i class="bi bi-calendar-event text-white fs-4"></i>
                                     @endif
                                 </div>
                             </div>
-                            <div>
-                                <h1 class="h3 mb-1 fw-bold">{{ $event->title }}</h1>
+                            <div class="ms-3">
+                                <h1 class="h3 mb-1 fw-bold">{{ $event->name }}</h1>
                                 <div class="d-flex align-items-center gap-3 text-muted">
                                     <span class="d-flex align-items-center">
                                         <i class="bi bi-calendar-event me-2"></i>
@@ -92,13 +92,19 @@
                                     <li class="nav-item">
                                         <a href="{{ route('events.floorplan', $event) }}" class="nav-link fw-medium px-3 py-3 {{ request()->routeIs('events.floorplan') ? 'active' : '' }}">
                                             <i class="bi bi-grid-3x3-gap me-2"></i>
-                                            Exhibition Layout
+                                            Floorplan
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a href="{{ route('events.form-builders.index', $event) }}" class="nav-link fw-medium px-3 py-3 {{ request()->routeIs('events.form-builders.*') ? 'active' : '' }}">
                                             <i class="bi bi-pencil-square me-2"></i>
-                                            Participant Forms
+                                            Exhibitor Forms
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a href="{{ route('events.email-templates.index', $event) }}" class="nav-link fw-medium px-3 py-3 {{ request()->routeIs('events.email-templates.*') ? 'active' : '' }}">
+                                            <i class="bi bi-envelope me-2"></i>
+                                            Email Templates
                                         </a>
                                     </li>
                                     <li class="nav-item">
@@ -107,24 +113,8 @@
                                             Payment Setup
                                         </a>
                                     </li>
-                                    <li class="nav-item">
-                                        <a href="{{ route('events.registration', $event) }}" class="nav-link fw-medium px-3 py-3 {{ request()->routeIs('events.registration') ? 'active' : '' }}">
-                                            <i class="bi bi-people me-2"></i>
-                                            Exhibitors & Visitors
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href="#" class="nav-link fw-medium px-3 py-3">
-                                            <i class="bi bi-calendar-check me-2"></i>
-                                            Schedule
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href="#" class="nav-link fw-medium px-3 py-3">
-                                            <i class="bi bi-graph-up me-2"></i>
-                                            Analytics
-                                        </a>
-                                    </li>
+                                    
+                                      
                                 </ul>
                                 
                                 <!-- Quick Actions -->
@@ -139,10 +129,7 @@
                                             </a></li>
                                             <li><a class="dropdown-item" href="#">
                                                 <i class="bi bi-bell me-2"></i>Notifications
-                                            </a></li>
-                                            <li><a class="dropdown-item" href="#">
-                                                <i class="bi bi-shield-check me-2"></i>Permissions
-                                            </a></li>
+                                            </a></li> 
                                         </ul>
                                     </div>
                                     
@@ -157,9 +144,7 @@
                                             <li><a class="dropdown-item" href="{{ route('events.public.floorplan', $event) }}" target="_blank">
                                                 <i class="bi bi-grid-3x3-gap me-2"></i>Public Floorplan
                                             </a></li>
-                                            <li><a class="dropdown-item" href="#" target="_blank">
-                                                <i class="bi bi-phone me-2"></i>Mobile View
-                                            </a></li>
+                                             
                                         </ul>
                                     </div>
                                 </div>

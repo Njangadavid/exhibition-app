@@ -37,16 +37,16 @@ class EventController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'description' => 'required|string',
-            'status' => 'required|in:draft,published,active,completed,cancelled',
+            'status' => 'required|in:' . implode(',', array_keys(Event::getStatusOptions())),
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'start_date' => 'required|date|after:now',
+            'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
         ]);
 
-        // Generate slug from title
-        $validated['slug'] = Event::generateSlug($validated['title']);
+        // Generate slug from name
+        $validated['slug'] = Event::generateSlug($validated['name']);
 
         // Handle logo upload
         if ($request->hasFile('logo')) {
@@ -84,17 +84,17 @@ class EventController extends Controller
     public function update(Request $request, Event $event)
     {
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'description' => 'required|string',
-            'status' => 'required|in:draft,published,active,completed,cancelled',
+            'status' => 'required|in:' . implode(',', array_keys(Event::getStatusOptions())),
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
         ]);
 
-        // Generate slug from title (only if title changed)
-        if ($event->title !== $validated['title']) {
-            $validated['slug'] = Event::generateSlug($validated['title']);
+        // Generate slug from name (only if name changed)
+        if ($event->name !== $validated['name']) {
+            $validated['slug'] = Event::generateSlug($validated['name']);
         }
 
         // Handle logo upload
@@ -143,164 +143,11 @@ class EventController extends Controller
         return view('events.public.show', compact('event'));
     }
 
-    /**
-     * Public floorplan view (no authentication required).
-     */
-    public function publicFloorplan(Event $event, Request $request)
-    {
-        // Check if event is published or active
-        if (!in_array($event->status, ['published', 'active'])) {
-            abort(404, 'Event not found.');
-        }
 
-        // Check if user has an existing booking via access token
-        $existingBooking = null;
-        $accessToken = $request->query('access_token');
-        
-        if ($accessToken) {
-            $existingBooking = $event->bookings()
-                ->where('access_token', $accessToken)
-                ->where('access_token_expires_at', '>', now())
-                ->with(['floorplanItem'])
-                ->first();
-        }
 
-        // Load floorplan data with items if exists
-        $floorplanDesign = $event->floorplanDesign;
-        if ($floorplanDesign) {
-            $floorplanDesign->load('items');
-            
-            // Load booking information for each item to determine availability
-            $items = $floorplanDesign->items;
-            foreach ($items as $item) {
-                // Check if there's an active booking for this item
-                $activeBooking = $item->bookings()
-                    ->whereIn('status', ['pending', 'confirmed'])
-                    ->with('payments')
-                    ->latest()
-                    ->first();
-                
-                // Add booking status to item for frontend use
-                if ($activeBooking) {
-                    // Determine status based on booking and payment status
-                    if ($activeBooking->status === 'confirmed') {
-                        $item->booking_status = 'confirmed';
-                    } elseif ($activeBooking->hasPayments()) {
-                        $item->booking_status = 'pending';
-                    } else {
-                        $item->booking_status = 'pending';
-                    }
-                    
-                    $item->booking_reference = $activeBooking->booking_reference;
-                    $item->payment_status = $activeBooking->payment_status;
-                    $item->total_paid = $activeBooking->total_paid;
-                    $item->remaining_amount = $activeBooking->remaining_amount;
-                    
-                    // Check if this is the user's current booking
-                    if ($existingBooking && $existingBooking->floorplan_item_id == $item->id) {
-                        $item->is_current_booking = true;
-                        $item->current_booking_status = $existingBooking->status;
-                        $item->current_booking_progress = $this->getBookingProgress($existingBooking);
-                    }
-                } else {
-                    $item->booking_status = 'available';
-                    $item->booking_reference = null;
-                    $item->payment_status = null;
-                    $item->total_paid = 0;
-                    $item->remaining_amount = 0;
-                }
-            }
-        }
-        
-        return view('events.public.floorplan', compact('event', 'floorplanDesign', 'existingBooking', 'accessToken'));
-    }
 
-    /**
-     * Public floorplan view with access token in route (for existing bookings)
-     */
-    public function publicFloorplanWithToken(Event $event, $accessToken)
-    {
-        // Check if event is published or active
-        if (!in_array($event->status, ['published', 'active'])) {
-            abort(404, 'Event not found.');
-        }
 
-        // Find existing booking via access token
-        $existingBooking = $event->bookings()
-            ->where('access_token', $accessToken)
-            ->where('access_token_expires_at', '>', now())
-            ->with(['floorplanItem'])
-            ->first();
 
-        if (!$existingBooking) {
-            abort(404, 'Invalid or expired access link.');
-        }
-
-        // Load floorplan data with items if exists
-        $floorplanDesign = $event->floorplanDesign;
-        if ($floorplanDesign) {
-            $floorplanDesign->load('items');
-            
-            // Load booking information for each item to determine availability
-            $items = $floorplanDesign->items;
-            foreach ($items as $item) {
-                // Check if there's an active booking for this item
-                $activeBooking = $item->bookings()
-                    ->whereIn('status', ['pending', 'confirmed'])
-                    ->with('payments')
-                    ->latest()
-                    ->first();
-                
-                // Add booking status to item for frontend use
-                if ($activeBooking) {
-                    // Determine status based on booking and payment status
-                    if ($activeBooking->status === 'confirmed') {
-                        $item->booking_status = 'confirmed';
-                    } elseif ($activeBooking->hasPayments()) {
-                        $item->booking_status = 'pending';
-                    } else {
-                        $item->booking_status = 'pending';
-                    }
-                    
-                    $item->booking_reference = $activeBooking->booking_reference;
-                    $item->payment_status = $activeBooking->payment_status;
-                    $item->total_paid = $activeBooking->total_paid;
-                    $item->remaining_amount = $activeBooking->remaining_amount;
-                    
-                    // Check if this is the user's current booking
-                    if ($existingBooking->floorplan_item_id == $item->id) {
-                        $item->is_current_booking = true;
-                        $item->current_booking_status = $existingBooking->status;
-                        $item->current_booking_progress = $this->getBookingProgress($existingBooking);
-                    }
-                } else {
-                    $item->booking_status = 'available';
-                    $item->booking_reference = null;
-                    $item->payment_status = null;
-                    $item->total_paid = 0;
-                    $item->remaining_amount = 0;
-                }
-            }
-        }
-        
-        return view('events.public.floorplan', compact('event', 'floorplanDesign', 'existingBooking', 'accessToken'));
-    }
-
-    /**
-     * Get the current progress step for a booking
-     */
-    private function getBookingProgress($booking)
-    {
-        if ($booking->status === 'confirmed') {
-            return 4; // Payment completed
-        } elseif ($booking->member_details && count($booking->member_details) > 0) {
-            return 3; // Members added
-        } elseif ($booking->owner_details) {
-            return 2; // Owner details submitted
-        } else {
-            return 1; // Just started
-        }
-    }
 
     /**
      * Dashboard view for events.
@@ -415,13 +262,44 @@ class EventController extends Controller
                 }, ARRAY_FILTER_USE_KEY)
             );
 
-            // Delete existing items and create new ones
-            $floorplanDesign->items()->delete();
-
             if (isset($validated['items'])) {
+                // Get existing items to preserve IDs
+                $existingItems = $floorplanDesign->items()->get()->keyBy('item_id');
+                $newItemIds = collect($validated['items'])->pluck('item_id')->toArray();
+                
+                // Delete items that are no longer in the floorplan
+                $itemsToDelete = $existingItems->keys()->diff($newItemIds);
+                if ($itemsToDelete->count() > 0) {
+                    // Check if any of these items have bookings
+                    $itemsWithBookings = $floorplanDesign->items()
+                        ->whereIn('item_id', $itemsToDelete)
+                        ->whereHas('bookings')
+                        ->get();
+                    
+                    if ($itemsWithBookings->count() > 0) {
+                        DB::rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Cannot delete floorplan items that have existing bookings. Please remove all bookings for these items first.',
+                            'items_with_bookings' => $itemsWithBookings->pluck('item_name', 'item_id')
+                        ], 422);
+                    }
+                    
+                    $floorplanDesign->items()->whereIn('item_id', $itemsToDelete)->delete();
+                }
+                
+                // Update or create items
                 foreach ($validated['items'] as $itemData) {
                     $itemData['floorplan_design_id'] = $floorplanDesign->id;
-                    FloorplanItem::create($itemData);
+                    
+                    if ($existingItems->has($itemData['item_id'])) {
+                        // Update existing item to preserve ID and relationships
+                        $existingItem = $existingItems->get($itemData['item_id']);
+                        $existingItem->update($itemData);
+                    } else {
+                        // Create new item
+                        FloorplanItem::create($itemData);
+                    }
                 }
             }
 
@@ -461,5 +339,138 @@ class EventController extends Controller
             'success' => true,
             'floorplan' => $floorplanDesign->toArray()
         ]);
+    }
+
+    /**
+     * Check for orphaned bookings (bookings that reference non-existent floorplan items)
+     */
+    public function checkOrphanedBookings(Event $event)
+    {
+        try {
+            // First, let's check if the event has any bookings at all
+            $totalBookings = $event->bookings()->count();
+            
+            // Get all bookings for this event
+            $allBookings = $event->bookings()->get();
+            
+            // Check which bookings have valid floorplan items
+            $orphanedBookings = collect();
+            
+            foreach ($allBookings as $booking) {
+                // Check if the floorplan item exists
+                $floorplanItem = \App\Models\FloorplanItem::find($booking->floorplan_item_id);
+                if (!$floorplanItem) {
+                    $orphanedBookings->push($booking);
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'orphaned_bookings' => $orphanedBookings->map(function($booking) {
+                    return [
+                        'id' => $booking->id,
+                        'booking_reference' => $booking->booking_reference,
+                        'status' => $booking->status,
+                        'owner_name' => $booking->owner_details['name'] ?? 'Unknown',
+                        'owner_email' => $booking->owner_details['email'] ?? 'Unknown',
+                        'created_at' => $booking->created_at->format('Y-m-d H:i:s'),
+                        'floorplan_item_id' => $booking->floorplan_item_id,
+                    ];
+                }),
+                'count' => $orphanedBookings->count(),
+                'total_bookings' => $totalBookings,
+                'debug_info' => [
+                    'event_id' => $event->id,
+                    'event_name' => $event->name,
+                    'method' => 'manual_check'
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error checking orphaned bookings', [
+                'event_id' => $event->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error checking orphaned bookings: ' . $e->getMessage(),
+                'debug_info' => [
+                    'event_id' => $event->id,
+                    'error_file' => $e->getFile(),
+                    'error_line' => $e->getLine()
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Clean up orphaned bookings (remove bookings that reference non-existent floorplan items)
+     */
+    public function cleanupOrphanedBookings(Event $event)
+    {
+        try {
+            DB::beginTransaction();
+
+            // Get all bookings for this event
+            $allBookings = $event->bookings()->get();
+            
+            // Check which bookings have valid floorplan items
+            $orphanedBookings = collect();
+            
+            foreach ($allBookings as $booking) {
+                // Check if the floorplan item exists
+                $floorplanItem = \App\Models\FloorplanItem::find($booking->floorplan_item_id);
+                if (!$floorplanItem) {
+                    $orphanedBookings->push($booking);
+                }
+            }
+
+            $count = $orphanedBookings->count();
+            
+            if ($count > 0) {
+                $orphanedBookings->each(function($booking) {
+                    // Log the cleanup for audit purposes
+                    \Illuminate\Support\Facades\Log::warning('Cleaning up orphaned booking', [
+                        'booking_id' => $booking->id,
+                        'booking_reference' => $booking->booking_reference,
+                        'event_id' => $booking->event_id,
+                        'floorplan_item_id' => $booking->floorplan_item_id,
+                        'owner_email' => $booking->owner_details['email'] ?? 'Unknown'
+                    ]);
+                    
+                    $booking->delete();
+                });
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Cleaned up {$count} orphaned bookings",
+                'cleaned_count' => $count,
+                'total_bookings_checked' => $allBookings->count()
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            \Illuminate\Support\Facades\Log::error('Error cleaning up orphaned bookings', [
+                'event_id' => $event->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error cleaning up orphaned bookings: ' . $e->getMessage(),
+                'debug_info' => [
+                    'event_id' => $event->id,
+                    'error_file' => $e->getFile(),
+                    'error_line' => $e->getLine()
+                ]
+            ], 500);
+        }
     }
 }
