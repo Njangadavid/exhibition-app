@@ -20,6 +20,13 @@ class EmailCommunicationService
     public function sendTriggeredEmail(string $triggerType, Booking $booking, $specificMember = null): void
     {
         try {
+            Log::info("=== SEND TRIGGERED EMAIL START ===", [
+                'trigger_type' => $triggerType,
+                'booking_id' => $booking->id,
+                'event_id' => $booking->event_id,
+                'specific_member' => $specificMember
+            ]);
+
             $template = EmailTemplate::where('event_id', $booking->event_id)
                 ->where('trigger_type', $triggerType)
                 ->where('is_active', true)
@@ -33,6 +40,12 @@ class EmailCommunicationService
                 return;
             }
 
+            Log::info("Email template found", [
+                'template_id' => $template->id,
+                'template_name' => $template->name,
+                'template_trigger_type' => $template->trigger_type
+            ]);
+
             // Check if template should send based on conditions
             if (!$template->shouldSend($booking)) {
                 Log::info("Email template conditions not met", [
@@ -42,17 +55,28 @@ class EmailCommunicationService
                 return;
             }
 
+            Log::info("Template conditions met, proceeding with email sending");
+
             // Send to owner (but not for member_registration triggers)
             if ($triggerType !== 'owner_registration') {
+                Log::info("Sending email to owner");
                 $this->sendEmailToOwner($template, $booking);
             }
 
             // Send to members if applicable
             if ($triggerType === 'member_registration') {
+                Log::info("Processing member_registration trigger", [
+                    'has_specific_member' => !empty($specificMember),
+                    'specific_member_data' => $specificMember
+                ]);
+                
                 if ($specificMember) {
                     // Send email only to the specific member being added/edited
+                    Log::info("Calling sendEmailToSpecificMember");
                     $this->sendEmailToSpecificMember($template, $booking, $specificMember);
-                } 
+                } else {
+                    Log::info("No specific member provided, skipping member email");
+                }
             }
 
         } catch (\Exception $e) {
