@@ -1571,10 +1571,9 @@ class BookingController extends Controller
      */
     public function deleteMember(Request $request, $eventSlug, $accessToken, $memberId)
     {
-        $request->validate([
-            '_token' => 'required'
-        ]);
-
+        // CSRF token is handled automatically by Laravel when using X-CSRF-TOKEN header
+        // No need to validate _token from request body
+        
         $event = Event::where('slug', $eventSlug)->firstOrFail();
         
         // Find booth owner by access token, then get the booking
