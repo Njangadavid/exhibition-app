@@ -187,8 +187,8 @@ class EmailTemplate extends Model
                     ->get();
                 
                 foreach ($formFields as $field) {
-                    // Use field label as the key and display name
-                    $key = $this->sanitizeFieldLabel($field->label);
+                    // Use exact field label as the key and display name
+                    $key = $field->label;
                     $memberFields[$key] = $field->label;
                     
                     // Debug logging
@@ -222,24 +222,7 @@ class EmailTemplate extends Model
         return $memberFields;
     }
 
-    /**
-     * Sanitize field label for use as merge field key
-     */
-    private function sanitizeFieldLabel(string $label): string
-    {
-        // Keep original case and replace spaces with underscores
-        $key = trim($label);
-        $key = preg_replace('/[^a-zA-Z0-9_\s]/', '', $key);
-        $key = preg_replace('/\s+/', '_', $key);
-        $key = trim($key, '_');
-        
-        // Ensure it's not empty
-        if (empty($key)) {
-            $key = 'field_' . uniqid();
-        }
-        
-        return $key;
-    }
+
 
     /**
      * Process merge fields in content
@@ -279,57 +262,49 @@ class EmailTemplate extends Model
                 ->first();
             
             if ($formBuilder) {
-                // Get all form fields except sections
-                $formFields = \App\Models\FormField::where('form_builder_id', $formBuilder->id)
-                    ->where('type', '!=', 'section')
-                    ->get();
-                
                 // Debug logging
                 \Illuminate\Support\Facades\Log::info('Processing dynamic member fields', [
                     'event_id' => $this->event_id,
                     'form_builder_id' => $formBuilder->id,
-                    'form_fields_count' => $formFields->count(),
                     'member_data_keys' => array_keys($memberData),
                     'content_length' => strlen($content)
                 ]);
                 
-                foreach ($formFields as $field) {
-                    // Create the merge field placeholder
-                    $fieldKey = $this->sanitizeFieldLabel($field->label);
-                    $placeholder = "{{ member.{$fieldKey} }}";
-                    
-                    // Get the value from member data using field_id
-                    $value = $memberData[$field->field_id] ?? '';
-                    
-                    // Debug logging for each field
-                    \Illuminate\Support\Facades\Log::info('Processing field', [
-                        'field_id' => $field->field_id,
-                        'field_label' => $field->label,
-                        'field_key' => $fieldKey,
-                        'placeholder' => $placeholder,
-                        'value' => $value,
-                        'placeholder_in_content' => strpos($content, $placeholder) !== false
-                    ]);
-                    
-                    // Replace the placeholder with the actual value
-                    $content = str_replace($placeholder, $this->sanitizeString($value), $content);
-                    
-                    // Also try to replace with common variations of the field key
-                    // This handles cases where the merge field might be written differently
-                    $variations = [
-                        strtolower($fieldKey),
-                        strtolower(str_replace('_', '', $fieldKey)),
-                        strtolower(str_replace('_', ' ', $fieldKey))
-                    ];
-                    
-                    foreach ($variations as $variation) {
-                        $variationPlaceholder = "{{ member.{$variation} }}";
-                        if (strpos($content, $variationPlaceholder) !== false) {
-                            $content = str_replace($variationPlaceholder, $this->sanitizeString($value), $content);
-                            \Illuminate\Support\Facades\Log::info('Replaced variation', [
-                                'variation' => $variation,
-                                'placeholder' => $variationPlaceholder,
-                                'value' => $value
+                // Find and replace merge fields by searching for {{ member.field_label }} pattern
+                // This approach directly uses the field label as the merge field key
+                preg_match_all('/\{\{\s*member\.([^}]+)\s*\}\}/', $content, $matches);
+                
+                if (!empty($matches[1])) {
+                    foreach ($matches[1] as $fieldLabel) {
+                        $fieldLabel = trim($fieldLabel);
+                        
+                        // Find the form field by label
+                        $formField = \App\Models\FormField::where('form_builder_id', $formBuilder->id)
+                            ->where('label', $fieldLabel)
+                            ->first();
+                        
+                        if ($formField) {
+                            // Get the value from member data using field_id
+                            $value = $memberData[$formField->field_id] ?? '';
+                            
+                            // Create the placeholder to replace
+                            $placeholder = "{{ member.{$fieldLabel} }}";
+                            
+                            // Debug logging
+                            \Illuminate\Support\Facades\Log::info('Processing merge field', [
+                                'field_label' => $fieldLabel,
+                                'field_id' => $formField->field_id,
+                                'placeholder' => $placeholder,
+                                'value' => $value,
+                                'placeholder_in_content' => strpos($content, $placeholder) !== false
+                            ]);
+                            
+                            // Replace the placeholder with the actual value
+                            $content = str_replace($placeholder, $this->sanitizeString($value), $content);
+                        } else {
+                            \Illuminate\Support\Facades\Log::warning('Form field not found for label', [
+                                'field_label' => $fieldLabel,
+                                'form_builder_id' => $formBuilder->id
                             ]);
                         }
                     }
