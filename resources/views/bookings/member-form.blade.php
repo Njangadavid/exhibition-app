@@ -281,6 +281,33 @@ function findFieldByPurpose(member, formData, purpose) {
     return null;
 }
 
+function findMemberId(memberData) {
+    // Try to find the member ID from the booth members data
+    // We need to match by email since that's our unique identifier
+    const memberEmail = memberData.email || memberData['field_2_1755847232']; // Adjust field ID as needed
+    
+    if (!memberEmail) {
+        console.error('No email found in member data:', memberData);
+        return null;
+    }
+    
+    // Find the member in the booth members collection
+    @if($boothMembers && $boothMembers->count() > 0)
+        const boothMembers = @json($boothMembers);
+        const foundMember = boothMembers.find(m => {
+            const memberEmailField = m.form_responses.email || m.form_responses['field_2_1755847232'];
+            return memberEmailField === memberEmail;
+        });
+        
+        if (foundMember) {
+            return foundMember.id;
+        }
+    @endif
+    
+    console.error('Member not found in booth members:', memberEmail);
+    return null;
+}
+
 function displayExistingMembers(members) {
     const container = document.getElementById('existingMembersContainer');
     const list = document.getElementById('existingMembersList');
@@ -389,6 +416,9 @@ function removeMember(index) {
             memberCard.style.pointerEvents = 'none';
         }
         
+        // Get the member to delete
+        const memberToDelete = window.currentMembers[index];
+        
         // Create a copy of members without the one being removed
         const updatedMembers = [...window.currentMembers];
         updatedMembers.splice(index, 1);
@@ -397,15 +427,23 @@ function removeMember(index) {
         console.log('Members count before:', window.currentMembers.length);
         console.log('Members count after:', updatedMembers.length);
         
-        // Save to database - send the updated members list
+        // Use the proper delete route instead of saveMembers
         const submitData = new FormData();
-        submitData.append('member_details', JSON.stringify(updatedMembers));
         submitData.append('_token', '{{ csrf_token() }}');
         
-        console.log('Sending to backend:', JSON.stringify(updatedMembers));
+        // Find the member ID from the booth members data
+        const memberId = findMemberId(memberToDelete);
         
-        fetch('{{ route("bookings.save-members", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token]) }}', {
-            method: 'POST',
+        if (!memberId) {
+            console.error('Could not find member ID for deletion');
+            showAlert('Error: Could not identify member for deletion. Please refresh and try again.', 'danger');
+            return;
+        }
+        
+        console.log('Deleting member with ID:', memberId);
+        
+        fetch('{{ route("bookings.delete-member", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token]) }}/' + memberId, {
+            method: 'DELETE',
             body: submitData,
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
@@ -416,7 +454,7 @@ function removeMember(index) {
             console.log('Backend response:', data);
             
             if (data.success) {
-                // Update global array only after successful save
+                // Update global array only after successful deletion
                 window.currentMembers = updatedMembers;
                 
                 console.log('Updated window.currentMembers:', window.currentMembers);
@@ -431,7 +469,7 @@ function removeMember(index) {
                 }
                 
                 // Show success message
-                showAlert('Member removed and saved successfully!', 'success');
+                showAlert('Member removed successfully!', 'success');
             } else {
                 // Show error message
                 showAlert(data.message || 'Failed to remove member. Please try again.', 'danger');

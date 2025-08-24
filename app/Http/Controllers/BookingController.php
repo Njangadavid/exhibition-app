@@ -1565,4 +1565,77 @@ class BookingController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Delete a specific booth member.
+     */
+    public function deleteMember(Request $request, $eventSlug, $accessToken, $memberId)
+    {
+        $request->validate([
+            '_token' => 'required'
+        ]);
+
+        $event = Event::where('slug', $eventSlug)->firstOrFail();
+        
+        // Find booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
+        $booking = $boothOwner->booking;
+        
+        if (!$booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No booking found for this access token. Please start over.'
+            ], 400);
+        }
+
+        // Verify access token is valid
+        if (!$booking->isAccessTokenValid()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired access link. Please start over.'
+            ], 400);
+        }
+
+        try {
+            // Find the member to delete
+            $member = \App\Models\BoothMember::where('id', $memberId)
+                ->where('booth_owner_id', $boothOwner->id)
+                ->first();
+
+            if (!$member) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Member not found or you do not have permission to delete them.'
+                ], 404);
+            }
+
+            // Delete the member
+            $member->delete();
+
+            Log::info('Member deleted successfully', [
+                'booking_id' => $booking->id,
+                'member_id' => $memberId,
+                'event_slug' => $eventSlug
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Member deleted successfully!',
+                'deleted_member_id' => $memberId
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to delete member', [
+                'booking_id' => $booking->id,
+                'member_id' => $memberId,
+                'error' => $e->getMessage(),
+                'event_slug' => $eventSlug
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete member. Please try again.'
+            ], 500);
+        }
+    }
 }
