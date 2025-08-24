@@ -138,6 +138,57 @@
         </div>
     </div>
 </div>
+
+<!-- Simple Member Edit Modal -->
+<div class="modal fade" id="editMemberModal" tabindex="-1" aria-labelledby="editMemberModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editMemberModalLabel">Edit Member</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editMemberForm">
+                    <input type="hidden" id="editMemberId" name="member_id">
+                    <input type="hidden" id="editMemberIndex" name="member_index">
+                    
+                    <!-- Dynamic form fields will be populated here -->
+                    <div id="editFormFields"></div>
+                    
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="editResendEmail" name="resend_member_email">
+                        <label class="form-check-label" for="editResendEmail">
+                            Resend welcome email to this member
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveMemberEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Simple Member Delete Modal -->
+<div class="modal fade" id="deleteMemberModal" tabindex="-1" aria-labelledby="deleteMemberModalLabel" aria-hidden="true">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="deleteMemberModalLabel">Delete Member</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete this member? This action cannot be undone.</p>
+            <input type="hidden" id="deleteMemberId" name="member_id">
+            <input type="hidden" id="deleteMemberIndex" name="member_index">
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-danger" onclick="confirmDeleteMember()">Delete Member</button>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('styles')
@@ -440,10 +491,10 @@ function displayExistingMembers(members) {
                                  <i class="bi bi-person-check me-2"></i>${memberName}
                              </h6>
                              <div class="btn-group btn-group-sm" role="group">
-                                 <button type="button" class="btn btn-outline-primary" onclick="editMember(${index})" title="Edit Member">
+                                 <button type="button" class="btn btn-outline-primary" onclick="editMemberModal(${member.id}, ${index})" title="Edit Member">
                                      <i class="bi bi-pencil"></i>
                                  </button>
-                                 <button type="button" class="btn btn-outline-danger" onclick="removeMember(${index})" title="Remove Member">
+                                 <button type="button" class="btn btn-outline-danger" onclick="deleteMemberModal(${member.id}, ${index})" title="Remove Member">
                                      <i class="bi bi-trash"></i>
                                  </button>
                              </div>
@@ -487,202 +538,78 @@ function displayExistingMembers(members) {
     document.getElementById('continueToPaymentBtn').style.display = 'inline-block';
 }
 
-function removeMember(index) {
-    if (confirm('Are you sure you want to remove this member?')) {
-        // Debug: Log the current state
-        console.log('=== REMOVE MEMBER DEBUG ===');
-        console.log('Index to remove:', index);
-        console.log('Current members before removal:', window.currentMembers);
-        console.log('Member to remove:', window.currentMembers[index]);
-        
-        // Show loading state (we'll use the member card itself for feedback)
-        const memberCard = document.querySelector(`[onclick="removeMember(${index})"]`).closest('.card');
-        if (memberCard) {
-            memberCard.style.opacity = '0.5';
-            memberCard.style.pointerEvents = 'none';
-        }
-        
-        // Get the member to delete
-        const memberToDelete = window.currentMembers[index];
-        
-        // Create a copy of members without the one being removed
-        const updatedMembers = [...window.currentMembers];
-        updatedMembers.splice(index, 1);
-        
-        console.log('Updated members after removal:', updatedMembers);
-        console.log('Members count before:', window.currentMembers.length);
-        console.log('Members count after:', updatedMembers.length);
-        
-        // Use the proper delete route instead of saveMembers
-        const submitData = new FormData();
-        submitData.append('_token', '{{ csrf_token() }}');
-        
-        // Find the member ID from the booth members data
-        const memberId = findMemberId(memberToDelete);
-        
-        if (!memberId) {
-            console.error('Could not find member ID for deletion');
-            showAlert('Error: Could not identify member for deletion. Please refresh and try again.', 'danger');
-            return;
-        }
-        
-        console.log('Deleting member with ID:', memberId);
-        
-        fetch('{{ route("bookings.delete-member", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token, "memberId" => ":memberId"]) }}'.replace(':memberId', memberId), {
-            method: 'DELETE',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Backend response:', data);
-            
-            if (data.success) {
-                // Update global array only after successful deletion
-                window.currentMembers = updatedMembers;
-                
-                console.log('Updated window.currentMembers:', window.currentMembers);
-                console.log('Final member count:', window.currentMembers.length);
-                
-                // Display updated members
-                displayExistingMembers(window.currentMembers);
-                
-                // Update the hidden input for form submission
-                if (document.getElementById('formDataInput')) {
-                    document.getElementById('formDataInput').value = JSON.stringify(window.currentMembers);
-                }
-                
-                // Show success message
-                showAlert('Member removed successfully!', 'success');
-            } else {
-                // Show error message
-                showAlert(data.message || 'Failed to remove member. Please try again.', 'danger');
-                // Reload members to restore the UI
-                displayExistingMembers(window.currentMembers);
-            }
-        })
-        .catch(error => {
-            console.error('Error removing member:', error);
-            showAlert('An error occurred while removing member. Please try again.', 'danger');
-            // Reload members to restore the UI
-            displayExistingMembers(window.currentMembers);
-        })
-        .finally(() => {
-            // Restore card state if it still exists
-            if (memberCard) {
-                memberCard.style.opacity = '1';
-                memberCard.style.pointerEvents = 'auto';
-            }
-        });
-    }
-}
-
-function editMember(index) {
-    const member = window.currentMembers[index];
+// Simple modal-based member management functions
+function editMemberModal(memberId, memberIndex) {
+    const member = window.currentMembers[memberIndex];
     if (!member) {
         showAlert('Member not found!', 'danger');
         return;
     }
     
-    // Store the current editing member information
-    window.currentEditingMember = {
-        id: member.id,
-        index: index,
-        data: member
-    };
+    // Set modal data
+    document.getElementById('editMemberId').value = memberId;
+    document.getElementById('editMemberIndex').value = memberIndex;
     
-    console.log('Editing member:', window.currentEditingMember);
+    // Populate form fields
+    populateEditForm(member);
     
-    // Show the form
-    const container = document.getElementById('memberFormContainer');
-    container.style.display = 'block';
-    
-    // Update toggle button
-    const toggleBtn = document.getElementById('toggleMemberForm');
-    toggleBtn.innerHTML = '<i class="bi bi-eye-slash me-2"></i>Hide Member Form';
-    toggleBtn.classList.remove('btn-outline-primary');
-    toggleBtn.classList.add('btn-outline-secondary');
-    
-    // Populate form with member data
-    populateFormWithMemberData(member);
-    
-    // Change form buttons to edit mode
-    const form = document.getElementById('memberRegistrationForm');
-    const addBtn = form.querySelector('button[onclick="addMember()"]');
-    const clearBtn = form.querySelector('button[onclick="clearForm()"]');
-    
-    // Update add button to save changes
-    addBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Save Changes';
-    addBtn.onclick = () => saveMemberChanges(index);
-    addBtn.className = 'btn btn-warning';
-    
-    // Update clear button to cancel edit
-    clearBtn.innerHTML = '<i class="bi bi-x-circle me-2"></i>Cancel Edit';
-    clearBtn.onclick = () => cancelEdit();
-    clearBtn.className = 'btn btn-outline-danger';
-    
-    // Store editing index
-    window.editingMemberIndex = index;
-    
-    // Show resend email option
-    const resendOption = document.getElementById('resendEmailOption');
-    if (resendOption) {
-        resendOption.style.display = 'block';
-    }
-    
-    // Scroll to form
-    container.scrollIntoView({ behavior: 'smooth' });
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('editMemberModal'));
+    modal.show();
 }
 
-function saveMemberChanges(index) {
-    const form = document.getElementById('memberRegistrationForm');
+function populateEditForm(member) {
+    const container = document.getElementById('editFormFields');
+    let html = '';
     
-    // Validate required fields
-    if (!validateRequiredFields(form)) {
-        showAlert('Please fill in all required fields marked with *', 'warning');
-        return;
-    }
-    
-    const formData = collectFormData(form);
-    
-    if (Object.keys(formData).length === 0) {
-        showAlert('Please fill in the member details first.', 'warning');
-        return;
-    }
-    
-                // Show loading state
-            const saveBtn = document.querySelector('button[onclick*="saveMemberChanges"]');
-            let originalText = '';
-            if (saveBtn) {
-                originalText = saveBtn.innerHTML;
-                saveBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Saving...';
-                saveBtn.disabled = true;
+    // Get form fields from currentFormData
+    if (window.currentFormData && window.currentFormData.fields) {
+        window.currentFormData.fields.forEach(field => {
+            if (field.type !== 'section') {
+                const value = member.form_responses[field.field_id] || '';
+                const required = field.required ? 'required' : '';
+                const fieldName = `edit_${field.field_id}`;
+                
+                html += `
+                    <div class="mb-3">
+                        <label for="${fieldName}" class="form-label">${field.label}</label>
+                        <input type="text" class="form-control" id="${fieldName}" name="${fieldName}" 
+                               value="${value}" ${required}>
+                    </div>
+                `;
             }
+        });
+    }
     
-    // Save to database - only send the updated member data
+    container.innerHTML = html;
+}
+
+function saveMemberEdit() {
+    const memberId = document.getElementById('editMemberId').value;
+    const memberIndex = document.getElementById('editMemberIndex').value;
+    const resendEmail = document.getElementById('editResendEmail').checked;
+    
+    // Collect form data
+    const formData = {};
+    const form = document.getElementById('editMemberForm');
+    form.querySelectorAll('input[name^="edit_"]').forEach(input => {
+        const fieldId = input.name.replace('edit_', '');
+        formData[fieldId] = input.value;
+    });
+    
+    // Add resend email flag
+    if (resendEmail) {
+        formData.resend_member_email = '1';
+    }
+    
+    console.log('Saving member edit:', { memberId, memberIndex, formData });
+    
+    // Send update request
     const submitData = new FormData();
-    submitData.append('member_data', JSON.stringify(formData)); // Send the updated member data
-    
-    // Check if resend email is requested
-    const resendEmailCheckbox = document.getElementById('resend_member_email');
-    if (resendEmailCheckbox && resendEmailCheckbox.checked) {
+    submitData.append('member_data', JSON.stringify(formData));
+    if (resendEmail) {
         submitData.append('resend_member_email', '1');
-        console.log('Resend email requested for member update');
     }
-    
-    // Find the member ID from the booth members data
-    const memberId = findMemberId(formData);
-    
-    if (!memberId) {
-        console.error('Could not find member ID for update');
-        showAlert('Error: Could not identify member for update. Please refresh and try again.', 'danger');
-        return;
-    }
-    
-    console.log('Updating member with ID:', memberId);
-    console.log('Sending member data:', formData);
     
     fetch('{{ route("bookings.update-member", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token, "memberId" => ":memberId"]) }}'.replace(':memberId', memberId), {
         method: 'POST',
@@ -692,167 +619,63 @@ function saveMemberChanges(index) {
         }
     })
     .then(response => response.json())
-            .then(data => {
-            if (data.success) {
-                // Update member in global array only after successful save
-                window.currentMembers[index] = formData;
-                
-                // Display updated members
-                displayExistingMembers(window.currentMembers);
-                
-                // Update the hidden input for form submission
-                if (document.getElementById('formDataInput')) {
-                    document.getElementById('formDataInput').value = JSON.stringify(window.currentMembers);
-                }
-                
-                // Reset form to add mode and hide form
-                resetFormToAddMode();
-                hideFormAfterAction();
-                
-                // Show success message
-                showAlert('Member updated and saved successfully!', 'success');
-                
-                // Clear editing index
-                delete window.editingMemberIndex;
-            } else {
-                showAlert(data.message || 'Failed to save member changes. Please try again.', 'danger');
-            }
-        })
-    .catch(error => {
-        console.error('Error saving member changes:', error);
-        showAlert('An error occurred while saving changes. Please try again.', 'danger');
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editMemberModal'));
+            modal.hide();
+            
+            // Reload page to show updated data
+            location.reload();
+        } else {
+            showAlert(data.message || 'Failed to update member', 'danger');
+        }
     })
-               .finally(() => {
-               // Restore button state
-               if (saveBtn) {
-                   saveBtn.innerHTML = originalText;
-                   saveBtn.disabled = false;
-               }
-           });
-}
-
-function cancelEdit() {
-    // Reset form to add mode
-    resetFormToAddMode();
-    
-    // Hide the form
-    hideFormAfterAction();
-    
-    // Clear editing index and current editing member
-    delete window.editingMemberIndex;
-    delete window.currentEditingMember;
-    
-    // Show message
-    showAlert('Edit cancelled. Member not changed.', 'info');
-}
-
-function resetFormToAddMode() {
-    // Clear form
-    clearForm();
-    
-    // Reset form buttons
-    const form = document.getElementById('memberRegistrationForm');
-    const addBtn = form.querySelector('button[onclick="saveMemberChanges()"]') || 
-                   form.querySelector('button[onclick="addMember()"]') ||
-                   form.querySelector('button:last-child');
-    const clearBtn = form.querySelector('button[onclick="cancelEdit()"]') || 
-                     form.querySelector('button[onclick="clearForm()"]') ||
-                     form.querySelector('button:first-of-type');
-    
-    // Restore add button
-    addBtn.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Add Member';
-    addBtn.onclick = () => addMember();
-    addBtn.className = 'btn btn-success';
-    
-    // Restore clear button
-    clearBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>Clear Form';
-    clearBtn.onclick = () => clearForm();
-    clearBtn.className = 'btn btn-outline-secondary';
-}
-
-function hideFormAfterAction() {
-    // Hide the form
-    const container = document.getElementById('memberFormContainer');
-    container.style.display = 'none';
-    
-    // Update toggle button to "Add Another Member"
-    const toggleBtn = document.getElementById('toggleMemberForm');
-    toggleBtn.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Add Another Member';
-    toggleBtn.classList.remove('btn-outline-secondary');
-    toggleBtn.classList.add('btn-outline-primary');
-}
-
-function validateRequiredFields(form) {
-    let isValid = true;
-    
-    // Get all required fields
-    const requiredFields = form.querySelectorAll('.required-field');
-    
-    requiredFields.forEach(fieldLabel => {
-        const fieldId = fieldLabel.getAttribute('for');
-        const input = form.querySelector(`[name="${fieldId}"]`);
-        
-        if (input) {
-            let fieldValue = '';
-            
-            if (input.type === 'checkbox') {
-                // For checkboxes, check if any are selected
-                const checkboxes = form.querySelectorAll(`[name="${fieldId}"]`);
-                const checkedBoxes = Array.from(checkboxes).filter(cb => cb.checked);
-                fieldValue = checkedBoxes.length > 0 ? 'checked' : '';
-            } else if (input.type === 'radio') {
-                // For radio buttons, check if any are selected
-                const radios = form.querySelectorAll(`[name="${fieldId}"]`);
-                const selectedRadio = Array.from(radios).find(radio => radio.checked);
-                fieldValue = selectedRadio ? selectedRadio.value : '';
-            } else {
-                // For regular inputs
-                fieldValue = input.value.trim();
-            }
-            
-            // Remove previous error styling
-            input.classList.remove('is-invalid');
-            fieldLabel.classList.remove('text-danger');
-            
-            // Check if field is empty
-            if (!fieldValue) {
-                input.classList.add('is-invalid');
-                fieldLabel.classList.add('text-danger');
-                isValid = false;
-            }
-        }
+    .catch(error => {
+        console.error('Error updating member:', error);
+        showAlert('An error occurred while updating member', 'danger');
     });
-    
-    return isValid;
 }
 
-function populateFormWithMemberData(member) {
-    const form = document.getElementById('memberRegistrationForm');
+function deleteMemberModal(memberId, memberIndex) {
+    // Set modal data
+    document.getElementById('deleteMemberId').value = memberId;
+    document.getElementById('deleteMemberIndex').value = memberIndex;
     
-    // Clear form first
-    form.reset();
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('deleteMemberModal'));
+    modal.show();
+}
+
+function confirmDeleteMember() {
+    const memberId = document.getElementById('deleteMemberId').value;
+    const memberIndex = document.getElementById('deleteMemberIndex').value;
     
-    // Populate each field with member data
-    Object.keys(member).forEach(fieldId => {
-        const input = form.querySelector(`[name="${fieldId}"]`);
-        if (input) {
-            if (input.type === 'checkbox') {
-                // Handle checkboxes - check if value is in member's array
-                if (Array.isArray(member[fieldId])) {
-                    member[fieldId].forEach(value => {
-                        const checkbox = form.querySelector(`[name="${fieldId}"][value="${value}"]`);
-                        if (checkbox) checkbox.checked = true;
-                    });
-                }
-            } else if (input.type === 'radio') {
-                // Handle radio buttons
-                const radio = form.querySelector(`[name="${fieldId}"][value="${member[fieldId]}"]`);
-                if (radio) radio.checked = true;
-            } else {
-                // Handle regular inputs
-                input.value = member[fieldId] || '';
-            }
+    console.log('Deleting member:', { memberId, memberIndex });
+    
+    // Send delete request
+    fetch('{{ route("bookings.delete-member", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token, "memberId" => ":memberId"]) }}'.replace(':memberId', memberId), {
+        method: 'DELETE',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
         }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteMemberModal'));
+            modal.hide();
+            
+            // Reload page to show updated data
+            location.reload();
+        } else {
+            showAlert(data.message || 'Failed to delete member', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting member:', error);
+        showAlert('An error occurred while deleting member', 'danger');
     });
 }
 
@@ -963,12 +786,6 @@ function setupFormSubmission() {
 }
 
 function addMember() {
-    // Check if we're in edit mode
-    if (window.editingMemberIndex !== undefined) {
-        saveMemberChanges(window.editingMemberIndex);
-        return;
-    }
-    
     // Clear any current editing member when adding new
     delete window.currentEditingMember;
     
