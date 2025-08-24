@@ -281,8 +281,8 @@
 
 @php
     $existingMembersData = [];
-    if ($boothMembers && $boothMembers->count() > 0) {
-        $existingMembersData = $boothMembers->pluck('form_responses')->toArray();
+    if ($transformedBoothMembers && $transformedBoothMembers->count() > 0) {
+        $existingMembersData = $transformedBoothMembers->pluck('form_responses')->toArray();
     }
 @endphp
 
@@ -319,8 +319,8 @@ function initializeMemberManagement(formData) {
     
     // Initialize global members array
     window.currentMembers = [];
-    @if($boothMembers && $boothMembers->count() > 0)
-        window.currentMembers = @json($boothMembers->pluck('form_responses'));
+    @if($transformedBoothMembers && $transformedBoothMembers->count() > 0)
+        window.currentMembers = @json($transformedBoothMembers->pluck('form_responses'));
     @endif
     
     // Initialize form data and current members
@@ -412,8 +412,8 @@ function findMemberId(memberData) {
     console.log('Looking for member with email:', memberEmail);
     
     // Find the member in the booth members collection
-    @if($boothMembers && $boothMembers->count() > 0)
-        const boothMembers = @json($boothMembers);
+    @if($transformedBoothMembers && $transformedBoothMembers->count() > 0)
+        const boothMembers = @json($transformedBoothMembers);
         console.log('Booth members available:', boothMembers);
         
         const foundMember = boothMembers.find(m => {
@@ -459,7 +459,7 @@ function findMemberId(memberData) {
     @endif
     
     console.error('Member not found in booth members:', memberEmail);
-    console.error('Available booth members:', @json($boothMembers ?? []));
+    console.error('Available booth members:', @json($transformedBoothMembers ?? []));
     return null;
 }
 
