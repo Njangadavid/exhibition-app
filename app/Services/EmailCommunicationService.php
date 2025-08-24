@@ -42,8 +42,10 @@ class EmailCommunicationService
                 return;
             }
 
-            // Send to owner
-            $this->sendEmailToOwner($template, $booking);
+            // Send to owner (but not for member_registration triggers)
+            if ($triggerType !== 'member_registration') {
+                $this->sendEmailToOwner($template, $booking);
+            }
 
             // Send to members if applicable
             if ($triggerType === 'member_registration') {
@@ -51,7 +53,7 @@ class EmailCommunicationService
                     // Send email only to the specific member being added/edited
                     $this->sendEmailToSpecificMember($template, $booking, $specificMember);
                 } else {
-                    // Send to all members (for backward compatibility)
+                    // Fallback: send to all members if no specific member provided
                     $this->sendEmailToMembers($template, $booking);
                 }
             }
