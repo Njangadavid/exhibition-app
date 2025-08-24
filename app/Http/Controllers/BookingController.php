@@ -1637,4 +1637,110 @@ class BookingController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Update a specific booth member.
+     */
+    public function updateMember(Request $request, $eventSlug, $accessToken, $memberId)
+    {
+        $request->validate([
+            'member_data' => 'required|string', // JSON string
+        ]);
+
+        $event = Event::where('slug', $eventSlug)->firstOrFail();
+        
+        // Find booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
+        $booking = $boothOwner->booking;
+        
+        if (!$booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No booking found for this access token. Please start over.'
+            ], 400);
+        }
+
+        // Verify access token is valid
+        if (!$booking->isAccessTokenValid()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired access link. Please start over.'
+            ], 400);
+        }
+
+        try {
+            // Decode JSON member data
+            $memberData = json_decode($request->member_data, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid member data format.'
+                ], 400);
+            }
+
+            // Find the member to update
+            $member = \App\Models\BoothMember::where('id', $memberId)
+                ->where('booth_owner_id', $boothOwner->id)
+                ->first();
+
+            if (!$member) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Member not found or you do not have permission to update them.'
+                ], 404);
+            }
+
+            // Update the member
+            $member->update([
+                'form_responses' => $memberData,
+                'status' => 'active'
+            ]);
+
+            Log::info('Member updated successfully', [
+                'booking_id' => $booking->id,
+                'member_id' => $memberId,
+                'event_slug' => $eventSlug
+            ]);
+
+            // Send member registration email if requested
+            if (request()->has('resend_member_email') && request()->input('resend_member_email') == '1') {
+                try {
+                    $emailService = app(EmailCommunicationService::class);
+                    $emailService->sendTriggeredEmail('member_registration', $booking, $memberData);
+                    Log::info('Member update email triggered', [
+                        'booking_id' => $booking->id,
+                        'member_id' => $memberId,
+                        'trigger_type' => 'member_registration'
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send member update email', [
+                        'booking_id' => $booking->id,
+                        'member_id' => $memberId,
+                        'error' => $e->getMessage()
+                    ]);
+                    // Don't fail the update process if email fails
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Member updated successfully!',
+                'updated_member_id' => $memberId
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to update member', [
+                'booking_id' => $booking->id,
+                'member_id' => $memberId,
+                'error' => $e->getMessage(),
+                'event_slug' => $eventSlug
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update member. Please try again.'
+            ], 500);
+        }
+    }
 }

@@ -568,11 +568,22 @@ function saveMemberChanges(index) {
     
     // Save to database - only send the updated member data
     const submitData = new FormData();
-    submitData.append('member_details', JSON.stringify([formData])); // Send only the updated member
+    submitData.append('member_data', JSON.stringify(formData)); // Send the updated member data
     submitData.append('_token', '{{ csrf_token() }}');
     
-    fetch('{{ route("bookings.save-members", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token]) }}', {
-        method: 'POST',
+    // Find the member ID from the booth members data
+    const memberId = findMemberId(formData);
+    
+    if (!memberId) {
+        console.error('Could not find member ID for update');
+        showAlert('Error: Could not identify member for update. Please refresh and try again.', 'danger');
+        return;
+    }
+    
+    console.log('Updating member with ID:', memberId);
+    
+    fetch('{{ route("bookings.update-member", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token, "memberId" => ":memberId"]) }}'.replace(':memberId', memberId), {
+        method: 'PUT',
         body: submitData,
         headers: {
             'X-Requested-With': 'XMLHttpRequest'
