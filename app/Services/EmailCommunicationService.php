@@ -140,6 +140,16 @@ class EmailCommunicationService
             $processedContent = $template->processMergeFields($template->content, $data);
             $processedSubject = $template->processMergeFields($template->subject, $data);
 
+            // Debug logging
+            Log::info('Email processing completed', [
+                'original_content_length' => strlen($template->content),
+                'processed_content_length' => strlen($processedContent),
+                'original_subject' => $template->subject,
+                'processed_subject' => $processedSubject,
+                'member_data' => $memberData,
+                'email_data' => $data
+            ]);
+
             // Dispatch email job to queue
             SendEmailJob::dispatch(
                 $emailLog->id,
