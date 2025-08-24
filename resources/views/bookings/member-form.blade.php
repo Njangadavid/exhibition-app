@@ -946,6 +946,51 @@ function setupFormSubmission() {
     });
 }
 
+// Validation function for required fields
+function validateRequiredFields(form) {
+    let isValid = true;
+    
+    // Get all required fields
+    const requiredFields = form.querySelectorAll('.required-field');
+    
+    requiredFields.forEach(fieldLabel => {
+        const fieldId = fieldLabel.getAttribute('for');
+        const input = form.querySelector(`[name="${fieldId}"]`);
+        
+        if (input) {
+            let fieldValue = '';
+            
+            if (input.type === 'checkbox') {
+                // For checkboxes, check if any are selected
+                const checkboxes = form.querySelectorAll(`[name="${fieldId}"]`);
+                const checkedBoxes = Array.from(checkboxes).filter(cb => cb.checked);
+                fieldValue = checkedBoxes.length > 0 ? 'checked' : '';
+            } else if (input.type === 'radio') {
+                // For radio buttons, check if any are selected
+                const radios = form.querySelectorAll(`[name="${fieldId}"]`);
+                const selectedRadio = Array.from(radios).find(radio => radio.checked);
+                fieldValue = selectedRadio ? selectedRadio.value : '';
+            } else {
+                // For regular inputs
+                fieldValue = input.value.trim();
+            }
+            
+            // Remove previous error styling
+            input.classList.remove('is-invalid');
+            fieldLabel.classList.remove('text-danger');
+            
+            // Check if field is empty
+            if (!fieldValue) {
+                input.classList.add('is-invalid');
+                fieldLabel.classList.add('text-danger');
+                isValid = false;
+            }
+        }
+    });
+    
+    return isValid;
+}
+
 function addMember() {
     // Clear any current editing member when adding new
     delete window.currentEditingMember;
