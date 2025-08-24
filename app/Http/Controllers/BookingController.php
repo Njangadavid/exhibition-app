@@ -240,7 +240,7 @@ class BookingController extends Controller
                 ]);
              
                 // Generate access token if not exists
-                if (!$existingBooking->access_token) {
+                if (!$existingBooking->boothOwner || !$existingBooking->boothOwner->access_token) {
                     $existingBooking->refreshAccessToken();
                 }
 
@@ -255,8 +255,6 @@ class BookingController extends Controller
                     'event_id' => $event->id,
                     'floorplan_item_id' => $item->id,
                     'booking_reference' => Booking::generateReference(),
-                    'access_token' => Booking::generateAccessToken(),
-                    'access_token_expires_at' => now()->addYear(),
                     'status' => 'reserved',
                     'total_amount' => $item->price ?? 0.00,
                     'owner_details' => [
@@ -274,6 +272,30 @@ class BookingController extends Controller
                     ],
                     'booking_date' => now(),
                 ]);
+
+                // Create booth owner with access token
+                $boothOwner = \App\Models\BoothOwner::create([
+                    'booking_id' => $booking->id,
+                    'qr_code' => \App\Models\BoothOwner::generateQrCode(),
+                    'form_responses' => [
+                        'name' => $request->owner_name,
+                        'email' => $request->owner_email,
+                        'phone' => $request->owner_phone,
+                        'company_name' => $request->company_name,
+                        'company_address' => $request->company_address,
+                        'company_website' => $request->company_website,
+                        'company_logo' => $logoPath,
+                        'social_facebook' => $request->social_facebook,
+                        'social_twitter' => $request->social_twitter,
+                        'social_linkedin' => $request->social_linkedin,
+                        'social_instagram' => $request->social_instagram,
+                    ],
+                    'access_token' => \App\Models\BoothOwner::generateAccessToken(),
+                    'access_token_expires_at' => now()->addYear(),
+                ]);
+
+                // Update booking with booth owner reference
+                $booking->update(['booth_owner_id' => $boothOwner->id]);
 
                 Log::info('New booking created', [
                     'booking_id' => $booking->id,

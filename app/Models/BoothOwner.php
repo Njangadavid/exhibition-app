@@ -14,11 +14,14 @@ class BoothOwner extends Model
     protected $fillable = [
         'booking_id',
         'qr_code',
-        'form_responses'
+        'form_responses',
+        'access_token',
+        'access_token_expires_at'
     ];
 
     protected $casts = [
-        'form_responses' => 'array'
+        'form_responses' => 'array',
+        'access_token_expires_at' => 'datetime'
     ];
 
     /**
@@ -88,5 +91,49 @@ class BoothOwner extends Model
     public function getTitleAttribute(): ?string
     {
         return $this->form_responses['title'] ?? null;
+    }
+
+    /**
+     * Generate a unique access token
+     */
+    public static function generateAccessToken(): string
+    {
+        do {
+            $token = 'AT_' . strtoupper(substr(md5(uniqid() . time()), 0, 32));
+        } while (static::where('access_token', $token)->exists());
+        
+        return $token;
+    }
+
+    /**
+     * Check if access token is valid and not expired
+     */
+    public function isAccessTokenValid(): bool
+    {
+        if (!$this->access_token) {
+            return false;
+        }
+
+        if ($this->access_token_expires_at && $this->access_token_expires_at->isPast()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Get the access token for this booth owner
+     */
+    public function getAccessToken(): ?string
+    {
+        return $this->access_token;
+    }
+
+    /**
+     * Get the access token expiry date
+     */
+    public function getAccessTokenExpiry(): ?string
+    {
+        return $this->access_token_expires_at?->format('Y-m-d H:i:s');
     }
 }

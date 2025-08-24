@@ -13,12 +13,8 @@ class Booking extends Model
         'event_id',
         'floorplan_item_id',
         'booking_reference',
-        'access_token',
-        'access_token_expires_at',
         'status',
         'total_amount',
-        'owner_details',
-        'member_details',
         'notes',
         'booking_date',
         'confirmed_at',
@@ -27,10 +23,7 @@ class Booking extends Model
 
     protected $casts = [
         'total_amount' => 'decimal:2',
-        'owner_details' => 'array',
-        'member_details' => 'array',
         'booking_date' => 'datetime',
-        'access_token_expires_at' => 'datetime',
         'confirmed_at' => 'datetime',
         'cancelled_at' => 'datetime',
     ];
@@ -108,40 +101,43 @@ class Booking extends Model
     }
 
     /**
+     * Get access token through booth owner
+     */
+    public function getAccessTokenAttribute(): ?string
+    {
+        return $this->boothOwner?->access_token;
+    }
+
+    /**
+     * Get access token expiry through booth owner
+     */
+    public function getAccessTokenExpiresAtAttribute(): ?string
+    {
+        return $this->boothOwner?->access_token_expires_at;
+    }
+
+    /**
      * Check if access token is valid and not expired.
      */
     public function isAccessTokenValid(): bool
     {
-        if (!$this->access_token) {
-            return false;
-        }
-
-        // Check if expiration date exists and is in the past
-        if ($this->access_token_expires_at) {
-            // Ensure it's a Carbon instance
-            $expiryDate = $this->access_token_expires_at;
-            if (is_string($expiryDate)) {
-                $expiryDate = \Carbon\Carbon::parse($expiryDate);
-            }
-            
-            if ($expiryDate->isPast()) {
-                return false;
-            }
-        }
-
-        return true;
+        return $this->boothOwner?->isAccessTokenValid() ?? false;
     }
 
     /**
-     * Generate a new access token and set expiration.
+     * Generate a new access token and set expiration through booth owner.
      */
     public function refreshAccessToken(): string
     {
-        $this->access_token = static::generateAccessToken();
-        $this->access_token_expires_at = now()->addYear(); // 1 year validity
-        $this->save();
+        if (!$this->boothOwner) {
+            throw new \Exception('No booth owner found for this booking');
+        }
 
-        return $this->access_token;
+        $this->boothOwner->access_token = BoothOwner::generateAccessToken();
+        $this->boothOwner->access_token_expires_at = now()->addYear(); // 1 year validity
+        $this->boothOwner->save();
+
+        return $this->boothOwner->access_token;
     }
 
     /**
