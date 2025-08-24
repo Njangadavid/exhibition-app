@@ -276,34 +276,34 @@ class Booking extends Model
     }
 
     /**
-     * Get the owner email from owner_details.
+     * Get the owner email from booth owner form responses.
      */
     public function getOwnerEmailAttribute(): ?string
     {
-        return $this->owner_details['email'] ?? null;
+        return $this->boothOwner?->email;
     }
 
     /**
-     * Get the owner name from owner_details.
+     * Get the owner name from booth owner form responses.
      */
     public function getOwnerNameAttribute(): ?string
     {
-        return $this->owner_details['name'] ?? null;
+        return $this->boothOwner?->name;
     }
 
     /**
-     * Get the owner phone from owner_details.
+     * Get the owner phone from booth owner form responses.
      */
     public function getOwnerPhoneAttribute(): ?string
     {
-        return $this->owner_details['phone'] ?? null;
+        return $this->boothOwner?->phone;
     }
 
     /**
-     * Get the company name from owner_details.
+     * Get the company name from booth owner form responses.
      */
     public function getCompanyNameAttribute(): ?string
     {
-        return $this->owner_details['company_name'] ?? null;
+        return $this->boothOwner?->company;
     }
 }

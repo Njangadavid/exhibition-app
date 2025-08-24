@@ -250,32 +250,8 @@ class BookingController extends Controller
             } else {
                 Log::info('Creating new booking');
 
-                // Create new booking
-                $booking = Booking::create([
-                    'event_id' => $event->id,
-                    'floorplan_item_id' => $item->id,
-                    'booking_reference' => Booking::generateReference(),
-                    'status' => 'reserved',
-                    'total_amount' => $item->price ?? 0.00,
-                    'owner_details' => [
-                        'name' => $request->owner_name,
-                        'email' => $request->owner_email,
-                        'phone' => $request->owner_phone,
-                        'company_name' => $request->company_name,
-                        'company_address' => $request->company_address,
-                        'company_website' => $request->company_website,
-                        'company_logo' => $logoPath,
-                        'social_facebook' => $request->social_facebook,
-                        'social_twitter' => $request->social_twitter,
-                        'social_linkedin' => $request->social_linkedin,
-                        'social_instagram' => $request->social_instagram,
-                    ],
-                    'booking_date' => now(),
-                ]);
-
-                // Create booth owner with access token
+                // Create booth owner first with access token
                 $boothOwner = \App\Models\BoothOwner::create([
-                    'booking_id' => $booking->id,
                     'qr_code' => \App\Models\BoothOwner::generateQrCode(),
                     'form_responses' => [
                         'name' => $request->owner_name,
@@ -294,8 +270,16 @@ class BookingController extends Controller
                     'access_token_expires_at' => now()->addYear(),
                 ]);
 
-                // Update booking with booth owner reference
-                $booking->update(['booth_owner_id' => $boothOwner->id]);
+                // Create new booking with booth owner reference
+                $booking = Booking::create([
+                    'event_id' => $event->id,
+                    'floorplan_item_id' => $item->id,
+                    'booking_reference' => Booking::generateReference(),
+                    'booth_owner_id' => $boothOwner->id,
+                    'status' => 'reserved',
+                    'total_amount' => $item->price ?? 0.00,
+                    'booking_date' => now(),
+                ]);
 
                 Log::info('New booking created', [
                     'booking_id' => $booking->id,

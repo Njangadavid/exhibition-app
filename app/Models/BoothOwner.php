@@ -4,15 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class BoothOwner extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'booking_id',
         'qr_code',
         'form_responses',
         'access_token',
@@ -25,11 +24,11 @@ class BoothOwner extends Model
     ];
 
     /**
-     * Get the booking that owns the booth owner
+     * Get the booking for this booth owner (for now hasOne, future: hasMany)
      */
-    public function booking(): BelongsTo
+    public function booking(): HasOne
     {
-        return $this->belongsTo(Booking::class);
+        return $this->hasOne(Booking::class, 'booth_owner_id');
     }
 
     /**
