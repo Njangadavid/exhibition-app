@@ -61,7 +61,7 @@
                             </small>
                         </div>
                         <div class="card-body">
-                            @if($isEditing && $existingBooking)
+                            @if($isEditing && $boothOwner)
                                 <div class="alert alert-info mb-4">
                                     <i class="bi bi-info-circle me-2"></i>
                                     <strong>Welcome back!</strong> We found your existing booking for this space. 
@@ -69,7 +69,7 @@
                                 </div>
                             @endif
                             
-                            <form action="{{ $isEditing ? route('bookings.process-owner-token', ['eventSlug' => $event->slug, 'accessToken' => $existingBooking->access_token]) : route('bookings.process-owner', ['eventSlug' => $event->slug, 'itemId' => $item->id]) }}" method="POST" enctype="multipart/form-data">
+                            <form action="{{ $isEditing ? route('bookings.process-owner-token', ['eventSlug' => $event->slug, 'accessToken' => $boothOwner->access_token]) : route('bookings.process-owner', ['eventSlug' => $event->slug, 'itemId' => $item->id]) }}" method="POST" enctype="multipart/form-data">
                                 @csrf
                                 
                                 <div class="row">
@@ -78,7 +78,7 @@
                                             <label for="owner_name" class="form-label">Full Name *</label>
                                             <input type="text" class="form-control @error('owner_name') is-invalid @enderror" 
                                                    id="owner_name" name="owner_name" 
-                                                   value="{{ old('owner_name', $existingBooking->owner_details['name'] ?? '') }}" required>
+                                                   value="{{ old('owner_name', $boothOwner->form_responses['name'] ?? '') }}" required>
                                             @error('owner_name')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -89,7 +89,7 @@
                                             <label for="owner_email" class="form-label">Email Address *</label>
                                             <input type="email" class="form-control @error('owner_email') is-invalid @enderror" 
                                                    id="owner_email" name="owner_email" 
-                                                   value="{{ old('owner_email', $existingBooking->owner_details['email'] ?? '') }}" required>
+                                                   value="{{ old('owner_email', $boothOwner->form_responses['email'] ?? '') }}" required>
                                             @error('owner_email')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -103,7 +103,7 @@
                                             <label for="owner_phone" class="form-label">Phone Number *</label>
                                             <input type="tel" class="form-control @error('owner_phone') is-invalid @enderror" 
                                                    id="owner_phone" name="owner_phone" 
-                                                   value="{{ old('owner_phone', $existingBooking->owner_details['phone'] ?? '') }}" required>
+                                                   value="{{ old('owner_phone', $boothOwner->form_responses['phone'] ?? '') }}" required>
                                             @error('owner_phone')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -114,7 +114,7 @@
                                             <label for="company_name" class="form-label">Company Name *</label>
                                             <input type="text" class="form-control @error('company_name') is-invalid @enderror" 
                                                    id="company_name" name="company_name" 
-                                                   value="{{ old('company_name', $existingBooking->owner_details['company_name'] ?? '') }}" required>
+                                                   value="{{ old('company_name', $boothOwner->form_responses['company_name'] ?? '') }}" required>
                                             @error('company_name')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -127,7 +127,7 @@
                                         <div class="mb-3">
                                             <label for="company_address" class="form-label">Company Address</label>
                                             <textarea class="form-control @error('company_address') is-invalid @enderror" 
-                                                      id="company_address" name="company_address" rows="2">{{ old('company_address', $existingBooking->owner_details['company_address'] ?? '') }}</textarea>
+                                                      id="company_address" name="company_address" rows="2">{{ old('company_address', $boothOwner->form_responses['company_address'] ?? '') }}</textarea>
                                             @error('company_address')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -138,7 +138,7 @@
                                             <label for="company_website" class="form-label">Company Website</label>
                                             <input type="url" class="form-control @error('company_website') is-invalid @enderror" 
                                                    id="company_website" name="company_website" 
-                                                   value="{{ old('company_website', $existingBooking->owner_details['company_website'] ?? '') }}" 
+                                                   value="{{ old('company_website',$boothOwner->form_responses['company_website'] ?? '') }}" 
                                                    placeholder="https://example.com">
                                             @error('company_website')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -152,17 +152,17 @@
                                     <div class="col-12">
                                         <div class="mb-3">
                                             <label for="company_logo" class="form-label">Company Logo</label>
-                                            @if($existingBooking && isset($existingBooking->owner_details['company_logo']) && $existingBooking->owner_details['company_logo'])
+                                            @if($boothOwner && isset($boothOwner->form_responses['company_logo']) && $boothOwner->form_responses['company_logo'])
                                                 <div class="mb-2">
                                                     <small class="text-muted">Current logo:</small>
-                                                    <img src="{{ Storage::url($existingBooking->owner_details['company_logo']) }}" 
+                                                    <img src="{{ Storage::url($boothOwner->form_responses['company_logo']) }}" 
                                                          alt="Current Company Logo" class="ms-2" style="max-height: 40px; max-width: 100px;">
                                                 </div>
                                             @endif
                                             <input type="file" class="form-control @error('company_logo') is-invalid @enderror" 
                                                    id="company_logo" name="company_logo" accept="image/*">
                                             <div class="form-text">
-                                                @if($existingBooking && isset($existingBooking->owner_details['company_logo']))
+                                                @if($boothOwner && isset($boothOwner->form_responses['company_logo']))
                                                     Upload a new logo to replace the current one, or leave empty to keep the existing logo.
                                                 @else
                                                     Upload your company logo (PNG, JPG, SVG - Max 2MB)
@@ -184,7 +184,7 @@
                                             </label>
                                             <input type="url" class="form-control @error('social_facebook') is-invalid @enderror" 
                                                    id="social_facebook" name="social_facebook" 
-                                                   value="{{ old('social_facebook', $existingBooking->owner_details['social_facebook'] ?? '') }}" 
+                                                   value="{{ old('social_facebook', $boothOwner->form_responses['social_facebook'] ?? '') }}" 
                                                    placeholder="https://facebook.com/yourcompany">
                                             @error('social_facebook')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -198,7 +198,7 @@
                                             </label>
                                             <input type="url" class="form-control @error('social_twitter') is-invalid @enderror" 
                                                    id="social_twitter" name="social_twitter" 
-                                                   value="{{ old('social_twitter', $existingBooking->owner_details['social_twitter'] ?? '') }}" 
+                                                   value="{{ old('social_twitter', $boothOwner->form_responses['social_twitter'] ?? '') }}" 
                                                    placeholder="https://twitter.com/yourcompany">
                                             @error('social_twitter')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -215,7 +215,7 @@
                                             </label>
                                             <input type="url" class="form-control @error('social_linkedin') is-invalid @enderror" 
                                                    id="social_linkedin" name="social_linkedin" 
-                                                   value="{{ old('social_linkedin', $existingBooking->owner_details['social_linkedin'] ?? '') }}" 
+                                                   value="{{ old('social_linkedin', $boothOwner->form_responses['social_linkedin'] ?? '') }}" 
                                                    placeholder="https://linkedin.com/company/yourcompany">
                                             @error('social_linkedin')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -229,7 +229,7 @@
                                             </label>
                                             <input type="url" class="form-control @error('social_instagram') is-invalid @enderror" 
                                                    id="social_instagram" name="social_instagram" 
-                                                   value="{{ old('social_instagram', $existingBooking->owner_details['social_instagram'] ?? '') }}" 
+                                                   value="{{ old('social_instagram', $boothOwner->form_responses['social_instagram'] ?? '') }}" 
                                                    placeholder="https://instagram.com/yourcompany">
                                             @error('social_instagram')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -255,7 +255,7 @@
                                 @endif
 
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <a href="{{ $isEditing ? route('events.public.floorplan-token', ['event' => $event->slug, 'accessToken' => $existingBooking->access_token]) : route('events.public.floorplan', $event->slug) }}" class="btn btn-outline-secondary">
+                                    <a href="{{ $isEditing ? route('events.public.floorplan-token', ['event' => $event->slug, 'accessToken' => $boothOwner->access_token]) : route('events.public.floorplan', $event->slug) }}" class="btn btn-outline-secondary">
                                         <i class="bi bi-arrow-left me-2"></i>
                                         Back to Floorplan
                                     </a>

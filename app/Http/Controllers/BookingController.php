@@ -25,11 +25,17 @@ class BookingController extends Controller
         // Find the event
         $event = Event::where('slug', $eventSlug)->firstOrFail();
 
-        // Find the existing booking by access token
-        $booking = $event->bookings()
-            ->where('access_token', $accessToken)
+        // Find the booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)
             ->where('access_token_expires_at', '>', now())
             ->firstOrFail();
+        
+        $booking = $boothOwner->booking;
+        
+        if (!$booking) {
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'No booking found for this access token. Please start over.');
+        }
 
         // Check if access token is valid
         if (!$booking->isAccessTokenValid()) {
@@ -48,7 +54,7 @@ class BookingController extends Controller
         $isEditing = true;
         $existingBooking = $booking;
 
-        return view('bookings.owner-form', compact('event', 'item', 'isEditing', 'existingBooking', 'booking'));
+        return view('bookings.owner-form', compact('event', 'item', 'isEditing', 'boothOwner', 'booking'));
     }
 
     /**
@@ -633,7 +639,15 @@ class BookingController extends Controller
     public function showPayment($eventSlug, $accessToken)
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        $booking = Booking::where('access_token', $accessToken)->firstOrFail();
+        
+        // Find booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
+        $booking = $boothOwner->booking;
+        
+        if (!$booking) {
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'No booking found for this access token. Please start over.');
+        }
 
         // Verify access token is valid
         if (!$booking->isAccessTokenValid()) {
@@ -650,7 +664,15 @@ class BookingController extends Controller
     public function processPayment(Request $request, $eventSlug, $accessToken)
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        $booking = Booking::where('access_token', $accessToken)->firstOrFail();
+        
+        // Find booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
+        $booking = $boothOwner->booking;
+        
+        if (!$booking) {
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'No booking found for this access token. Please start over.');
+        }
 
         // Verify access token is valid
         if (!$booking->isAccessTokenValid()) {
@@ -865,7 +887,15 @@ class BookingController extends Controller
     public function paystackCallback(Request $request, $eventSlug, $accessToken)
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        $booking = Booking::where('access_token', $accessToken)->firstOrFail();
+        
+        // Find booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
+        $booking = $boothOwner->booking;
+        
+        if (!$booking) {
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'No booking found for this access token. Please start over.');
+        }
 
         try {
             $paystackService = app(\App\Services\PaystackService::class);
@@ -937,7 +967,15 @@ class BookingController extends Controller
     public function showSuccess($eventSlug, $accessToken)
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        $booking = Booking::with(['floorplanItem', 'payments'])->where('access_token', $accessToken)->firstOrFail();
+        
+        // Find booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
+        $booking = $boothOwner->booking;
+        
+        if (!$booking) {
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'No booking found for this access token. Please start over.');
+        }
 
         // Verify access token is valid
         if (!$booking->isAccessTokenValid()) {
@@ -966,11 +1004,17 @@ class BookingController extends Controller
         // Find the event
         $event = Event::where('slug', $eventSlug)->firstOrFail();
 
-        // Find the existing booking by access token
-        $booking = $event->bookings()
-            ->where('access_token', $accessToken)
+        // Find the booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)
             ->where('access_token_expires_at', '>', now())
             ->firstOrFail();
+        
+        $booking = $boothOwner->booking;
+        
+        if (!$booking) {
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'No booking found for this access token. Please start over.');
+        }
 
         // Check if access token is valid
         if (!$booking->isAccessTokenValid()) {
@@ -1071,10 +1115,20 @@ class BookingController extends Controller
     public function removeBooking(Request $request, $eventSlug, $accessToken)
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        $booking = $event->bookings()
-            ->where('access_token', $accessToken)
+        
+        // Find booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)
             ->where('access_token_expires_at', '>', now())
             ->firstOrFail();
+        
+        $booking = $boothOwner->booking;
+        
+        if (!$booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No booking found for this access token. Please start over.'
+            ], 400);
+        }
 
         // Check if access token is valid
         if (!$booking->isAccessTokenValid()) {

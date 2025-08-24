@@ -115,7 +115,7 @@ class EmailCommunicationService
     private function sendEmailToSpecificMember(EmailTemplate $template, Booking $booking, $memberData): void
     {
         // Get member email from form responses
-        $memberEmail = $this->extractMemberEmail($memberData);
+        $memberEmail = $this->extractMemberEmail($memberData, $booking);
         
         if (!$memberEmail) {
             Log::warning("No email found for member", [
@@ -359,33 +359,134 @@ class EmailCommunicationService
 
     /**
      * Extract member email from form responses
-     * Looks for fields with 'email' purpose or common email field names
+     * Finds form field with type 'email' and uses its field_id to get email value
      */
-    //we should find formfield with type 'email' and use the form field id as key to get
-   // memberdata value,
-
-    private function extractMemberEmail($memberData): ?string
+    private function extractMemberEmail($memberData, Booking $booking = null): ?string
     {
+        Log::info('=== EXTRACT MEMBER EMAIL START ===', [
+            'member_data' => $memberData,
+            'member_data_type' => gettype($memberData)
+        ]);
+
         if (!is_array($memberData)) {
+            Log::warning('Member data is not an array', [
+                'member_data' => $memberData,
+                'type' => gettype($memberData)
+            ]);
             return null;
         }
 
-        // First, try to find a field with 'email' purpose
-        foreach ($memberData as $fieldId => $value) {
-            if (is_string($fieldId) && strpos(strtolower($fieldId), 'email') !== false) {
-                return $value;
+        try {
+            // Use the passed booking parameter
+            if (!$booking) {
+                Log::warning('No booking provided for email extraction');
+                return null;
             }
-        }
 
-        // Look for common email field patterns
-        $emailPatterns = ['email', 'e-mail', 'mail', 'contact_email'];
-        foreach ($emailPatterns as $pattern) {
-            if (isset($memberData[$pattern])) {
-                return $memberData[$pattern];
+            Log::info('Found booking for email extraction', [
+                'booking_id' => $booking->id,
+                'event_id' => $booking->event_id
+            ]);
+
+            // Get the form builder for this event first
+            $formBuilder = \App\Models\FormBuilder::where('event_id', $booking->event_id)
+                ->where('type', 'member_registration')
+                ->first();
+
+            if (!$formBuilder) {
+                Log::warning('No member_registration form builder found', [
+                    'event_id' => $booking->event_id,
+                    'available_forms' => \App\Models\FormBuilder::where('event_id', $booking->event_id)->pluck('type', 'id')
+                ]);
+                
+                // Fallback: try any form for this event
+                $formBuilder = \App\Models\FormBuilder::where('event_id', $booking->event_id)->first();
+                if ($formBuilder) {
+                    Log::info('Using fallback form for email extraction', [
+                        'form_id' => $formBuilder->id,
+                        'form_type' => $formBuilder->type
+                    ]);
+                }
             }
-        }
 
-        // If no email found, return null
-        return null;
+            if (!$formBuilder) {
+                Log::error('No form builder found for email extraction', [
+                    'event_id' => $booking->event_id
+                ]);
+                return null;
+            }
+
+            Log::info('Form builder found for email extraction', [
+                'form_id' => $formBuilder->id,
+                'form_type' => $formBuilder->type,
+                'form_name' => $formBuilder->name
+            ]);
+
+            // Get the form fields that belong to this form builder
+            $formFields = \App\Models\FormField::where('form_builder_id', $formBuilder->id)->get();
+
+            if ($formFields->isEmpty()) {
+                Log::warning('No form fields found for this form builder', [
+                    'form_builder_id' => $formBuilder->id,
+                    'event_id' => $booking->event_id
+                ]);
+                return null;
+            }
+            Log::info('Form fields found', [
+                'total_fields' => $formFields->count(),
+                'field_details' => $formFields->map(function($field) {
+                    return [
+                        'id' => $field->id,
+                        'field_id' => $field->field_id,
+                        'type' => $field->type,
+                        'label' => $field->label
+                    ];
+                })
+            ]);
+
+            // Find the form field with type 'email'
+            $emailField = $formFields->where('type', 'email')->first();
+
+            if (!$emailField) {
+                Log::warning('No email field found in form', [
+                    'form_id' => $formBuilder->id,
+                    'available_field_types' => $formFields->pluck('type')->unique()
+                ]);
+                return null;
+            }
+
+            Log::info('Email field found', [
+                'field_id' => $emailField->field_id,
+                'field_label' => $emailField->label,
+                'field_type' => $emailField->type
+            ]);
+
+            // Get the email value using the field_id
+            $emailValue = $memberData[$emailField->field_id] ?? null;
+
+            if ($emailValue) {
+                Log::info('Email successfully extracted', [
+                    'email' => $emailValue,
+                    'field_id' => $emailField->field_id,
+                    'field_label' => $emailField->label
+                ]);
+                return $emailValue;
+            } else {
+                Log::warning('Email field found but no value in member data', [
+                    'field_id' => $emailField->field_id,
+                    'field_label' => $emailField->label,
+                    'available_keys' => array_keys($memberData)
+                ]);
+                return null;
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Error extracting member email', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'member_data' => $memberData
+            ]);
+            return null;
+        }
     }
 }
