@@ -255,8 +255,29 @@ function initializeMemberManagement(formData) {
         window.currentMembers = @json($boothMembers->pluck('form_responses'));
     @endif
     
-    // Load existing members if any
-    loadExistingMembers();
+    // Initialize form data and current members
+    window.currentFormData = @json($memberForm);
+    window.currentMembers = @json($boothMembers ?? []);
+    
+    // Debug: Log the booth members data structure
+    console.log('=== BOOTH MEMBERS DATA STRUCTURE ===');
+    console.log('Booth members:', window.currentMembers);
+    if (window.currentMembers.length > 0) {
+        console.log('First member structure:', window.currentMembers[0]);
+        console.log('First member form_responses keys:', Object.keys(window.currentMembers[0].form_responses || {}));
+        console.log('First member form_responses values:', window.currentMembers[0].form_responses);
+    }
+    console.log('Current form data:', window.currentFormData);
+    if (window.currentFormData && window.currentFormData.fields) {
+        console.log('Form fields:', window.currentFormData.fields);
+        console.log('Email field:', window.currentFormData.fields.find(f => f.field_purpose === 'member_email'));
+    }
+    console.log('=== END BOOTH MEMBERS DATA STRUCTURE ===');
+    
+    // Display existing members if any
+    if (window.currentMembers.length > 0) {
+        displayExistingMembers(window.currentMembers);
+    }
     
     // Render the dynamic form
     renderMemberForm(formData);
@@ -327,19 +348,35 @@ function findMemberId(memberData) {
         console.log('Booth members available:', boothMembers);
         
         const foundMember = boothMembers.find(m => {
+            // Since booth members don't have field_purpose, we need to find email by field_id
+            // We'll look for the email field in form_responses using the same field_id logic
             let memberEmailField = null;
             
-            // Try to find email in form_responses using the same logic
             if (window.currentFormData && window.currentFormData.fields) {
+                // Find the email field by purpose
                 const emailField = window.currentFormData.fields.find(f => f.field_purpose === 'member_email');
                 if (emailField && m.form_responses[emailField.field_id]) {
                     memberEmailField = m.form_responses[emailField.field_id];
+                    console.log('Found email in booth member via field_id:', emailField.field_id, 'value:', memberEmailField);
                 }
             }
             
-            // Fallback to direct email field
+            // Fallback: try common email field patterns
+            if (!memberEmailField) {
+                // Try to find any field that contains an email
+                for (const [fieldId, value] of Object.entries(m.form_responses)) {
+                    if (typeof value === 'string' && value.includes('@') && value.includes('.')) {
+                        memberEmailField = value;
+                        console.log('Found email in booth member via pattern matching:', fieldId, 'value:', memberEmailField);
+                        break;
+                    }
+                }
+            }
+            
+            // Final fallback to hardcoded field
             if (!memberEmailField) {
                 memberEmailField = m.form_responses.email || m.form_responses['field_2_1755847232'];
+                console.log('Using fallback email field for booth member:', memberEmailField);
             }
             
             console.log('Comparing member email:', memberEmail, 'with booth member email:', memberEmailField);
