@@ -238,6 +238,22 @@
                                     </div>
                                 </div>
 
+                                <!-- Email Preference (only show when editing) -->
+                                @if($isEditing)
+                                <div class="mb-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="resend_email" name="resend_email" value="1">
+                                        <label class="form-check-label" for="resend_email">
+                                            <i class="bi bi-envelope me-2"></i>
+                                            Send me a confirmation email with my updated details
+                                        </label>
+                                        <div class="form-text text-muted">
+                                            Check this box if you'd like to receive a confirmation email with your updated information.
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
+
                                 <div class="d-flex justify-content-between align-items-center">
                                     <a href="{{ $isEditing ? route('events.public.floorplan-token', ['event' => $event->slug, 'accessToken' => $existingBooking->access_token]) : route('events.public.floorplan', $event->slug) }}" class="btn btn-outline-secondary">
                                         <i class="bi bi-arrow-left me-2"></i>

@@ -59,6 +59,7 @@ class EmailLog extends Model
             'sent' => 'Sent',
             'failed' => 'Failed',
             'pending' => 'Pending',
+            'processing' => 'Processing',
             default => 'Unknown'
         };
     }
@@ -95,5 +96,13 @@ class EmailLog extends Model
             'status' => 'failed',
             'error_message' => $errorMessage
         ]);
+    }
+
+    /**
+     * Mark email as processing
+     */
+    public function markAsProcessing(): void
+    {
+        $this->update(['status' => 'processing']);
     }
 }

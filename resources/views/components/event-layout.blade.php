@@ -13,6 +13,8 @@
 
         <!-- Scripts -->
         @vite(['resources/js/app.js'])
+        @stack('styles')
+
     </head>
     <body>
         <div class="min-vh-100 bg-light">
@@ -160,7 +162,8 @@
                 {{ $slot }}
             </main>
         </div>
-        
+        <script src="https://cdn.tiny.cloud/1/ymua9kt15x20ok61l6qlh9piih90ojnvq3bkqskll1mrzxgm/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+   
         <!-- Custom Scripts Stack -->
         @stack('scripts')
 

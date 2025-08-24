@@ -7,6 +7,7 @@ use App\Models\FloorplanItem;
 use App\Models\Booking;
 use App\Models\FormBuilder;
 use App\Models\FormSubmission;
+use App\Services\EmailCommunicationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -237,7 +238,7 @@ class BookingController extends Controller
                         'social_instagram' => $request->social_instagram,
                     ],
                 ]);
-
+             
                 // Generate access token if not exists
                 if (!$existingBooking->access_token) {
                     $existingBooking->refreshAccessToken();
@@ -283,6 +284,23 @@ class BookingController extends Controller
             DB::commit();
             Log::info('Transaction committed successfully');
 
+            // Send owner registration email if this is a new booking
+            if (!$existingBooking) {
+                try {
+                    $emailService = app(EmailCommunicationService::class);
+                    $emailService->sendTriggeredEmail('owner_registration', $booking);
+                    Log::info('Owner registration email triggered', [
+                        'booking_id' => $booking->id,
+                        'trigger_type' => 'owner_registration'
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send owner registration email', [
+                        'booking_id' => $booking->id,
+                        'error' => $e->getMessage()
+                    ]);
+                    // Don't fail the booking process if email fails
+                }
+            }
             Log::info('Redirecting to member form', [
                 'route' => 'bookings.member-form',
                 'event_slug' => $eventSlug,
@@ -404,6 +422,23 @@ class BookingController extends Controller
                 'submitted_at' => now(),
             ]);
 
+            // Send member registration email trigger
+            try {
+                $emailService = app(EmailCommunicationService::class);
+                $emailService->sendTriggeredEmail('member_registration', $booking);
+                Log::info('Member registration email triggered', [
+                    'booking_id' => $booking->id,
+                    'trigger_type' => 'member_registration',
+                    'member_count' => count($request->form_data)
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Failed to send member registration email', [
+                    'booking_id' => $booking->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't fail the member registration process if email fails
+            }
+
             // Redirect to payment
             return redirect()->route('bookings.payment', [
                 'eventSlug' => $eventSlug,
@@ -449,6 +484,32 @@ class BookingController extends Controller
             $booking->update([
                 'member_details' => $memberDetails,
             ]);
+
+            // Check if resend email was requested
+            $resendEmail = false;
+            if (request()->has('resend_member_email') && request()->input('resend_member_email') == '1') {
+                $resendEmail = true;
+            }
+            
+            // Send member registration email trigger if requested
+            if ($resendEmail) {
+                log("resend email is true");
+                try {
+                    $emailService = app(EmailCommunicationService::class);
+                    $emailService->sendTriggeredEmail('member_registration', $booking);
+                    Log::info('Member registration email triggered via AJAX (resend requested)', [
+                        'booking_id' => $booking->id,
+                        'trigger_type' => 'member_registration',
+                        'member_count' => count($memberDetails)
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send member registration email via AJAX', [
+                        'booking_id' => $booking->id,
+                        'error' => $e->getMessage()
+                    ]);
+                    // Don't fail the member saving process if email fails
+                }
+            }
 
             Log::info('Members saved successfully', [
                 'booking_id' => $booking->id,
@@ -540,7 +601,7 @@ class BookingController extends Controller
         try {
             $paystackService = app(\App\Services\PaystackService::class);
 
-            if (!$paystackService->isConfigured()) {
+            if (!$paystackService->isConfiguredWithPaymentMethod($paymentMethod)) {
                 return back()->with('error', 'Paystack payment is not configured. Please contact support.');
             }
 
@@ -877,6 +938,25 @@ class BookingController extends Controller
                 'access_token' => $accessToken
             ]);
 
+            // Send owner registration email again if user opted in
+            if ($request->has('resend_email') && $request->resend_email == '1') {
+                try {
+                    $emailService = app(EmailCommunicationService::class);
+                    $emailService->sendTriggeredEmail('owner_registration', $booking);
+                    Log::info('Owner registration email re-sent after update', [
+                        'booking_id' => $booking->id,
+                        'trigger_type' => 'owner_registration',
+                        'reason' => 'user_requested_resend'
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Failed to re-send owner registration email after update', [
+                        'booking_id' => $booking->id,
+                        'error' => $e->getMessage()
+                    ]);
+                    // Don't fail the update process if email fails
+                }
+            }
+
             // Redirect to member form using access token
             return redirect()->route('bookings.member-form', [
                 'eventSlug' => $eventSlug,
@@ -1210,6 +1290,68 @@ class BookingController extends Controller
                 'event' => $event->slug,
                 'accessToken' => $accessToken
             ])->with('error', 'Failed to change space. Please try again.');
+        }
+    }
+
+    /**
+     * Resend payment confirmation email
+     */
+    public function resendPaymentEmail(Request $request, $eventSlug, $accessToken)
+    {
+        try {
+            $event = Event::where('slug', $eventSlug)->firstOrFail();
+            $booking = $event->bookings()
+                ->where('access_token', $accessToken)
+                ->where('access_token_expires_at', '>', now())
+                ->firstOrFail();
+
+            // Check if access token is valid
+            if (!$booking->isAccessTokenValid()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access token has expired or is invalid.'
+                ], 400);
+            }
+
+            // Check if there's a completed payment
+            $payment = $booking->payments()
+                ->where('status', 'completed')
+                ->latest()
+                ->first();
+
+            if (!$payment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No completed payment found for this booking.'
+                ], 400);
+            }
+
+            // Send payment confirmation email
+            $emailService = app(EmailCommunicationService::class);
+            $emailService->sendTriggeredEmail('payment_successful', $booking);
+
+            Log::info('Payment confirmation email resent', [
+                'booking_id' => $booking->id,
+                'payment_id' => $payment->id,
+                'event_slug' => $eventSlug
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment confirmation email has been resent successfully!'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to resend payment confirmation email', [
+                'event_slug' => $eventSlug,
+                'access_token' => $accessToken,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to resend email. Please try again.'
+            ], 500);
         }
     }
 }

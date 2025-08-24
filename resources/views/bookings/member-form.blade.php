@@ -122,13 +122,13 @@
 
                             <!-- Action Buttons -->
                             <div class="d-flex justify-content-between align-items-center mt-4">
-                                                                 <a href="{{ route('bookings.owner-form-token', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]) }}" class="btn btn-outline-secondary">
-                                     <i class="bi bi-arrow-left me-2"></i>Back to Owner Details
-                                 </a>
+                                <a href="{{ route('bookings.owner-form-token', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]) }}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left me-2"></i>Back to Owner Details
+                                </a>
                                 <div>
-                                                                         <button type="button" class="btn btn-primary" id="continueToPaymentBtn">
-                                         Continue to Payment<i class="bi bi-arrow-right ms-2"></i>
-                                     </button>
+                                    <button type="button" class="btn btn-primary" id="continueToPaymentBtn">
+                                        Continue to Payment<i class="bi bi-arrow-right ms-2"></i>
+                                    </button>
                                 </div>
                             </div>
                         @endif
@@ -462,11 +462,17 @@ function editMember(index) {
     clearBtn.onclick = () => cancelEdit();
     clearBtn.className = 'btn btn-outline-danger';
     
-    // Store editing index
-    window.editingMemberIndex = index;
-    
-    // Scroll to form
-    container.scrollIntoView({ behavior: 'smooth' });
+         // Store editing index
+     window.editingMemberIndex = index;
+     
+     // Show resend email option
+     const resendOption = document.getElementById('resendEmailOption');
+     if (resendOption) {
+         resendOption.style.display = 'block';
+     }
+     
+     // Scroll to form
+     container.scrollIntoView({ behavior: 'smooth' });
 }
 
 function saveMemberChanges(index) {
@@ -741,14 +747,28 @@ function renderMemberForm(formData) {
     });
     
     formHtml += `
-            <div class="d-flex justify-content-between align-items-center mt-4">
-                <button type="button" class="btn btn-outline-secondary" onclick="clearForm()">
-                    <i class="bi bi-arrow-clockwise me-2"></i>Clear Form
-                </button>
-                <button type="button" class="btn btn-success" onclick="addMember()">
-                    <i class="bi bi-plus-circle me-2"></i>Add Member
-                </button>
-            </div>
+                                         <!-- Resend Email Option (only shown when editing) -->
+                             <div id="resendEmailOption" class="mb-3" style="display: none;">
+                                 <div class="form-check">
+                                     <input class="form-check-input" type="checkbox" id="resend_member_email" name="resend_member_email" value="1">
+                                     <label class="form-check-label" for="resend_member_email">
+                                         <i class="bi bi-envelope me-2"></i>
+                                         Send member registration email again with updated details
+                                     </label>
+                                     <div class="form-text text-muted">
+                                         Check this box if you'd like this member to receive a confirmation email with the updated member's information.
+                                     </div>
+                                 </div>
+                             </div>
+                             
+                             <div class="d-flex justify-content-between align-items-center mt-4">
+                                 <button type="button" class="btn btn-outline-secondary" onclick="clearForm()">
+                                     <i class="bi bi-arrow-clockwise me-2"></i>Clear Form
+                                 </button>
+                                 <button type="button" class="btn btn-success" onclick="addMember()">
+                                     <i class="bi bi-plus-circle me-2"></i>Add Member
+                                 </button>
+                             </div>
         </form>
     `;
     
@@ -883,6 +903,12 @@ function collectFormData(form) {
             formData[fieldId] = input.value;
         }
     });
+    
+    // Also collect the resend email checkbox value
+    const resendCheckbox = form.querySelector('#resend_member_email');
+    if (resendCheckbox) {
+        formData.resend_member_email = resendCheckbox.checked ? '1' : '0';
+    }
     
     return formData;
 }
@@ -1086,6 +1112,46 @@ function handleFormSubmit(event) {
     
     // Submit the form
     form.submit();
+}
+
+/**
+ * Resend member registration email
+ */
+function resendMemberEmail() {
+    if (confirm('Are you sure you want to resend the member registration email? This will send the email again to all members.')) {
+        // Show loading state
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Sending...';
+        button.disabled = true;
+        
+        // Make AJAX request to resend member registration email
+        fetch('{{ route("bookings.resend-member-email", ["eventSlug" => $event->slug, "accessToken" => $booking->access_token]) }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Member registration email has been resent successfully!');
+            } else {
+                alert('Failed to resend email: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to resend email. Please try again.');
+        })
+        .finally(() => {
+            // Restore button state
+            button.innerHTML = originalText;
+            button.disabled = false;
+        });
+    }
 }
 </script>
 @endpush

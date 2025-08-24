@@ -261,4 +261,36 @@ class Booking extends Model
         
         return max(0, $totalAmount - $totalPaid);
     }
+
+    /**
+     * Get the owner email from owner_details.
+     */
+    public function getOwnerEmailAttribute(): ?string
+    {
+        return $this->owner_details['email'] ?? null;
+    }
+
+    /**
+     * Get the owner name from owner_details.
+     */
+    public function getOwnerNameAttribute(): ?string
+    {
+        return $this->owner_details['name'] ?? null;
+    }
+
+    /**
+     * Get the owner phone from owner_details.
+     */
+    public function getOwnerPhoneAttribute(): ?string
+    {
+        return $this->owner_details['phone'] ?? null;
+    }
+
+    /**
+     * Get the company name from owner_details.
+     */
+    public function getCompanyNameAttribute(): ?string
+    {
+        return $this->owner_details['company_name'] ?? null;
+    }
 }

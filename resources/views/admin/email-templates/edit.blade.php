@@ -32,59 +32,59 @@
                             <form action="{{ route('events.email-templates.update', [$event, $emailTemplate]) }}" method="POST">
                                 @csrf
                                 @method('PUT')
-                                
+
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label for="name" class="form-label fw-medium">Template Name <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control @error('name') is-invalid @enderror" 
-                                               id="name" name="name" value="{{ old('name', $emailTemplate->name) }}" 
-                                               placeholder="e.g., Welcome Email for New Owners" required>
+                                        <input type="text" class="form-control @error('name') is-invalid @enderror"
+                                            id="name" name="name" value="{{ old('name', $emailTemplate->name) }}"
+                                            placeholder="e.g., Welcome Email for New Owners" required>
                                         @error('name')
-                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
-                                    
+
                                     <div class="col-md-6 mb-3">
                                         <label for="trigger_type" class="form-label fw-medium">Trigger Type <span class="text-danger">*</span></label>
-                                        <select class="form-select @error('trigger_type') is-invalid @enderror" 
-                                                id="trigger_type" name="trigger_type" required>
+                                        <select class="form-select @error('trigger_type') is-invalid @enderror"
+                                            id="trigger_type" name="trigger_type" required>
                                             <option value="">Select Trigger Type</option>
                                             @foreach($triggerTypes as $key => $label)
-                                                <option value="{{ $key }}" {{ old('trigger_type', $emailTemplate->trigger_type) == $key ? 'selected' : '' }}>
-                                                    {{ $label }}
-                                                </option>
+                                            <option value="{{ $key }}" {{ old('trigger_type', $emailTemplate->trigger_type) == $key ? 'selected' : '' }}>
+                                                {{ $label }}
+                                            </option>
                                             @endforeach
                                         </select>
                                         @error('trigger_type')
-                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
                                 </div>
 
                                 <div class="mb-3">
                                     <label for="subject" class="form-label fw-medium">Email Subject <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control @error('subject') is-invalid @enderror" 
-                                           id="subject" name="subject" value="{{ old('subject', $emailTemplate->subject) }}" 
-                                           placeholder="e.g., Welcome to {{ $event->name }}!" required>
+                                    <input type="text" class="form-control @error('subject') is-invalid @enderror"
+                                        id="subject" name="subject" value="{{ old('subject', $emailTemplate->subject) }}"
+                                        placeholder="e.g., Welcome to {{ $event->name }}!" required>
                                     @error('subject')
-                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
 
-                                                                <div class="mb-3">
+                                <div class="mb-3">
                                     <label for="content" class="form-label fw-medium">Email Content <span class="text-danger">*</span></label>
-                                    <div id="quill-editor" class="quill-container"></div>
-                                    <textarea class="form-control @error('content') is-invalid @enderror" 
-                                               id="content" name="content" rows="15" required style="display: none;">{{ old('content', $emailTemplate->content) }}</textarea>
+                                    <textarea class="form-control @error('content') is-invalid @enderror"
+                                        id="content" name="content" rows="15" required>{{ old('content', $emailTemplate->content) }}</textarea>
+                                    <div class="form-text text-muted">Use the merge field buttons to insert dynamic content. Images will use full URLs.</div>
                                     @error('content')
-                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
 
                                 <div class="mb-3">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
-                                               {{ old('is_active', $emailTemplate->is_active) ? 'checked' : '' }}>
+                                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
+                                            {{ old('is_active', $emailTemplate->is_active) ? 'checked' : '' }}>
                                         <label class="form-check-label fw-medium" for="is_active">
                                             Activate this template
                                         </label>
@@ -115,20 +115,20 @@
                         </div>
                         <div class="card-body">
                             <p class="text-muted small mb-3">Click any field to insert it into your template</p>
-                            
+
                             @foreach($mergeFields as $category => $fields)
-                                <div class="mb-3">
-                                    <h6 class="fw-medium text-capitalize mb-2">{{ $category }}</h6>
-                                    <div class="d-flex flex-wrap gap-1">
-                                        @foreach($fields as $key => $label)
-                                            <button type="button" 
-                                                    class="btn btn-outline-info btn-sm merge-field-btn" 
-                                                    data-field="{{ $category }}.{{ $key }}">
-                                                {{ $label }}
-                                            </button>
-                                        @endforeach
-                                    </div>
+                            <div class="mb-3">
+                                <h6 class="fw-medium text-capitalize mb-2">{{ $category }}</h6>
+                                <div class="d-flex flex-wrap gap-1">
+                                    @foreach($fields as $key => $label)
+                                    <button type="button"
+                                        class="btn btn-outline-info btn-sm merge-field-btn"
+                                        data-field="{{ $category }}.{{ $key }}">
+                                        {{ $label }}
+                                    </button>
+                                    @endforeach
                                 </div>
+                            </div>
                             @endforeach
                         </div>
                     </div>
@@ -154,9 +154,9 @@
                             </div>
                             <hr>
                             <div class="d-grid">
-                                <button type="button" class="btn btn-outline-info btn-sm test-template-btn" 
-                                        data-template-id="{{ $emailTemplate->id }}" 
-                                        data-event-id="{{ $event->id }}">
+                                <button type="button" class="btn btn-outline-info btn-sm test-template-btn"
+                                    data-template-id="{{ $emailTemplate->id }}"
+                                    data-event-id="{{ $event->id }}">
                                     <i class="bi bi-play-circle me-2"></i>Test Template
                                 </button>
                             </div>
@@ -223,106 +223,109 @@
     </div>
 
     @push('styles')
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <style>
         .merge-field-btn {
             font-size: 0.75rem;
             padding: 0.25rem 0.5rem;
         }
-        .ql-editor {
-            min-height: 300px;
-            font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
-            font-size: 14px;
-        }
-        #content {
-            display: none;
-        }
-        .quill-container {
+
+        .tox-tinymce {
             border-radius: 0.375rem;
-            border: 1px solid #ced4da;
         }
     </style>
     @endpush
 
     @push('scripts')
-    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize Quill.js
-            var quill = new Quill('#quill-editor', {
-                theme: 'snow',
-                modules: {
-                    toolbar: [
-                        [{ 'header': [1, 2, 3, false] }],
-                        ['bold', 'italic', 'underline', 'strike'],
-                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                        [{ 'color': [] }, { 'background': [] }],
-                        [{ 'align': [] }],
-                        ['link', 'image'],
-                        ['clean']
-                    ]
-                },
-                placeholder: 'Start writing your email template...'
-            });
-
-            // Load existing content if editing
-            const existingContent = document.getElementById('content').value;
-            if (existingContent) {
-                quill.root.innerHTML = existingContent;
-            }
-
-            // Insert merge field at cursor position
-            window.insertMergeField = function(field) {
-                const placeholder = '{{ ' + field + ' }}';
-                const range = quill.getSelection();
-                if (range) {
-                    quill.insertText(range.index, placeholder);
-                    quill.setSelection(range.index + placeholder.length);
-                } else {
-                    quill.insertText(quill.getLength(), placeholder);
+            // Initialize TinyMCE
+            tinymce.init({
+                selector: '#content',
+                height: 400,
+                plugins: 'code anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
+                toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
+                content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 14px; }',
+                menubar: true,
+                branding: false,
+                promotion: false,
+                // Image path configuration - keep full paths
+                relative_urls: false,
+                remove_script_host: false,
+                convert_urls: false,
+                urlconverter_callback: (url, node, on_save, name) => url,
+                // Merge field insertion
+                setup: function(editor) {
+                    window.insertMergeField = function(field) {
+                        console.log('Inserting merge field:', field);
+                        const placeholder = '@{{ ' + field + ' }}';
+                        console.log('Placeholder:', placeholder);
+                        editor.insertContent(placeholder);
+                        editor.focus();
+                    };
                 }
-                quill.focus();
-            };
+            });
 
             // Merge field insertion
             document.querySelectorAll('.merge-field-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const field = this.dataset.field;
+                    console.log('Merge field button clicked:', field);
+
                     if (window.insertMergeField) {
+                        console.log('Calling insertMergeField function');
                         window.insertMergeField(field);
+                    } else {
+                        console.error('insertMergeField function not found!');
                     }
                 });
             });
 
-            // Form submission - copy Quill content to hidden textarea
-            document.querySelector('form').addEventListener('submit', function() {
-                const content = quill.root.innerHTML;
-                document.getElementById('content').value = content;
+            // Form submission debugging
+            document.querySelector('form').addEventListener('submit', function(e) {
+                console.log('Form submission started');
+
+                // Check if TinyMCE is initialized
+                if (typeof tinymce !== 'undefined' && tinymce.get('content')) {
+                    const content = tinymce.get('content').getContent();
+                    console.log('TinyMCE content:', content);
+
+                    // Validate content is not empty
+                    if (!content || content.trim() === '' || content === '<p><br></p>') {
+                        e.preventDefault();
+                        alert('Please enter some content for your email template.');
+                        tinymce.get('content').focus();
+                        return false;
+                    }
+                } else {
+                    console.log('TinyMCE not initialized yet');
+                }
+
+                console.log('Form submission proceeding...');
             });
 
             // Test template functionality
             document.querySelector('.test-template-btn').addEventListener('click', function() {
                 const templateId = this.dataset.templateId;
                 const eventId = this.dataset.eventId;
-                
+
                 // Show modal
                 const modal = new bootstrap.Modal(document.getElementById('testTemplateModal'));
                 modal.show();
-                
+
                 // Test template
                 fetch(`/events/${eventId}/email-templates/${templateId}/test`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    const resultsDiv = document.getElementById('testResults');
-                    
-                    if (data.success) {
-                        resultsDiv.innerHTML = `
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        const resultsDiv = document.getElementById('testResults');
+
+                        if (data.success) {
+                            resultsDiv.innerHTML = `
                             <div class="alert alert-success">
                                 <h6><i class="bi bi-check-circle me-2"></i>Template Test Successful!</h6>
                                 <hr>
@@ -338,23 +341,23 @@
                                 </div>
                             </div>
                         `;
-                    } else {
-                        resultsDiv.innerHTML = `
+                        } else {
+                            resultsDiv.innerHTML = `
                             <div class="alert alert-danger">
                                 <h6><i class="bi bi-exclamation-triangle me-2"></i>Template Test Failed</h6>
                                 <p class="mb-0">${data.error}</p>
                             </div>
                         `;
-                    }
-                })
-                .catch(error => {
-                    document.getElementById('testResults').innerHTML = `
+                        }
+                    })
+                    .catch(error => {
+                        document.getElementById('testResults').innerHTML = `
                         <div class="alert alert-danger">
                             <h6><i class="bi bi-exclamation-triangle me-2"></i>Error</h6>
                             <p class="mb-0">Failed to test template: ${error.message}</p>
                         </div>
                     `;
-                });
+                    });
             });
         });
     </script>

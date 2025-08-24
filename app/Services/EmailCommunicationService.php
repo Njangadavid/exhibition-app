@@ -6,6 +6,9 @@ use App\Models\EmailTemplate;
 use App\Models\EmailLog;
 use App\Models\Booking;
 use App\Models\Event;
+use App\Models\Payment;
+use App\Jobs\SendEmailJob;
+use App\Services\ReceiptService;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 
@@ -43,7 +46,7 @@ class EmailCommunicationService
             $this->sendEmailToOwner($template, $booking);
 
             // Send to members if applicable
-            if ($triggerType === 'member_registration' || $triggerType === 'booth_confirmed') {
+            if ($triggerType === 'member_registration') {
                 $this->sendEmailToMembers($template, $booking);
             }
 
@@ -76,10 +79,23 @@ class EmailCommunicationService
             $processedContent = $template->processMergeFields($template->content, $data);
             $processedSubject = $template->processMergeFields($template->subject, $data);
 
-            // Send email (you can use Laravel Mail or any email service)
-            $this->sendEmail($template->recipient_email, $processedSubject, $processedContent);
+            // For payment_successful trigger, include receipt PDF
+            $attachmentData = null;
+            if ($template->trigger_type === 'payment_successful') {
+                $attachmentData = $this->prepareReceiptAttachment($booking);
+            }
+
+            // Dispatch email job to queue
+            SendEmailJob::dispatch(
+                $emailLog->id,
+                $template->id,
+                $booking->owner_email,
+                $processedSubject,
+                $processedContent,
+                $attachmentData
+            );
             
-            $emailLog->markAsSent();
+            // Email log status will be updated by the job
 
         } catch (\Exception $e) {
             $emailLog->markAsFailed($e->getMessage());
@@ -93,6 +109,7 @@ class EmailCommunicationService
     private function sendEmailToMembers(EmailTemplate $template, Booking $booking): void
     {
         if (empty($booking->member_details)) {
+            Log::error("member_details is empty",$booking);
             return;
         }
 
@@ -112,9 +129,16 @@ class EmailCommunicationService
                 $processedContent = $template->processMergeFields($template->content, $data);
                 $processedSubject = $template->processMergeFields($template->subject, $data);
 
-                $this->sendEmail($member['email'], $processedSubject, $processedContent);
+                // Dispatch email job to queue
+                SendEmailJob::dispatch(
+                    $emailLog->id,
+                    $template->id,
+                    $member['email'],
+                    $processedSubject,
+                    $processedContent
+                );
                 
-                $emailLog->markAsSent();
+                // Email log status will be updated by the job
 
             } catch (\Exception $e) {
                 $emailLog->markAsFailed($e->getMessage());
@@ -123,6 +147,44 @@ class EmailCommunicationService
                     'error' => $e->getMessage()
                 ]);
             }
+        }
+    }
+
+    /**
+     * Prepare receipt attachment for payment emails
+     */
+    private function prepareReceiptAttachment(Booking $booking): ?array
+    {
+        try {
+            // Get the latest successful payment
+            $payment = $booking->payments()
+                ->where('status', 'completed')
+                ->latest()
+                ->first();
+
+            if (!$payment) {
+                Log::warning('No completed payment found for receipt attachment', [
+                    'booking_id' => $booking->id
+                ]);
+                return null;
+            }
+
+            $receiptService = app(ReceiptService::class);
+            $pdfContent = $receiptService->generateReceiptPdf($payment);
+            $filename = $receiptService->getReceiptFilename($payment);
+
+            return [
+                'content' => $pdfContent,
+                'filename' => $filename,
+                'mime_type' => 'application/pdf'
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Failed to prepare receipt attachment', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage()
+            ]);
+            return null;
         }
     }
 
@@ -136,31 +198,35 @@ class EmailCommunicationService
 
         $data = [
             'event' => [
-                'name' => $event->name ?? '',
+                'name' => $this->sanitizeString($event->name ?? ''),
                 'start_date' => $event->start_date?->format('F d, Y') ?? '',
                 'end_date' => $event->end_date?->format('F d, Y') ?? '',
-                'venue' => $event->venue ?? ''
+                'venue' => $this->sanitizeString($event->venue ?? '')
             ],
             'owner' => [
-                'name' => $booking->owner_details['name'] ?? '',
-                'email' => $booking->owner_email ?? '',
-                'company' => $booking->owner_details['company'] ?? '',
-                'phone' => $booking->owner_details['phone'] ?? ''
+                'name' => $this->sanitizeString($booking->owner_details['name'] ?? ''),
+                'email' => $this->sanitizeString($booking->owner_email ?? ''),
+                'company' => $this->sanitizeString($booking->owner_details['company'] ?? ''),
+                'phone' => $this->sanitizeString($booking->owner_details['phone'] ?? ''),
+                'account_link' => route('bookings.owner-form-token', [
+                    'eventSlug' => $event->slug,
+                    'accessToken' => $booking->access_token
+                ])
             ],
             'booth' => [
-                'number' => $floorplanItem->item_id ?? '',
-                'type' => $floorplanItem->type ?? '',
+                'number' => $this->sanitizeString($floorplanItem->label ?? ''),
+                'type' => $this->sanitizeString($floorplanItem->item_name ?? ''),
                 'price' => number_format($floorplanItem->price ?? 0, 2),
-                'location' => $floorplanItem->location ?? ''
+                'location' => $this->sanitizeString($floorplanItem->floorplanDesign->name ?? '')
             ]
         ];
 
         // Add member data if sending to member
         if ($recipientType === 'member' && !empty($memberData)) {
             $data['member'] = [
-                'name' => $memberData['name'] ?? '',
-                'email' => $memberData['email'] ?? '',
-                'role' => $memberData['role'] ?? ''
+                'name' => $this->sanitizeString($memberData['name'] ?? ''),
+                'email' => $this->sanitizeString($memberData['email'] ?? ''),
+                'role' => $this->sanitizeString($memberData['role'] ?? '')
             ];
         }
 
@@ -173,6 +239,9 @@ class EmailCommunicationService
             'date' => now()->format('F d, Y'),
             'reference' => $booking->id
         ];
+
+        // Validate that the data can be JSON encoded
+        $this->validateJsonEncoding($data);
 
         return $data;
     }
@@ -214,6 +283,43 @@ class EmailCommunicationService
                 'success' => false,
                 'error' => $e->getMessage()
             ];
+        }
+    }
+
+    /**
+     * Sanitize string to ensure proper UTF-8 encoding
+     */
+    private function sanitizeString(?string $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        // Remove any invalid UTF-8 characters
+        $cleaned = iconv('UTF-8', 'UTF-8//IGNORE', $value);
+        
+        // Convert to UTF-8 if not already
+        if (!mb_check_encoding($cleaned, 'UTF-8')) {
+            $cleaned = mb_convert_encoding($cleaned, 'UTF-8', 'auto');
+        }
+
+        return $cleaned;
+    }
+
+    /**
+     * Validate that data can be JSON encoded
+     */
+    private function validateJsonEncoding(array $data): void
+    {
+        $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $error = json_last_error_msg();
+            Log::error('JSON encoding failed in email data preparation', [
+                'error' => $error,
+                'data' => $data
+            ]);
+            throw new \Exception("Failed to prepare email data: {$error}");
         }
     }
 }

@@ -137,7 +137,8 @@ class EmailTemplate extends Model
                 'name' => 'Owner Name',
                 'email' => 'Owner Email',
                 'company' => 'Company Name',
-                'phone' => 'Phone Number'
+                'phone' => 'Phone Number',
+                'account_link' => 'Direct Account Link'
             ],
             'booth' => [
                 'number' => 'Booth Number',
@@ -174,16 +175,42 @@ class EmailTemplate extends Model
      */
     public function processMergeFields($content, $data): string
     {
+        // Sanitize content first
+        $content = $this->sanitizeString($content);
+        
         foreach ($data as $category => $fields) {
             if (is_array($fields)) {
                 foreach ($fields as $key => $value) {
                     $placeholder = "{{ {$category}.{$key} }}";
-                    $content = str_replace($placeholder, $value ?? '', $content);
+                    $sanitizedValue = $this->sanitizeString($value ?? '');
+                    $content = str_replace($placeholder, $sanitizedValue, $content);
                 }
             }
         }
 
         return $content;
+    }
+
+    /**
+     * Sanitize string to ensure proper UTF-8 encoding
+     */
+    private function sanitizeString($value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        $value = (string) $value;
+
+        // Remove any invalid UTF-8 characters
+        $cleaned = iconv('UTF-8', 'UTF-8//IGNORE', $value);
+        
+        // Convert to UTF-8 if not already
+        if (!mb_check_encoding($cleaned, 'UTF-8')) {
+            $cleaned = mb_convert_encoding($cleaned, 'UTF-8', 'auto');
+        }
+
+        return $cleaned;
     }
 
     /**

@@ -53,8 +53,6 @@ class EmailTemplateController extends Controller
             'subject' => 'required|string|max:255',
             'content' => 'required|string',
             'trigger_type' => ['required', Rule::in(array_keys(EmailTemplate::getTriggerTypes()))],
-            'conditions' => 'nullable|array',
-            'is_active' => 'boolean'
         ]);
 
         $validated['event_id'] = $event->id;
@@ -64,7 +62,7 @@ class EmailTemplateController extends Controller
             EmailTemplate::create($validated);
 
             return redirect()
-                ->route('admin.email-templates.index', $event)
+                ->route('events.email-templates.index', $event)
                 ->with('success', 'Email template created successfully!');
 
         } catch (\Exception $e) {
@@ -111,8 +109,7 @@ class EmailTemplateController extends Controller
             'subject' => 'required|string|max:255',
             'content' => 'required|string',
             'trigger_type' => ['required', Rule::in(array_keys(EmailTemplate::getTriggerTypes()))],
-            'conditions' => 'nullable|array',
-            'is_active' => 'boolean'
+            'is_active' => 'nullable'
         ]);
 
         $validated['is_active'] = $request->has('is_active');
@@ -121,7 +118,7 @@ class EmailTemplateController extends Controller
             $emailTemplate->update($validated);
 
             return redirect()
-                ->route('admin.email-templates.index', $event)
+                ->route('events.email-templates.index', $event)
                 ->with('success', 'Email template updated successfully!');
 
         } catch (\Exception $e) {
@@ -145,7 +142,7 @@ class EmailTemplateController extends Controller
             $emailTemplate->delete();
 
             return redirect()
-                ->route('admin.email-templates.index', $event)
+                ->route('events.email-templates.index', $event)
                 ->with('success', 'Email template deleted successfully!');
 
         } catch (\Exception $e) {
@@ -167,7 +164,7 @@ class EmailTemplateController extends Controller
             $clonedTemplate = $emailTemplate->clone();
 
             return redirect()
-                ->route('admin.email-templates.edit', [$event, $clonedTemplate])
+                ->route('events.email-templates.edit', [$event, $clonedTemplate])
                 ->with('success', 'Email template cloned successfully! You can now edit the copy.');
 
         } catch (\Exception $e) {
@@ -215,7 +212,7 @@ class EmailTemplateController extends Controller
             $status = $emailTemplate->is_active ? 'activated' : 'deactivated';
 
             return redirect()
-                ->route('admin.email-templates.index', $event)
+                ->route('events.email-templates.index', $event)
                 ->with('success', "Email template {$status} successfully!");
 
         } catch (\Exception $e) {

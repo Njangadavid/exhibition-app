@@ -84,4 +84,10 @@ Route::get('/event/{eventSlug}/booking/{accessToken}/paystack-status', [Paystack
 // Receipt generation route
 Route::get('/event/{eventSlug}/booking/{accessToken}/receipt', [PaystackController::class, 'generateReceipt'])->name('bookings.receipt');
 
+// Resend payment email route
+Route::post('/event/{eventSlug}/booking/{accessToken}/resend-payment-email', [BookingController::class, 'resendPaymentEmail'])->name('bookings.resend-payment-email');
+
+// Resend member registration email route
+Route::post('/event/{eventSlug}/booking/{accessToken}/resend-member-email', [BookingController::class, 'resendMemberEmail'])->name('bookings.resend-member-email');
+
 require __DIR__.'/auth.php';

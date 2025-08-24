@@ -222,10 +222,59 @@
         <button onclick="window.print()" class="btn btn-success btn-lg me-3">
             <i class="bi bi-printer me-2"></i>Print Receipt
         </button>
-       
+        
+        <button onclick="resendPaymentEmail()" class="btn btn-primary btn-lg me-3">
+            <i class="bi bi-envelope me-2"></i>Resend Payment Email
+        </button>
+        
+                 <a href="{{ route('bookings.owner-form-token', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]) }}"
+            class="btn btn-outline-secondary btn-lg">
+             <i class="bi bi-pencil-square me-2"></i>Edit Details
+         </a>
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+function resendPaymentEmail() {
+    if (confirm('Are you sure you want to resend the payment confirmation email? This will send the email again with the receipt attached.')) {
+        // Show loading state
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Sending...';
+        button.disabled = true;
+        
+        // Make AJAX request to resend payment email
+        fetch('{{ route("bookings.resend-payment-email", ["eventSlug" => $event->slug, "accessToken" => $booking->access_token]) }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Payment confirmation email has been resent successfully!');
+            } else {
+                alert('Failed to resend email: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to resend email. Please try again.');
+        })
+        .finally(() => {
+            // Restore button state
+            button.innerHTML = originalText;
+            button.disabled = false;
+        });
+    }
+}
+</script>
+@endpush
 
 @push('styles')
 <style>
