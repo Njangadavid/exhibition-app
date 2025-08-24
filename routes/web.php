@@ -27,7 +27,7 @@ Route::get('/event/{eventSlug}/booking/{accessToken}/members', [BookingControlle
 Route::post('/event/{eventSlug}/booking/{accessToken}/members', [BookingController::class, 'processMemberForm'])->name('bookings.process-members');
 Route::post('/event/{eventSlug}/booking/{accessToken}/save-members', [BookingController::class, 'saveMembers'])->name('bookings.save-members');
 Route::delete('/event/{eventSlug}/booking/{accessToken}/member/{memberId}', [BookingController::class, 'deleteMember'])->name('bookings.delete-member');
-Route::put('/event/{eventSlug}/booking/{accessToken}/member/{memberId}', [BookingController::class, 'updateMember'])->name('bookings.update-member');
+Route::post('/event/{eventSlug}/booking/{accessToken}/member/{memberId}/update', [BookingController::class, 'updateMember'])->name('bookings.update-member');
 Route::get('/event/{eventSlug}/booking/{accessToken}/payment', [BookingController::class, 'showPayment'])->name('bookings.payment');
 Route::post('/event/{eventSlug}/booking/{accessToken}/payment', [PaystackController::class, 'initializePayment'])->name('bookings.process-payment');
 Route::get('/event/{eventSlug}/booking/{accessToken}/paystack/callback', [PaystackController::class, 'handleCallback'])->name('paystack.callback');

@@ -625,13 +625,13 @@ function saveMemberChanges(index) {
     }
     
     console.log('Updating member with ID:', memberId);
+    console.log('Sending member data:', formData);
     
     fetch('{{ route("bookings.update-member", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token, "memberId" => ":memberId"]) }}'.replace(':memberId', memberId), {
-        method: 'PUT',
+        method: 'POST',
         body: submitData,
         headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            'X-Requested-With': 'XMLHttpRequest'
         }
     })
     .then(response => response.json())
