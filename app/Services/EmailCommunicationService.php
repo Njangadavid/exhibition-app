@@ -43,7 +43,7 @@ class EmailCommunicationService
             }
 
             // Send to owner (but not for member_registration triggers)
-            if ($triggerType !== 'member_registration') {
+            if ($triggerType !== 'owner_registration') {
                 $this->sendEmailToOwner($template, $booking);
             }
 
@@ -52,10 +52,7 @@ class EmailCommunicationService
                 if ($specificMember) {
                     // Send email only to the specific member being added/edited
                     $this->sendEmailToSpecificMember($template, $booking, $specificMember);
-                } else {
-                    // Fallback: send to all members if no specific member provided
-                    $this->sendEmailToMembers($template, $booking);
-                }
+                } 
             }
 
         } catch (\Exception $e) {
@@ -139,6 +136,15 @@ class EmailCommunicationService
 
         try {
             $data = $this->prepareEmailData($booking, 'member', $memberData);
+            
+            // Debug: Log the data before processing
+            Log::info('Before merge field processing', [
+                'template_content_length' => strlen($template->content),
+                'member_data' => $memberData,
+                'email_data' => $data,
+                'template_trigger_type' => $template->trigger_type
+            ]);
+            
             $processedContent = $template->processMergeFields($template->content, $data);
             $processedSubject = $template->processMergeFields($template->subject, $data);
 
@@ -149,7 +155,8 @@ class EmailCommunicationService
                 'original_subject' => $template->subject,
                 'processed_subject' => $processedSubject,
                 'member_data' => $memberData,
-                'email_data' => $data
+                'email_data' => $data,
+                'content_contains_merge_fields' => strpos($processedContent, '{{ member.') !== false
             ]);
 
             // Dispatch email job to queue
