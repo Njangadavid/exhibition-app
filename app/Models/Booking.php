@@ -100,7 +100,7 @@ class Booking extends Model
     {
         do {
             $token = 'AT_' . strtoupper(substr(md5(uniqid() . time()), 0, 32));
-        } while (static::where('access_token', $token)->exists());
+        } while (\App\Models\BoothOwner::where('access_token', $token)->exists());
 
         return $token;
     }

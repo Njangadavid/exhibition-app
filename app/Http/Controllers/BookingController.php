@@ -806,7 +806,7 @@ class BookingController extends Controller
                 'amount' => $booking->floorplanItem->price,
                 'email' => $booking->owner_details['email'],
                 'reference' => $reference,
-                'callback_url' => route('bookings.paystack.callback', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]),
+                'callback_url' => route('bookings.paystack.callback', ['eventSlug' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]),
                 'currency' => 'USD', // Use USD for international compatibility
                 'metadata' => [
                     'booking_id' => $booking->id,
@@ -1008,7 +1008,7 @@ class BookingController extends Controller
                     'amount' => $transaction->data->amount / 100
                 ]);
 
-                return redirect()->route('bookings.success', ['eventSlug' => $eventSlug, 'accessToken' => $booking->access_token])
+                return redirect()->route('bookings.success', ['eventSlug' => $eventSlug, 'accessToken' => $booking->boothOwner->access_token])
                     ->with('success', 'Payment successful! Your booking has been confirmed.');
             } else {
                 // Payment failed
@@ -1026,7 +1026,7 @@ class BookingController extends Controller
                     'response' => $transaction
                 ]);
 
-                return redirect()->route('bookings.payment', ['eventSlug' => $eventSlug, 'accessToken' => $booking->access_token])
+                return redirect()->route('bookings.payment', ['eventSlug' => $eventSlug, 'accessToken' => $booking->boothOwner->access_token])
                     ->with('error', 'Payment failed. Please try again.');
             }
         } catch (\Exception $e) {
@@ -1036,7 +1036,7 @@ class BookingController extends Controller
                 'request_data' => $request->all()
             ]);
 
-            return redirect()->route('bookings.payment', ['eventSlug' => $eventSlug, 'accessToken' => $booking->access_token])
+            return redirect()->route('bookings.payment', ['eventSlug' => $eventSlug, 'accessToken' => $booking->boothOwner->access_token])
                 ->with('error', 'Payment verification failed. Please contact support.');
         }
     }

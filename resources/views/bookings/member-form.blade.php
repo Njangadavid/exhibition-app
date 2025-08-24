@@ -139,30 +139,58 @@
     </div>
 </div>
 
-<!-- Simple Member Edit Modal -->
+<!-- Enhanced Member Edit Modal -->
 <div class="modal fade" id="editMemberModal" tabindex="-1" aria-labelledby="editMemberModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" style="max-width: 800px;">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="editMemberModalLabel">
-                    <i class="bi bi-person-edit me-2"></i>Edit Member
+                    <i class="bi bi-person-edit me-2"></i>Edit Member Details
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-                <form id="editMemberForm">
+                <form id="editMemberForm" class="needs-validation" novalidate>
                     @csrf
                     <input type="hidden" id="editMemberId" name="member_id">
                     <input type="hidden" id="editMemberIndex" name="member_index">
                     
+                    <!-- Member Info Summary -->
+                    <div class="alert alert-info mb-4">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <i class="bi bi-info-circle fs-4"></i>
+                            </div>
+                            <div class="col">
+                                <h6 class="alert-heading mb-1">Editing Member</h6>
+                                <p class="mb-0 small" id="editMemberSummary">Loading member information...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Dynamic form fields with sections and proper layout -->
                     <div id="editFormFields"></div>
                     
-                    <div class="form-check mt-4 p-3 bg-light rounded border">
-                        <input class="form-check-input" type="checkbox" id="editResendEmail" name="resend_member_email">
-                        <label class="form-check-label fw-medium" for="editResendEmail">
-                            <i class="bi bi-envelope me-2"></i>Resend welcome email to this member
-                        </label>
+                    <!-- Enhanced Resend Email Section -->
+                    <div class="card border-warning mt-4">
+                        <div class="card-header bg-warning bg-opacity-10 border-warning">
+                            <h6 class="mb-0 text-warning">
+                                <i class="bi bi-envelope me-2"></i>Email Communication
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="editResendEmail" name="resend_member_email">
+                                <label class="form-check-label fw-medium" for="editResendEmail">
+                                    Resend welcome email to this member
+                                </label>
+                                <div class="form-text text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Check this if you want to send the member registration email again. 
+                                    This is useful if the member didn't receive the original email or if you've made significant changes.
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -628,12 +656,20 @@ function editMemberModal(memberId, memberIndex) {
 
 function populateEditForm(member) {
     const container = document.getElementById('editFormFields');
+    const summaryContainer = document.getElementById('editMemberSummary');
+    
+    // Update member summary
+    const memberName = findMemberFieldValue(member, 'member_name') || 'Unknown Member';
+    const memberEmail = findMemberFieldValue(member, 'member_email') || 'No email';
+    summaryContainer.innerHTML = `<strong>${memberName}</strong> (${memberEmail})`;
+    
     let html = '';
     
     // Get form fields from currentFormData
     if (window.currentFormData && window.currentFormData.fields) {
         let currentSection = null;
         let rowOpen = false;
+        let sectionCount = 0;
         
         window.currentFormData.fields.forEach((field, index) => {
             if (field.type === 'section') {
@@ -645,6 +681,7 @@ function populateEditForm(member) {
                 
                 // Start new section
                 currentSection = field.label;
+                sectionCount++;
                 html += `
                     <div class="row mb-3">
                         <div class="col-12">
@@ -659,6 +696,7 @@ function populateEditForm(member) {
                 const value = member.form_responses[field.field_id] || '';
                 const required = field.required ? 'required' : '';
                 const fieldName = `edit_${field.field_id}`;
+                const fieldType = field.type === 'email' ? 'email' : 'text';
                 
                 // Determine column width based on field width
                 let colClass = 'col-12';
@@ -676,20 +714,25 @@ function populateEditForm(member) {
                     rowOpen = true;
                 }
                 
-                // Add field with proper styling
+                // Add field with proper styling and validation
                 html += `
                     <div class="${colClass} mb-3">
                         <label for="${fieldName}" class="form-label fw-semibold small mb-1">
                             ${field.label}
                             ${field.required ? '<span class="text-danger">*</span>' : ''}
                         </label>
-                        <input type="${field.type === 'email' ? 'email' : 'text'}" 
+                        <input type="${fieldType}" 
                                class="form-control form-control-sm" 
                                id="${fieldName}" 
                                name="${fieldName}" 
                                value="${value}" 
                                ${required}
-                               placeholder="Enter ${field.label.toLowerCase()}">
+                               placeholder="Enter ${field.label.toLowerCase()}"
+                               ${field.required ? 'required' : ''}>
+                        ${field.help_text ? `<div class="form-text small text-muted">${field.help_text}</div>` : ''}
+                        <div class="invalid-feedback">
+                            Please provide a valid ${field.label.toLowerCase()}.
+                        </div>
                     </div>
                 `;
                 
@@ -709,6 +752,20 @@ function populateEditForm(member) {
         // Close last row if open
         if (rowOpen) {
             html += '</div>';
+        }
+        
+        // Add section count info
+        if (sectionCount > 0) {
+            html += `
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Form contains ${sectionCount} section${sectionCount > 1 ? 's' : ''} with ${window.currentFormData.fields.filter(f => f.type !== 'section').length} input fields
+                        </small>
+                    </div>
+                </div>
+            `;
         }
     }
     
