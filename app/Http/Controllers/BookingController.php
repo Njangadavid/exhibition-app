@@ -422,14 +422,34 @@ class BookingController extends Controller
                 'submitted_at' => now(),
             ]);
 
-            // Send member registration email trigger
+            // Ensure we have a booth owner
+            if (!$booking->boothOwner) {
+                // Create booth owner from existing owner_details
+                $ownerDetails = $booking->owner_details ?? [];
+                $boothOwner = \App\Models\BoothOwner::create([
+                    'booking_id' => $booking->id,
+                    'qr_code' => \App\Models\BoothOwner::generateQrCode(),
+                    'form_responses' => $ownerDetails
+                ]);
+                $booking->update(['booth_owner_id' => $boothOwner->id]);
+            }
+
+            // Create booth member
+            $boothMember = \App\Models\BoothMember::create([
+                'booth_owner_id' => $booking->boothOwner->id,
+                'qr_code' => \App\Models\BoothMember::generateQrCode(),
+                'form_responses' => $request->form_data,
+                'status' => 'active'
+            ]);
+
+            // Send member registration email trigger to the specific member
             try {
                 $emailService = app(EmailCommunicationService::class);
-                $emailService->sendTriggeredEmail('member_registration', $booking);
-                Log::info('Member registration email triggered', [
+                $emailService->sendTriggeredEmail('member_registration', $booking, $request->form_data);
+                Log::info('Member registration email triggered for specific member', [
                     'booking_id' => $booking->id,
-                    'trigger_type' => 'member_registration',
-                    'member_count' => count($request->form_data)
+                    'member_id' => $boothMember->id,
+                    'trigger_type' => 'member_registration'
                 ]);
             } catch (\Exception $e) {
                 Log::error('Failed to send member registration email', [
@@ -480,27 +500,61 @@ class BookingController extends Controller
                 ], 400);
             }
 
-            // Update booking with member details
-            $booking->update([
-                'member_details' => $memberDetails,
-            ]);
+            // Ensure we have a booth owner
+            if (!$booking->boothOwner) {
+                // Create booth owner from existing owner_details
+                $ownerDetails = $booking->owner_details ?? [];
+                $boothOwner = \App\Models\BoothOwner::create([
+                    'booking_id' => $booking->id,
+                    'qr_code' => \App\Models\BoothOwner::generateQrCode(),
+                    'form_responses' => $ownerDetails
+                ]);
+                $booking->update(['booth_owner_id' => $boothOwner->id]);
+            }
 
             // Check if resend email was requested
             $resendEmail = false;
+            $resendMemberData = null;
             if (request()->has('resend_member_email') && request()->input('resend_member_email') == '1') {
                 $resendEmail = true;
+                // Find the member being edited (assuming it's the first one for now)
+                // In a real implementation, you'd need to identify which specific member
+                $resendMemberData = $memberDetails[0] ?? null;
             }
-            
+
+            // Update or create booth members
+            foreach ($memberDetails as $index => $memberData) {
+                // Check if member already exists (by email or other identifier)
+                $existingMember = $booking->boothOwner->boothMembers()
+                    ->whereJsonContains('form_responses', ['email' => $memberData['email'] ?? ''])
+                    ->first();
+
+                if ($existingMember) {
+                    // Update existing member
+                    $existingMember->update([
+                        'form_responses' => $memberData,
+                        'status' => 'active'
+                    ]);
+                } else {
+                    // Create new member
+                    \App\Models\BoothMember::create([
+                        'booth_owner_id' => $booking->boothOwner->id,
+                        'qr_code' => \App\Models\BoothMember::generateQrCode(),
+                        'form_responses' => $memberData,
+                        'status' => 'active'
+                    ]);
+                }
+            }
+
             // Send member registration email trigger if requested
-            if ($resendEmail) {
-                log("resend email is true");
+            if ($resendEmail && $resendMemberData) {
                 try {
                     $emailService = app(EmailCommunicationService::class);
-                    $emailService->sendTriggeredEmail('member_registration', $booking);
+                    $emailService->sendTriggeredEmail('member_registration', $booking, $resendMemberData);
                     Log::info('Member registration email triggered via AJAX (resend requested)', [
                         'booking_id' => $booking->id,
                         'trigger_type' => 'member_registration',
-                        'member_count' => count($memberDetails)
+                        'member_data' => $resendMemberData
                     ]);
                 } catch (\Exception $e) {
                     Log::error('Failed to send member registration email via AJAX', [

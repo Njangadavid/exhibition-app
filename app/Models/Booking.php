@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Booking extends Model
 {
@@ -64,6 +65,22 @@ class Booking extends Model
     public function emailLogs(): HasMany
     {
         return $this->hasMany(EmailLog::class);
+    }
+
+    /**
+     * Get the booth owner for this booking
+     */
+    public function boothOwner(): BelongsTo
+    {
+        return $this->belongsTo(BoothOwner::class);
+    }
+
+    /**
+     * Get the booth members for this booking through booth owner
+     */
+    public function boothMembers(): HasManyThrough
+    {
+        return $this->hasManyThrough(BoothMember::class, BoothOwner::class);
     }
 
     /**

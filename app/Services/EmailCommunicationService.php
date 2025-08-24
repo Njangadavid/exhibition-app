@@ -17,7 +17,7 @@ class EmailCommunicationService
     /**
      * Send triggered email based on event type
      */
-    public function sendTriggeredEmail(string $triggerType, Booking $booking): void
+    public function sendTriggeredEmail(string $triggerType, Booking $booking, $specificMember = null): void
     {
         try {
             $template = EmailTemplate::where('event_id', $booking->event_id)
@@ -47,7 +47,13 @@ class EmailCommunicationService
 
             // Send to members if applicable
             if ($triggerType === 'member_registration') {
-                $this->sendEmailToMembers($template, $booking);
+                if ($specificMember) {
+                    // Send email only to the specific member being added/edited
+                    $this->sendEmailToSpecificMember($template, $booking, $specificMember);
+                } else {
+                    // Send to all members (for backward compatibility)
+                    $this->sendEmailToMembers($template, $booking);
+                }
             }
 
         } catch (\Exception $e) {
@@ -104,49 +110,77 @@ class EmailCommunicationService
     }
 
     /**
-     * Send email to booth members
+     * Send email to a specific booth member
+     */
+    private function sendEmailToSpecificMember(EmailTemplate $template, Booking $booking, $memberData): void
+    {
+        // Get member email from form responses
+        $memberEmail = $this->extractMemberEmail($memberData);
+        
+        if (!$memberEmail) {
+            Log::warning("No email found for member", [
+                'booking_id' => $booking->id,
+                'member_data' => $memberData
+            ]);
+            return;
+        }
+
+        $emailLog = EmailLog::create([
+            'event_id' => $booking->event_id,
+            'template_id' => $template->id,
+            'recipient_email' => $memberEmail,
+            'recipient_type' => 'member',
+            'booking_id' => $booking->id,
+            'trigger_type' => $template->trigger_type,
+            'status' => 'pending'
+        ]);
+
+        try {
+            $data = $this->prepareEmailData($booking, 'member', $memberData);
+            $processedContent = $template->processMergeFields($template->content, $data);
+            $processedSubject = $template->processMergeFields($template->subject, $data);
+
+            // Dispatch email job to queue
+            SendEmailJob::dispatch(
+                $emailLog->id,
+                $template->id,
+                $memberEmail,
+                $processedSubject,
+                $processedContent
+            );
+            
+            // Email log status will be updated by the job
+
+        } catch (\Exception $e) {
+            $emailLog->markAsFailed($e->getMessage());
+            Log::error("Failed to send email to specific member", [
+                'member_email' => $memberEmail,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Send email to booth members (for backward compatibility)
      */
     private function sendEmailToMembers(EmailTemplate $template, Booking $booking): void
     {
+        // Use the new booth members relationship if available
+        if ($booking->boothMembers && $booking->boothMembers->count() > 0) {
+            foreach ($booking->boothMembers as $member) {
+                $this->sendEmailToSpecificMember($template, $booking, $member->form_responses);
+            }
+            return;
+        }
+
+        // Fallback to old member_details JSON (for backward compatibility)
         if (empty($booking->member_details)) {
-            Log::error("member_details is empty",$booking);
+            Log::info("No members found for booking", ['booking_id' => $booking->id]);
             return;
         }
 
         foreach ($booking->member_details as $member) {
-            $emailLog = EmailLog::create([
-                'event_id' => $booking->event_id,
-                'template_id' => $template->id,
-                'recipient_email' => $member['email'] ?? '',
-                'recipient_type' => 'member',
-                'booking_id' => $booking->id,
-                'trigger_type' => $template->trigger_type,
-                'status' => 'pending'
-            ]);
-
-            try {
-                $data = $this->prepareEmailData($booking, 'member', $member);
-                $processedContent = $template->processMergeFields($template->content, $data);
-                $processedSubject = $template->processMergeFields($template->subject, $data);
-
-                // Dispatch email job to queue
-                SendEmailJob::dispatch(
-                    $emailLog->id,
-                    $template->id,
-                    $member['email'],
-                    $processedSubject,
-                    $processedContent
-                );
-                
-                // Email log status will be updated by the job
-
-            } catch (\Exception $e) {
-                $emailLog->markAsFailed($e->getMessage());
-                Log::error("Failed to send email to member", [
-                    'member_email' => $member['email'],
-                    'error' => $e->getMessage()
-                ]);
-            }
+            $this->sendEmailToSpecificMember($template, $booking, $member);
         }
     }
 
@@ -321,5 +355,37 @@ class EmailCommunicationService
             ]);
             throw new \Exception("Failed to prepare email data: {$error}");
         }
+    }
+
+    /**
+     * Extract member email from form responses
+     * Looks for fields with 'email' purpose or common email field names
+     */
+    //we should find formfield with type 'email' and use the form field id as key to get
+   // memberdata value,
+
+    private function extractMemberEmail($memberData): ?string
+    {
+        if (!is_array($memberData)) {
+            return null;
+        }
+
+        // First, try to find a field with 'email' purpose
+        foreach ($memberData as $fieldId => $value) {
+            if (is_string($fieldId) && strpos(strtolower($fieldId), 'email') !== false) {
+                return $value;
+            }
+        }
+
+        // Look for common email field patterns
+        $emailPatterns = ['email', 'e-mail', 'mail', 'contact_email'];
+        foreach ($emailPatterns as $pattern) {
+            if (isset($memberData[$pattern])) {
+                return $memberData[$pattern];
+            }
+        }
+
+        // If no email found, return null
+        return null;
     }
 }
