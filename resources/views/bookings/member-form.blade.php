@@ -284,27 +284,65 @@ function findFieldByPurpose(member, formData, purpose) {
 function findMemberId(memberData) {
     // Try to find the member ID from the booth members data
     // We need to match by email since that's our unique identifier
-    const memberEmail = memberData.email || memberData['field_2_1755847232']; // Adjust field ID as needed
+    
+    // First, try to find the email field dynamically from form data
+    let memberEmail = null;
+    
+    if (window.currentFormData && window.currentFormData.fields) {
+        // Find the email field by purpose
+        const emailField = window.currentFormData.fields.find(f => f.field_purpose === 'member_email');
+        if (emailField && memberData[emailField.field_id]) {
+            memberEmail = memberData[emailField.field_id];
+        }
+    }
+    
+    // Fallback to direct email field if not found by purpose
+    if (!memberEmail) {
+        memberEmail = memberData.email || memberData['field_2_1755847232'];
+    }
     
     if (!memberEmail) {
         console.error('No email found in member data:', memberData);
+        console.error('Available keys:', Object.keys(memberData));
+        console.error('Form data:', window.currentFormData);
         return null;
     }
+    
+    console.log('Looking for member with email:', memberEmail);
     
     // Find the member in the booth members collection
     @if($boothMembers && $boothMembers->count() > 0)
         const boothMembers = @json($boothMembers);
+        console.log('Booth members available:', boothMembers);
+        
         const foundMember = boothMembers.find(m => {
-            const memberEmailField = m.form_responses.email || m.form_responses['field_2_1755847232'];
+            // Try to find email in form_responses using the same logic
+            let memberEmailField = null;
+            
+            if (window.currentFormData && window.currentFormData.fields) {
+                const emailField = window.currentFormData.fields.find(f => f.field_purpose === 'member_email');
+                if (emailField && m.form_responses[emailField.field_id]) {
+                    memberEmailField = m.form_responses[emailField.field_id];
+                }
+            }
+            
+            // Fallback to direct email field
+            if (!memberEmailField) {
+                memberEmailField = m.form_responses.email || m.form_responses['field_2_1755847232'];
+            }
+            
+            console.log('Comparing:', memberEmail, 'with:', memberEmailField);
             return memberEmailField === memberEmail;
         });
         
         if (foundMember) {
+            console.log('Found member:', foundMember);
             return foundMember.id;
         }
     @endif
     
     console.error('Member not found in booth members:', memberEmail);
+    console.error('Available booth members:', @json($boothMembers ?? []));
     return null;
 }
 
