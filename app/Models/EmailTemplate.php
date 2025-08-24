@@ -313,6 +313,26 @@ class EmailTemplate extends Model
                     
                     // Replace the placeholder with the actual value
                     $content = str_replace($placeholder, $this->sanitizeString($value), $content);
+                    
+                    // Also try to replace with common variations of the field key
+                    // This handles cases where the merge field might be written differently
+                    $variations = [
+                        strtolower($fieldKey),
+                        strtolower(str_replace('_', '', $fieldKey)),
+                        strtolower(str_replace('_', ' ', $fieldKey))
+                    ];
+                    
+                    foreach ($variations as $variation) {
+                        $variationPlaceholder = "{{ member.{$variation} }}";
+                        if (strpos($content, $variationPlaceholder) !== false) {
+                            $content = str_replace($variationPlaceholder, $this->sanitizeString($value), $content);
+                            \Illuminate\Support\Facades\Log::info('Replaced variation', [
+                                'variation' => $variation,
+                                'placeholder' => $variationPlaceholder,
+                                'value' => $value
+                            ]);
+                        }
+                    }
                 }
             }
         } catch (\Exception $e) {
