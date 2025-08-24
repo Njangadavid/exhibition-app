@@ -274,6 +274,12 @@ class EmailTemplate extends Model
                 // This approach directly uses the field label as the merge field key
                 preg_match_all('/\{\{\s*member\.([^}]+)\s*\}\}/', $content, $matches);
                 
+                // Debug: Log what merge fields were found
+                \Illuminate\Support\Facades\Log::info('Found merge fields in content', [
+                    'matches' => $matches[1] ?? [],
+                    'content_sample' => substr($content, 0, 200)
+                ]);
+                
                 if (!empty($matches[1])) {
                     foreach ($matches[1] as $fieldLabel) {
                         $fieldLabel = trim($fieldLabel);
@@ -309,6 +315,13 @@ class EmailTemplate extends Model
                         }
                     }
                 }
+                
+                // Debug: Log the final processed content
+                \Illuminate\Support\Facades\Log::info('Final processed content', [
+                    'content_length' => strlen($content),
+                    'content_sample' => substr($content, 0, 200),
+                    'merge_fields_processed' => !empty($matches[1])
+                ]);
             }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::warning('Failed to process dynamic member fields', [
