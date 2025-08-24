@@ -283,7 +283,8 @@ class BookingController extends Controller
 
                 Log::info('New booking created', [
                     'booking_id' => $booking->id,
-                    'booking_reference' => $booking->booking_reference
+                    'booking_reference' => $booking->booking_reference,
+                    'Owner _id' => $boothOwner->id,
                 ]);
             }
 
@@ -310,13 +311,13 @@ class BookingController extends Controller
             Log::info('Redirecting to member form', [
                 'route' => 'bookings.member-form',
                 'event_slug' => $eventSlug,
-                'access_token' => $booking->access_token
+                'access_token' => $booking->boothOwner->access_token
             ]);
 
             // Redirect to member registration using access token
             return redirect()->route('bookings.member-form', [
                 'eventSlug' => $eventSlug,
-                'accessToken' => $booking->access_token
+                'accessToken' => $booking->boothOwner->access_token
             ]);
         } catch (\Exception $e) {
             Log::error('Exception in processOwnerForm', [
@@ -346,7 +347,19 @@ class BookingController extends Controller
         ]);
 
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        $booking = Booking::where('access_token', $accessToken)->firstOrFail();
+        
+        // Find booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
+        $booking = $boothOwner->booking;
+        
+        if (!$booking) {
+            Log::error('Booth owner found but no booking associated', [
+                'booth_owner_id' => $boothOwner->id,
+                'access_token' => $accessToken
+            ]);
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'No booking found for this access token. Please start over.');
+        }
 
         Log::info('Event and booking loaded', [
             'event_id' => $event->id,
@@ -407,7 +420,15 @@ class BookingController extends Controller
         ]);
 
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        $booking = Booking::where('access_token', $accessToken)->firstOrFail();
+        
+        // Find booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
+        $booking = $boothOwner->booking;
+        
+        if (!$booking) {
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'No booking found for this access token. Please start over.');
+        }
 
         // Verify access token is valid
         if (!$booking->isAccessTokenValid()) {
@@ -485,7 +506,17 @@ class BookingController extends Controller
         ]);
 
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        $booking = Booking::where('access_token', $accessToken)->firstOrFail();
+        
+        // Find booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
+        $booking = $boothOwner->booking;
+        
+        if (!$booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No booking found for this access token. Please start over.'
+            ], 400);
+        }
 
         // Verify access token is valid
         if (!$booking->isAccessTokenValid()) {
