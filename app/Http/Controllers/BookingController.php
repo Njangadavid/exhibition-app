@@ -412,8 +412,23 @@ class BookingController extends Controller
             return redirect()->back()->with('error', 'No registration forms found for this event. Please contact the organizer.');
         }
 
-        Log::info('Member form view loading successfully');
-        return view('bookings.member-form', compact('event', 'booking', 'memberForm'));
+        // Load booth members for display
+        $boothMembers = $boothOwner->boothMembers;
+        
+        Log::info('Member form view loading successfully', [
+            'booking_id' => $booking->id,
+            'booth_members_count' => $boothMembers->count(),
+            'booth_members' => $boothMembers->map(function($member) {
+                return [
+                    'id' => $member->id,
+                    'qr_code' => $member->qr_code,
+                    'status' => $member->status,
+                    'form_responses' => $member->form_responses
+                ];
+            })
+        ]);
+        
+        return view('bookings.member-form', compact('event', 'booking', 'memberForm', 'boothMembers'));
     }
 
     /**
@@ -443,11 +458,6 @@ class BookingController extends Controller
         }
 
         try {
-            // Update booking with member details
-            $booking->update([
-                'member_details' => $request->form_data,
-            ]);
-
             // Store member form submission
             FormSubmission::create([
                 'form_builder_id' => $request->member_form_id,
@@ -460,9 +470,10 @@ class BookingController extends Controller
                 // Create booth owner from existing owner_details
                 $ownerDetails = $booking->owner_details ?? [];
                 $boothOwner = \App\Models\BoothOwner::create([
-                    'booking_id' => $booking->id,
                     'qr_code' => \App\Models\BoothOwner::generateQrCode(),
-                    'form_responses' => $ownerDetails
+                    'form_responses' => $ownerDetails,
+                    'access_token' => \App\Models\BoothOwner::generateAccessToken(),
+                    'access_token_expires_at' => now()->addYear(),
                 ]);
                 $booking->update(['booth_owner_id' => $boothOwner->id]);
             }
@@ -475,11 +486,24 @@ class BookingController extends Controller
                 'status' => 'active'
             ]);
 
+            Log::info('Booth member created successfully', [
+                'booking_id' => $booking->id,
+                'member_id' => $boothMember->id,
+                'member_data' => $request->form_data
+            ]);
+
             // Send member registration email trigger to the specific member
             try {
                 $emailService = app(EmailCommunicationService::class);
+                Log::info('Attempting to send member registration email', [
+                    'booking_id' => $booking->id,
+                    'trigger_type' => 'member_registration',
+                    'member_data' => $request->form_data
+                ]);
+                
                 $emailService->sendTriggeredEmail('member_registration', $booking, $request->form_data);
-                Log::info('Member registration email triggered for specific member', [
+                
+                Log::info('Member registration email triggered successfully', [
                     'booking_id' => $booking->id,
                     'member_id' => $boothMember->id,
                     'trigger_type' => 'member_registration'
@@ -487,15 +511,16 @@ class BookingController extends Controller
             } catch (\Exception $e) {
                 Log::error('Failed to send member registration email', [
                     'booking_id' => $booking->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
                 ]);
                 // Don't fail the member registration process if email fails
             }
 
-            // Redirect to payment
+            // Redirect to payment using booth owner's access token
             return redirect()->route('bookings.payment', [
                 'eventSlug' => $eventSlug,
-                'accessToken' => $booking->access_token
+                'accessToken' => $booking->boothOwner->access_token
             ]);
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Failed to save member details. Please try again.');
@@ -590,7 +615,7 @@ class BookingController extends Controller
             }
 
             // Send member registration email trigger if requested
-            if ($resendEmail && $resendMemberData) {
+            // if ($resendEmail && $resendMemberData) {
                 try {
                     $emailService = app(EmailCommunicationService::class);
                     $emailService->sendTriggeredEmail('member_registration', $booking, $resendMemberData);
@@ -606,7 +631,7 @@ class BookingController extends Controller
                     ]);
                     // Don't fail the member saving process if email fails
                 }
-            }
+            // }
 
             Log::info('Members saved successfully', [
                 'booking_id' => $booking->id,

@@ -122,7 +122,7 @@
 
                             <!-- Action Buttons -->
                             <div class="d-flex justify-content-between align-items-center mt-4">
-                                <a href="{{ route('bookings.owner-form-token', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]) }}" class="btn btn-outline-secondary">
+                                                                 <a href="{{ route('bookings.owner-form-token', ['eventSlug' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]) }}" class="btn btn-outline-secondary">
                                     <i class="bi bi-arrow-left me-2"></i>Back to Owner Details
                                 </a>
                                 <div>
@@ -211,6 +211,13 @@
 </style>
 @endpush
 
+@php
+    $existingMembersData = [];
+    if ($boothMembers && $boothMembers->count() > 0) {
+        $existingMembersData = $boothMembers->pluck('form_responses')->toArray();
+    }
+@endphp
+
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -244,8 +251,8 @@ function initializeMemberManagement(formData) {
     
     // Initialize global members array
     window.currentMembers = [];
-    @if($booking->member_details)
-        window.currentMembers = @json($booking->member_details ?? []);
+    @if($boothMembers && $boothMembers->count() > 0)
+        window.currentMembers = @json($boothMembers->pluck('form_responses'));
     @endif
     
     // Load existing members if any
@@ -384,7 +391,7 @@ function removeMember(index) {
             memberCard.style.pointerEvents = 'none';
         }
         
-        fetch('{{ route("bookings.save-members", ["eventSlug" => $event->slug, "accessToken" => $booking->access_token]) }}', {
+        fetch('{{ route("bookings.save-members", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token]) }}', {
             method: 'POST',
             body: submitData,
             headers: {
@@ -491,14 +498,14 @@ function saveMemberChanges(index) {
         return;
     }
     
-               // Show loading state
-           const saveBtn = document.querySelector('button[onclick*="saveMemberChanges"]');
-           let originalText = '';
-           if (saveBtn) {
-               originalText = saveBtn.innerHTML;
-               saveBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Saving...';
-               saveBtn.disabled = true;
-           }
+                // Show loading state
+            const saveBtn = document.querySelector('button[onclick*="saveMemberChanges"]');
+            let originalText = '';
+            if (saveBtn) {
+                originalText = saveBtn.innerHTML;
+                saveBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Saving...';
+                saveBtn.disabled = true;
+            }
     
     // Update member in global array
     window.currentMembers[index] = formData;
@@ -508,7 +515,7 @@ function saveMemberChanges(index) {
     submitData.append('member_details', JSON.stringify(window.currentMembers));
     submitData.append('_token', '{{ csrf_token() }}');
     
-    fetch('{{ route("bookings.save-members", ["eventSlug" => $event->slug, "accessToken" => $booking->access_token]) }}', {
+    fetch('{{ route("bookings.save-members", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token]) }}', {
         method: 'POST',
         body: submitData,
         headers: {
@@ -826,7 +833,7 @@ function addMember() {
     submitData.append('member_details', JSON.stringify(window.currentMembers));
     submitData.append('_token', '{{ csrf_token() }}');
     
-    fetch('{{ route("bookings.save-members", ["eventSlug" => $event->slug, "accessToken" => $booking->access_token]) }}', {
+    fetch('{{ route("bookings.save-members", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token]) }}', {
         method: 'POST',
         body: submitData,
         headers: {
@@ -917,7 +924,7 @@ function collectFormData(form) {
 
 function continueToPayment() {
     // Redirect to payment page
-    window.location.href = '{{ route("bookings.payment", ["eventSlug" => $event->slug, "accessToken" => $booking->access_token]) }}';
+    window.location.href = '{{ route("bookings.payment", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token]) }}';
 }
 
 function showAlert(message, type) {
@@ -1126,7 +1133,7 @@ function resendMemberEmail() {
         button.disabled = true;
         
         // Make AJAX request to resend member registration email
-        fetch('{{ route("bookings.resend-member-email", ["eventSlug" => $event->slug, "accessToken" => $booking->access_token]) }}', {
+        fetch('{{ route("bookings.resend-member-email", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token]) }}', {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
