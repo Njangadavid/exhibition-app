@@ -424,22 +424,25 @@ class BookingController extends Controller
                 ->keyBy('field_id');
         }
         
+        // Transform booth members to include form fields
+        $transformedBoothMembers = $boothMembers->map(function($member) use ($formFields) {
+            return [
+                'id' => $member->id,
+                'qr_code' => $member->qr_code,
+                'status' => $member->status,
+                'form_responses' => $member->form_responses,
+                'form_fields' => $formFields // Include form fields for frontend use
+            ];
+        });
+        
         Log::info('Member form view loading successfully', [
             'booking_id' => $booking->id,
             'booth_members_count' => $boothMembers->count(),
             'form_fields_count' => $formFields->count(),
-            'booth_members' => $boothMembers->map(function($member) use ($formFields) {
-                return [
-                    'id' => $member->id,
-                    'qr_code' => $member->qr_code,
-                    'status' => $member->status,
-                    'form_responses' => $member->form_responses,
-                    'form_fields' => $formFields // Include form fields for frontend use
-                ];
-            })
+            'transformed_booth_members' => $transformedBoothMembers
         ]);
         
-        return view('bookings.member-form', compact('event', 'booking', 'memberForm', 'boothMembers'));
+        return view('bookings.member-form', compact('event', 'booking', 'memberForm', 'transformedBoothMembers'));
     }
 
     /**

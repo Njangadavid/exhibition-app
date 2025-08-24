@@ -325,7 +325,7 @@ function initializeMemberManagement(formData) {
     
     // Initialize form data and current members
     window.currentFormData = @json($memberForm);
-    window.currentMembers = @json($boothMembers ?? []);
+    window.currentMembers = @json($transformedBoothMembers ?? []);
     
     // Debug: Log the booth members data structure
     console.log('=== BOOTH MEMBERS DATA STRUCTURE ===');
@@ -334,6 +334,7 @@ function initializeMemberManagement(formData) {
         console.log('First member structure:', window.currentMembers[0]);
         console.log('First member form_responses keys:', Object.keys(window.currentMembers[0].form_responses || {}));
         console.log('First member form_responses values:', window.currentMembers[0].form_responses);
+        console.log('First member form_fields:', window.currentMembers[0].form_fields);
     }
     console.log('Current form data:', window.currentFormData);
     if (window.currentFormData && window.currentFormData.fields) {
