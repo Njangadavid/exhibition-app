@@ -376,20 +376,21 @@ function displayExistingMembers(members) {
 
 function removeMember(index) {
     if (confirm('Are you sure you want to remove this member?')) {
-        // Remove member from global array
-        window.currentMembers.splice(index, 1);
-        
-        // Save to database
-        const submitData = new FormData();
-        submitData.append('member_details', JSON.stringify(window.currentMembers));
-        submitData.append('_token', '{{ csrf_token() }}');
-        
         // Show loading state (we'll use the member card itself for feedback)
         const memberCard = document.querySelector(`[onclick="removeMember(${index})"]`).closest('.card');
         if (memberCard) {
             memberCard.style.opacity = '0.5';
             memberCard.style.pointerEvents = 'none';
         }
+        
+        // Create a copy of members without the one being removed
+        const updatedMembers = [...window.currentMembers];
+        updatedMembers.splice(index, 1);
+        
+        // Save to database - send the updated members list
+        const submitData = new FormData();
+        submitData.append('member_details', JSON.stringify(updatedMembers));
+        submitData.append('_token', '{{ csrf_token() }}');
         
         fetch('{{ route("bookings.save-members", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token]) }}', {
             method: 'POST',
@@ -401,6 +402,9 @@ function removeMember(index) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                // Update global array only after successful save
+                window.currentMembers = updatedMembers;
+                
                 // Display updated members
                 displayExistingMembers(window.currentMembers);
                 
@@ -412,7 +416,7 @@ function removeMember(index) {
                 // Show success message
                 showAlert('Member removed and saved successfully!', 'success');
             } else {
-                // Restore member if save failed
+                // Show error message
                 showAlert(data.message || 'Failed to remove member. Please try again.', 'danger');
                 // Reload members to restore the UI
                 displayExistingMembers(window.currentMembers);
@@ -507,12 +511,9 @@ function saveMemberChanges(index) {
                 saveBtn.disabled = true;
             }
     
-    // Update member in global array
-    window.currentMembers[index] = formData;
-    
-    // Save to database
+    // Save to database - only send the updated member data
     const submitData = new FormData();
-    submitData.append('member_details', JSON.stringify(window.currentMembers));
+    submitData.append('member_details', JSON.stringify([formData])); // Send only the updated member
     submitData.append('_token', '{{ csrf_token() }}');
     
     fetch('{{ route("bookings.save-members", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token]) }}', {
@@ -523,29 +524,32 @@ function saveMemberChanges(index) {
         }
     })
     .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Display updated members
-            displayExistingMembers(window.currentMembers);
-            
-            // Update the hidden input for form submission
-            if (document.getElementById('formDataInput')) {
-                document.getElementById('formDataInput').value = JSON.stringify(window.currentMembers);
+            .then(data => {
+            if (data.success) {
+                // Update member in global array only after successful save
+                window.currentMembers[index] = formData;
+                
+                // Display updated members
+                displayExistingMembers(window.currentMembers);
+                
+                // Update the hidden input for form submission
+                if (document.getElementById('formDataInput')) {
+                    document.getElementById('formDataInput').value = JSON.stringify(window.currentMembers);
+                }
+                
+                // Reset form to add mode and hide form
+                resetFormToAddMode();
+                hideFormAfterAction();
+                
+                // Show success message
+                showAlert('Member updated and saved successfully!', 'success');
+                
+                // Clear editing index
+                delete window.editingMemberIndex;
+            } else {
+                showAlert(data.message || 'Failed to save member changes. Please try again.', 'danger');
             }
-            
-            // Reset form to add mode and hide form
-            resetFormToAddMode();
-            hideFormAfterAction();
-            
-            // Show success message
-            showAlert('Member updated and saved successfully!', 'success');
-            
-            // Clear editing index
-            delete window.editingMemberIndex;
-        } else {
-            showAlert(data.message || 'Failed to save member changes. Please try again.', 'danger');
-        }
-    })
+        })
     .catch(error => {
         console.error('Error saving member changes:', error);
         showAlert('An error occurred while saving changes. Please try again.', 'danger');
@@ -825,12 +829,9 @@ function addMember() {
     addBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Adding...';
     addBtn.disabled = true;
     
-    // Add member to the global array
-    window.currentMembers.push(formData);
-    
-    // Save to database
+    // Save to database - only send the new member data
     const submitData = new FormData();
-    submitData.append('member_details', JSON.stringify(window.currentMembers));
+    submitData.append('member_details', JSON.stringify([formData])); // Send only the new member
     submitData.append('_token', '{{ csrf_token() }}');
     
     fetch('{{ route("bookings.save-members", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token]) }}', {
@@ -841,37 +842,36 @@ function addMember() {
         }
     })
     .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Display updated members
-            displayExistingMembers(window.currentMembers);
-            
-            // Update the hidden input for form submission
-            if (document.getElementById('formDataInput')) {
-                document.getElementById('formDataInput').value = JSON.stringify(window.currentMembers);
+            .then(data => {
+            if (data.success) {
+                // Add member to global array only after successful save
+                window.currentMembers.push(formData);
+                
+                // Display updated members
+                displayExistingMembers(window.currentMembers);
+                
+                // Update the hidden input for form submission
+                if (document.getElementById('formDataInput')) {
+                    document.getElementById('formDataInput').value = JSON.stringify(window.currentMembers);
+                }
+                
+                // Clear the form
+                clearForm();
+                
+                // Hide the form automatically
+                hideFormAfterAction();
+                
+                // Show success message
+                showAlert('Member added and saved successfully!', 'success');
+                
+                // Log for debugging
+                console.log('Member added:', formData);
+                console.log('Total members:', window.currentMembers.length);
+            } else {
+                showAlert(data.message || 'Failed to save member. Please try again.', 'danger');
             }
-            
-            // Clear the form
-            clearForm();
-            
-            // Hide the form automatically
-            hideFormAfterAction();
-            
-            // Show success message
-            showAlert('Member added and saved successfully!', 'success');
-            
-            // Log for debugging
-            console.log('Member added:', formData);
-            console.log('Total members:', window.currentMembers.length);
-        } else {
-            // Remove member from array if save failed
-            window.currentMembers.pop();
-            showAlert(data.message || 'Failed to save member. Please try again.', 'danger');
-        }
-    })
+        })
     .catch(error => {
-        // Remove member from array if save failed
-        window.currentMembers.pop();
         console.error('Error adding member:', error);
         showAlert('An error occurred while saving member. Please try again.', 'danger');
     })

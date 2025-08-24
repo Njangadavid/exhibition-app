@@ -573,7 +573,6 @@ class BookingController extends Controller
                 // Create booth owner from existing owner_details
                 $ownerDetails = $booking->owner_details ?? [];
                 $boothOwner = \App\Models\BoothOwner::create([
-                    'booking_id' => $booking->id,
                     'qr_code' => \App\Models\BoothOwner::generateQrCode(),
                     'form_responses' => $ownerDetails
                 ]);
@@ -590,28 +589,44 @@ class BookingController extends Controller
                 $resendMemberData = $memberDetails[0] ?? null;
             }
 
-            // Update or create booth members
-            foreach ($memberDetails as $index => $memberData) {
-                // Check if member already exists (by email or other identifier)
-                $existingMember = $booking->boothOwner->boothMembers()
-                    ->whereJsonContains('form_responses', ['email' => $memberData['email'] ?? ''])
-                    ->first();
-
-                if ($existingMember) {
+            // Get existing members to compare
+            $existingMembers = $booking->boothOwner->boothMembers()->get();
+            $existingEmails = $existingMembers->pluck('form_responses.email')->filter()->toArray();
+            
+            // Process only new members (not already in database)
+            $newMembers = [];
+            $updatedMembers = [];
+            
+            foreach ($memberDetails as $memberData) {
+                $memberEmail = $memberData['email'] ?? null;
+                
+                if ($memberEmail && in_array($memberEmail, $existingEmails)) {
                     // Update existing member
-                    $existingMember->update([
-                        'form_responses' => $memberData,
-                        'status' => 'active'
-                    ]);
+                    $existingMember = $existingMembers->first(function($member) use ($memberEmail) {
+                        return ($member->form_responses['email'] ?? '') === $memberEmail;
+                    });
+                    
+                    if ($existingMember) {
+                        $existingMember->update([
+                            'form_responses' => $memberData,
+                            'status' => 'active'
+                        ]);
+                        $updatedMembers[] = $existingMember;
+                    }
                 } else {
-                    // Create new member
-                    \App\Models\BoothMember::create([
-                        'booth_owner_id' => $booking->boothOwner->id,
-                        'qr_code' => \App\Models\BoothMember::generateQrCode(),
-                        'form_responses' => $memberData,
-                        'status' => 'active'
-                    ]);
+                    // This is a new member
+                    $newMembers[] = $memberData;
                 }
+            }
+            
+            // Create new members
+            foreach ($newMembers as $memberData) {
+                \App\Models\BoothMember::create([
+                    'booth_owner_id' => $booking->boothOwner->id,
+                    'qr_code' => \App\Models\BoothMember::generateQrCode(),
+                    'form_responses' => $memberData,
+                    'status' => 'active'
+                ]);
             }
 
             // Send member registration email trigger if requested
