@@ -282,29 +282,40 @@ function findFieldByPurpose(member, formData, purpose) {
 }
 
 function findMemberId(memberData) {
-    // Try to find the member ID from the booth members data
-    // We need to match by email since that's our unique identifier
+    // When editing a member, we should already know which member we're editing
+    // The memberData should contain the member ID or we should track it in the UI
     
-    // First, try to find the email field dynamically from form data
+    console.log('=== FIND MEMBER ID DEBUG ===');
+    console.log('Member data received:', memberData);
+    console.log('Available keys:', Object.keys(memberData));
+    console.log('Current form data:', window.currentFormData);
+    
+    // Check if we're currently editing a member (stored in window.currentEditingMember)
+    if (window.currentEditingMember && window.currentEditingMember.id) {
+        console.log('Found current editing member ID:', window.currentEditingMember.id);
+        return window.currentEditingMember.id;
+    }
+    
+    // If no current editing member, try to find by email in booth members
     let memberEmail = null;
     
+    // Try to find email field dynamically
     if (window.currentFormData && window.currentFormData.fields) {
-        // Find the email field by purpose
         const emailField = window.currentFormData.fields.find(f => f.field_purpose === 'member_email');
         if (emailField && memberData[emailField.field_id]) {
             memberEmail = memberData[emailField.field_id];
+            console.log('Found email via field purpose:', memberEmail, 'from field:', emailField.field_id);
         }
     }
     
-    // Fallback to direct email field if not found by purpose
+    // Fallback to direct email field
     if (!memberEmail) {
         memberEmail = memberData.email || memberData['field_2_1755847232'];
+        console.log('Using fallback email:', memberEmail);
     }
     
     if (!memberEmail) {
-        console.error('No email found in member data:', memberData);
-        console.error('Available keys:', Object.keys(memberData));
-        console.error('Form data:', window.currentFormData);
+        console.error('No email found in member data');
         return null;
     }
     
@@ -316,9 +327,9 @@ function findMemberId(memberData) {
         console.log('Booth members available:', boothMembers);
         
         const foundMember = boothMembers.find(m => {
-            // Try to find email in form_responses using the same logic
             let memberEmailField = null;
             
+            // Try to find email in form_responses using the same logic
             if (window.currentFormData && window.currentFormData.fields) {
                 const emailField = window.currentFormData.fields.find(f => f.field_purpose === 'member_email');
                 if (emailField && m.form_responses[emailField.field_id]) {
@@ -331,12 +342,12 @@ function findMemberId(memberData) {
                 memberEmailField = m.form_responses.email || m.form_responses['field_2_1755847232'];
             }
             
-            console.log('Comparing:', memberEmail, 'with:', memberEmailField);
+            console.log('Comparing member email:', memberEmail, 'with booth member email:', memberEmailField);
             return memberEmailField === memberEmail;
         });
         
         if (foundMember) {
-            console.log('Found member:', foundMember);
+            console.log('Found member in booth members:', foundMember);
             return foundMember.id;
         }
     @endif
@@ -538,6 +549,15 @@ function editMember(index) {
         return;
     }
     
+    // Store the current editing member information
+    window.currentEditingMember = {
+        id: member.id,
+        index: index,
+        data: member
+    };
+    
+    console.log('Editing member:', window.currentEditingMember);
+    
     // Show the form
     const container = document.getElementById('memberFormContainer');
     container.style.display = 'block';
@@ -566,17 +586,17 @@ function editMember(index) {
     clearBtn.onclick = () => cancelEdit();
     clearBtn.className = 'btn btn-outline-danger';
     
-         // Store editing index
-     window.editingMemberIndex = index;
-     
-     // Show resend email option
-     const resendOption = document.getElementById('resendEmailOption');
-     if (resendOption) {
-         resendOption.style.display = 'block';
-     }
-     
-     // Scroll to form
-     container.scrollIntoView({ behavior: 'smooth' });
+    // Store editing index
+    window.editingMemberIndex = index;
+    
+    // Show resend email option
+    const resendOption = document.getElementById('resendEmailOption');
+    if (resendOption) {
+        resendOption.style.display = 'block';
+    }
+    
+    // Scroll to form
+    container.scrollIntoView({ behavior: 'smooth' });
 }
 
 function saveMemberChanges(index) {
@@ -681,8 +701,9 @@ function cancelEdit() {
     // Hide the form
     hideFormAfterAction();
     
-    // Clear editing index
+    // Clear editing index and current editing member
     delete window.editingMemberIndex;
+    delete window.currentEditingMember;
     
     // Show message
     showAlert('Edit cancelled. Member not changed.', 'info');
@@ -910,6 +931,9 @@ function addMember() {
         saveMemberChanges(window.editingMemberIndex);
         return;
     }
+    
+    // Clear any current editing member when adding new
+    delete window.currentEditingMember;
     
     const form = document.getElementById('memberRegistrationForm');
     
