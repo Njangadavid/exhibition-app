@@ -376,6 +376,12 @@ function displayExistingMembers(members) {
 
 function removeMember(index) {
     if (confirm('Are you sure you want to remove this member?')) {
+        // Debug: Log the current state
+        console.log('=== REMOVE MEMBER DEBUG ===');
+        console.log('Index to remove:', index);
+        console.log('Current members before removal:', window.currentMembers);
+        console.log('Member to remove:', window.currentMembers[index]);
+        
         // Show loading state (we'll use the member card itself for feedback)
         const memberCard = document.querySelector(`[onclick="removeMember(${index})"]`).closest('.card');
         if (memberCard) {
@@ -387,10 +393,16 @@ function removeMember(index) {
         const updatedMembers = [...window.currentMembers];
         updatedMembers.splice(index, 1);
         
+        console.log('Updated members after removal:', updatedMembers);
+        console.log('Members count before:', window.currentMembers.length);
+        console.log('Members count after:', updatedMembers.length);
+        
         // Save to database - send the updated members list
         const submitData = new FormData();
         submitData.append('member_details', JSON.stringify(updatedMembers));
         submitData.append('_token', '{{ csrf_token() }}');
+        
+        console.log('Sending to backend:', JSON.stringify(updatedMembers));
         
         fetch('{{ route("bookings.save-members", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token]) }}', {
             method: 'POST',
@@ -401,9 +413,14 @@ function removeMember(index) {
         })
         .then(response => response.json())
         .then(data => {
+            console.log('Backend response:', data);
+            
             if (data.success) {
                 // Update global array only after successful save
                 window.currentMembers = updatedMembers;
+                
+                console.log('Updated window.currentMembers:', window.currentMembers);
+                console.log('Final member count:', window.currentMembers.length);
                 
                 // Display updated members
                 displayExistingMembers(window.currentMembers);
