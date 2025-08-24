@@ -178,6 +178,8 @@ class EmailCommunicationService
                 'processed_content_length' => strlen($processedContent),
                 'original_subject' => $template->subject,
                 'processed_subject' => $processedSubject,
+                'original_content' => $template->content,
+                'processed_content' => $processedContent,
                 'member_data' => $memberData,
                 'email_data' => $data,
                 'content_contains_merge_fields' => strpos($processedContent, '{{ member.') !== false

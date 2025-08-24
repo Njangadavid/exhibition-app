@@ -501,6 +501,12 @@ class BookingController extends Controller
                     'member_data' => $request->form_data
                 ]);
                 
+                Log::info('About to call sendTriggeredEmail', [
+                    'form_data' => $request->form_data,
+                    'form_data_type' => gettype($request->form_data),
+                    'form_data_keys' => is_array($request->form_data) ? array_keys($request->form_data) : 'not_array'
+                ]);
+                
                 $emailService->sendTriggeredEmail('member_registration', $booking, $request->form_data);
                 
                 Log::info('Member registration email triggered successfully', [
