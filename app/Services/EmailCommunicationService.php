@@ -257,11 +257,8 @@ class EmailCommunicationService
 
         // Add member data if sending to member
         if ($recipientType === 'member' && !empty($memberData)) {
-            $data['member'] = [
-                'name' => $this->sanitizeString($memberData['name'] ?? ''),
-                'email' => $this->sanitizeString($memberData['email'] ?? ''),
-                'role' => $this->sanitizeString($memberData['role'] ?? '')
-            ];
+            // Pass the raw member data - the EmailTemplate will process it dynamically
+            $data['member'] = $memberData;
         }
 
         // Add payment data for payment templates
@@ -487,6 +484,90 @@ class EmailCommunicationService
                 'member_data' => $memberData
             ]);
             return null;
+        }
+    }
+
+    /**
+     * Extract member data for email templates using form field structure
+     */
+    private function extractMemberDataForEmail(array $memberData, $booking): array
+    {
+        try {
+            // Get the member registration form builder for this event
+            $formBuilder = \App\Models\FormBuilder::where('event_id', $booking->event_id)
+                ->where('type', 'member_registration')
+                ->first();
+
+            if (!$formBuilder) {
+                // Fallback: try any form for this event
+                $formBuilder = \App\Models\FormBuilder::where('event_id', $booking->event_id)->first();
+            }
+
+            if (!$formBuilder) {
+                Log::warning('No form builder found for member data extraction', [
+                    'event_id' => $booking->event_id
+                ]);
+                return [
+                    'name' => 'Member',
+                    'email' => '',
+                    'role' => ''
+                ];
+            }
+
+            // Get the form fields
+            $formFields = \App\Models\FormField::where('form_builder_id', $formBuilder->id)->get();
+
+            $memberInfo = [
+                'name' => 'Member',
+                'email' => '',
+                'role' => ''
+            ];
+
+            // Extract data based on field purposes
+            foreach ($formFields as $field) {
+                $fieldValue = $memberData[$field->field_id] ?? '';
+                
+                switch ($field->field_purpose) {
+                    case 'member_name':
+                        $memberInfo['name'] = $this->sanitizeString($fieldValue);
+                        break;
+                    case 'member_email':
+                        $memberInfo['email'] = $this->sanitizeString($fieldValue);
+                        break;
+                    case 'member_title':
+                        $memberInfo['role'] = $this->sanitizeString($fieldValue);
+                        break;
+                }
+            }
+
+            // If no specific field purposes found, try to find common fields
+            if ($memberInfo['name'] === 'Member') {
+                foreach ($formFields as $field) {
+                    $fieldValue = $memberData[$field->field_id] ?? '';
+                    
+                    if ($field->type === 'email' && empty($memberInfo['email'])) {
+                        $memberInfo['email'] = $this->sanitizeString($fieldValue);
+                    } elseif (stripos($field->label, 'name') !== false && $memberInfo['name'] === 'Member') {
+                        $memberInfo['name'] = $this->sanitizeString($fieldValue);
+                    } elseif (stripos($field->label, 'title') !== false || stripos($field->label, 'role') !== false) {
+                        $memberInfo['role'] = $this->sanitizeString($fieldValue);
+                    }
+                }
+            }
+
+            return $memberInfo;
+
+        } catch (\Exception $e) {
+            Log::error('Error extracting member data for email', [
+                'error' => $e->getMessage(),
+                'member_data' => $memberData
+            ]);
+            
+            return [
+                'name' => 'Member',
+                'email' => '',
+                'role' => ''
+            ];
         }
     }
 }

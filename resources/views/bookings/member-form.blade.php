@@ -275,8 +275,8 @@ function loadExistingMembers() {
 function findFieldByPurpose(member, formData, purpose) {
     // Find the field with the specified purpose
     const field = formData.fields.find(f => f.field_purpose === purpose);
-    if (field && member[field.id]) {
-        return member[field.id];
+    if (field && member[field.field_id]) {
+        return member[field.field_id];
     }
     return null;
 }

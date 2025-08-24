@@ -150,11 +150,7 @@ class EmailTemplate extends Model
 
         // Add member fields for member registration templates
         if ($this->trigger_type === 'member_registration') {
-            $baseFields['member'] = [
-                'name' => 'Member Name',
-                'email' => 'Member Email',
-                'role' => 'Member Role'
-            ];
+            $baseFields['member'] = $this->getDynamicMemberMergeFields();
         }
 
         // Add payment fields for payment templates
@@ -168,6 +164,73 @@ class EmailTemplate extends Model
         }
 
         return $baseFields;
+    }
+
+    /**
+     * Get dynamic member merge fields from form builder
+     */
+    private function getDynamicMemberMergeFields(): array
+    {
+        $memberFields = [];
+        
+        try {
+            // Get the member registration form builder for this event
+            $formBuilder = \App\Models\FormBuilder::where('event_id', $this->event_id)
+                ->where('type', 'member_registration')
+                ->first();
+            
+            if ($formBuilder) {
+                // Get all form fields except sections
+                $formFields = \App\Models\FormField::where('form_builder_id', $formBuilder->id)
+                    ->where('type', '!=', 'section')
+                    ->orderBy('sort_order')
+                    ->get();
+                
+                foreach ($formFields as $field) {
+                    // Use field label as the key and display name
+                    $key = $this->sanitizeFieldLabel($field->label);
+                    $memberFields[$key] = $field->label;
+                }
+            }
+        } catch (\Exception $e) {
+            // Log error but don't fail
+            \Illuminate\Support\Facades\Log::warning('Failed to get dynamic member merge fields', [
+                'event_id' => $this->event_id,
+                'error' => $e->getMessage()
+            ]);
+        }
+        
+        // Fallback to basic fields if no dynamic fields found
+        if (empty($memberFields)) {
+            $memberFields = [
+                'name' => 'Member Name',
+                'email' => 'Member Email',
+                'phone' => 'Phone Number',
+                'company' => 'Company Name',
+                'title' => 'Job Title'
+            ];
+        }
+        
+        return $memberFields;
+    }
+
+    /**
+     * Sanitize field label for use as merge field key
+     */
+    private function sanitizeFieldLabel(string $label): string
+    {
+        // Convert to lowercase and replace spaces with underscores
+        $key = strtolower(trim($label));
+        $key = preg_replace('/[^a-z0-9_\s]/', '', $key);
+        $key = preg_replace('/\s+/', '_', $key);
+        $key = trim($key, '_');
+        
+        // Ensure it's not empty
+        if (empty($key)) {
+            $key = 'field_' . uniqid();
+        }
+        
+        return $key;
     }
 
     /**
@@ -188,6 +251,50 @@ class EmailTemplate extends Model
             }
         }
 
+        // Handle dynamic member field extraction for member_registration templates
+        if ($this->trigger_type === 'member_registration' && isset($data['member'])) {
+            $content = $this->processDynamicMemberFields($content, $data['member']);
+        }
+
+        return $content;
+    }
+
+    /**
+     * Process dynamic member fields using form field structure
+     */
+    private function processDynamicMemberFields(string $content, array $memberData): string
+    {
+        try {
+            // Get the member registration form builder for this event
+            $formBuilder = \App\Models\FormBuilder::where('event_id', $this->event_id)
+                ->where('type', 'member_registration')
+                ->first();
+            
+            if ($formBuilder) {
+                // Get all form fields except sections
+                $formFields = \App\Models\FormField::where('form_builder_id', $formBuilder->id)
+                    ->where('type', '!=', 'section')
+                    ->get();
+                
+                foreach ($formFields as $field) {
+                    // Create the merge field placeholder
+                    $fieldKey = $this->sanitizeFieldLabel($field->label);
+                    $placeholder = "{{ member.{$fieldKey} }}";
+                    
+                    // Get the value from member data using field_id
+                    $value = $memberData[$field->field_id] ?? '';
+                    
+                    // Replace the placeholder with the actual value
+                    $content = str_replace($placeholder, $this->sanitizeString($value), $content);
+                }
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to process dynamic member fields', [
+                'event_id' => $this->event_id,
+                'error' => $e->getMessage()
+            ]);
+        }
+        
         return $content;
     }
 
