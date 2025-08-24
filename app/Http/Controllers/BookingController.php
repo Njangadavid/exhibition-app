@@ -635,10 +635,31 @@ class BookingController extends Controller
                 ]);
             }
 
-            // Send member registration email trigger if requested
-            // if ($resendEmail && $resendMemberData) {
+            // Send member registration email trigger for new members or when resend requested
+            $emailService = app(EmailCommunicationService::class);
+            
+            // Send email for each new member
+            foreach ($newMembers as $memberData) {
                 try {
-                    $emailService = app(EmailCommunicationService::class);
+                    $emailService->sendTriggeredEmail('member_registration', $booking, $memberData);
+                    Log::info('Member registration email triggered for new member', [
+                        'booking_id' => $booking->id,
+                        'trigger_type' => 'member_registration',
+                        'member_data' => $memberData,
+                        'member_email' => $memberData['email'] ?? 'unknown'
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send member registration email for new member', [
+                        'booking_id' => $booking->id,
+                        'error' => $e->getMessage()
+                    ]);
+                    // Don't fail the member saving process if email fails
+                }
+            }
+            
+            // Send email for updated member if resend requested
+            if ($resendEmail && $resendMemberData) {
+                try {
                     $emailService->sendTriggeredEmail('member_registration', $booking, $resendMemberData);
                     Log::info('Member registration email triggered via AJAX (resend requested)', [
                         'booking_id' => $booking->id,
@@ -652,7 +673,7 @@ class BookingController extends Controller
                     ]);
                     // Don't fail the member saving process if email fails
                 }
-            // }
+            }
 
             Log::info('Members saved successfully', [
                 'booking_id' => $booking->id,
