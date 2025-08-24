@@ -492,36 +492,13 @@ class BookingController extends Controller
                 'member_data' => $request->form_data
             ]);
 
-            // Send member registration email trigger to the specific member
-            try {
-                $emailService = app(EmailCommunicationService::class);
-                Log::info('Attempting to send member registration email', [
-                    'booking_id' => $booking->id,
-                    'trigger_type' => 'member_registration',
-                    'member_data' => $request->form_data
-                ]);
-                
-                Log::info('About to call sendTriggeredEmail', [
-                    'form_data' => $request->form_data,
-                    'form_data_type' => gettype($request->form_data),
-                    'form_data_keys' => is_array($request->form_data) ? array_keys($request->form_data) : 'not_array'
-                ]);
-                
-                $emailService->sendTriggeredEmail('member_registration', $booking, $request->form_data);
-                
-                Log::info('Member registration email triggered successfully', [
-                    'booking_id' => $booking->id,
-                    'member_id' => $boothMember->id,
-                    'trigger_type' => 'member_registration'
-                ]);
-            } catch (\Exception $e) {
-                Log::error('Failed to send member registration email', [
-                    'booking_id' => $booking->id,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-                // Don't fail the member registration process if email fails
-            }
+            // Note: Member registration email is now handled in saveMembers method
+            // to avoid duplicate email sending
+            Log::info('Member added successfully, email will be sent via saveMembers', [
+                'booking_id' => $booking->id,
+                'member_id' => $boothMember->id,
+                'trigger_type' => 'member_registration'
+            ]);
 
             // Redirect to payment using booth owner's access token
             return redirect()->route('bookings.payment', [
