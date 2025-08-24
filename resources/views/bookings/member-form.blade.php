@@ -442,7 +442,7 @@ function removeMember(index) {
         
         console.log('Deleting member with ID:', memberId);
         
-        fetch('{{ route("bookings.delete-member", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token]) }}/' + memberId, {
+        fetch('{{ route("bookings.delete-member", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token, "memberId" => ":memberId"]) }}'.replace(':memberId', memberId), {
             method: 'DELETE',
             body: submitData,
             headers: {
