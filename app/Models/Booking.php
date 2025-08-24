@@ -74,7 +74,11 @@ class Booking extends Model
      */
     public function boothMembers()
     {
-        return $this->boothOwner?->boothMembers ?? collect();
+        if (!$this->boothOwner) {
+            return collect();
+        }
+        
+        return $this->boothOwner->boothMembers();
     }
 
     /**
