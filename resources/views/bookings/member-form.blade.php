@@ -1039,16 +1039,12 @@ function addMember() {
     .then(response => response.json())
             .then(data => {
             if (data.success) {
-                // Add member to global array only after successful save
-                window.currentMembers.push(formData);
+                // Show success message
+                showAlert('Member added successfully!', 'success');
                 
-                // Display updated members
-                displayExistingMembers(window.currentMembers);
-                
-                // Update the hidden input for form submission
-                if (document.getElementById('formDataInput')) {
-                    document.getElementById('formDataInput').value = JSON.stringify(window.currentMembers);
-                }
+                // Log for debugging
+                console.log('Member added:', formData);
+                console.log('Total members:', window.currentMembers.length);
                 
                 // Clear the form
                 clearForm();
@@ -1056,12 +1052,10 @@ function addMember() {
                 // Hide the form automatically
                 hideFormAfterAction();
                 
-                // Show success message
-                showAlert('Member added and saved successfully!', 'success');
-                
-                // Log for debugging
-                console.log('Member added:', formData);
-                console.log('Total members:', window.currentMembers.length);
+                // Reload the page to show the new member with proper field_purpose data
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
             } else {
                 showAlert(data.message || 'Failed to save member. Please try again.', 'danger');
             }
