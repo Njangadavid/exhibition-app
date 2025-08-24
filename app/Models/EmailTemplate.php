@@ -190,6 +190,14 @@ class EmailTemplate extends Model
                     // Use field label as the key and display name
                     $key = $this->sanitizeFieldLabel($field->label);
                     $memberFields[$key] = $field->label;
+                    
+                    // Debug logging
+                    \Illuminate\Support\Facades\Log::info('Generated merge field', [
+                        'field_id' => $field->field_id,
+                        'field_label' => $field->label,
+                        'merge_field_key' => $key,
+                        'merge_field_placeholder' => "{{ member.{$key} }}"
+                    ]);
                 }
             }
         } catch (\Exception $e) {
@@ -219,9 +227,9 @@ class EmailTemplate extends Model
      */
     private function sanitizeFieldLabel(string $label): string
     {
-        // Convert to lowercase and replace spaces with underscores
-        $key = strtolower(trim($label));
-        $key = preg_replace('/[^a-z0-9_\s]/', '', $key);
+        // Keep original case and replace spaces with underscores
+        $key = trim($label);
+        $key = preg_replace('/[^a-zA-Z0-9_\s]/', '', $key);
         $key = preg_replace('/\s+/', '_', $key);
         $key = trim($key, '_');
         
@@ -276,6 +284,15 @@ class EmailTemplate extends Model
                     ->where('type', '!=', 'section')
                     ->get();
                 
+                // Debug logging
+                \Illuminate\Support\Facades\Log::info('Processing dynamic member fields', [
+                    'event_id' => $this->event_id,
+                    'form_builder_id' => $formBuilder->id,
+                    'form_fields_count' => $formFields->count(),
+                    'member_data_keys' => array_keys($memberData),
+                    'content_length' => strlen($content)
+                ]);
+                
                 foreach ($formFields as $field) {
                     // Create the merge field placeholder
                     $fieldKey = $this->sanitizeFieldLabel($field->label);
@@ -283,6 +300,16 @@ class EmailTemplate extends Model
                     
                     // Get the value from member data using field_id
                     $value = $memberData[$field->field_id] ?? '';
+                    
+                    // Debug logging for each field
+                    \Illuminate\Support\Facades\Log::info('Processing field', [
+                        'field_id' => $field->field_id,
+                        'field_label' => $field->label,
+                        'field_key' => $fieldKey,
+                        'placeholder' => $placeholder,
+                        'value' => $value,
+                        'placeholder_in_content' => strpos($content, $placeholder) !== false
+                    ]);
                     
                     // Replace the placeholder with the actual value
                     $content = str_replace($placeholder, $this->sanitizeString($value), $content);
