@@ -480,10 +480,15 @@ function displayExistingMembers(members) {
     // Display existing members
     let membersHtml = '';
     members.forEach((member, index) => {
-        // Debug: Log the member data to see what fields we have
+        // Comprehensive logging for debugging
+        console.log('=== MEMBER DISPLAY DEBUG ===');
+        console.log('Member index:', index);
+        console.log('Member ID:', member.id);
         console.log('Member data:', member);
-        console.log('Available fields:', Object.keys(member));
-        console.log('Form fields available:', member.form_fields);
+        console.log('Member form_responses:', member.form_responses);
+        console.log('Member form_fields:', member.form_fields);
+        console.log('Form fields keys:', Object.keys(member.form_fields || {}));
+        console.log('Form fields values:', Object.values(member.form_fields || {}));
         
         // Use form fields to find the correct values by field_purpose
         const memberName = findMemberFieldValue(member, 'member_name') || `Member ${index + 1}`;
@@ -493,11 +498,16 @@ function displayExistingMembers(members) {
         const memberTitle = findMemberFieldValue(member, 'member_title');
         
         // Debug: Log what we found
-        console.log('Found name:', memberName);
-        console.log('Found email:', memberEmail);
-        console.log('Found phone:', memberPhone);
-        console.log('Found company:', memberCompany);
-        console.log('Found title:', memberTitle);
+        console.log('Field lookup results:');
+        console.log('- member_name lookup:', findMemberFieldValue(member, 'member_name'));
+        console.log('- member_email lookup:', findMemberFieldValue(member, 'member_email'));
+        console.log('- member_phone lookup:', findMemberFieldValue(member, 'member_phone'));
+        console.log('- member_company lookup:', findMemberFieldValue(member, 'member_company'));
+        console.log('- member_title lookup:', findMemberFieldValue(member, 'member_title'));
+        console.log('Final display values:');
+        console.log('- Display name:', memberName);
+        console.log('- Display email:', memberEmail);
+        console.log('=== END MEMBER DISPLAY DEBUG ===');
         
         membersHtml += `
             <div class="col-md-6 col-lg-4">
@@ -538,10 +548,9 @@ function displayExistingMembers(members) {
                                 </p>
                             ` : ''}
                         </div>
-                        <div class="text-center">
-                            <small class="text-muted">
-                                <i class="bi bi-qr-code me-1"></i>QR: ${member.qr_code}
-                            </small>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-success">Added</span>
+                            <small class="text-muted">Member ${index + 1}</small>
                         </div>
                     </div>
                 </div>
@@ -551,20 +560,48 @@ function displayExistingMembers(members) {
     
     list.innerHTML = membersHtml;
     container.style.display = 'block';
+    
+    // Show action buttons
+    document.getElementById('continueToPaymentBtn').style.display = 'inline-block';
 }
 
 // Helper function to find member field value by field_purpose
 function findMemberFieldValue(member, fieldPurpose) {
+    console.log(`=== FINDING FIELD VALUE FOR: ${fieldPurpose} ===`);
+    
     if (!member.form_fields) {
+        console.log('No form_fields available in member data');
         return null;
     }
     
+    console.log('Available form_fields:', member.form_fields);
+    console.log('Form fields object keys:', Object.keys(member.form_fields));
+    console.log('Form fields object values:', Object.values(member.form_fields));
+    
     // Find the field with the specified purpose
-    const field = Object.values(member.form_fields).find(f => f.field_purpose === fieldPurpose);
-    if (field && member.form_responses[field.field_id]) {
-        return member.form_responses[field.field_id];
+    const field = Object.values(member.form_fields).find(f => {
+        console.log(`Checking field:`, f);
+        console.log(`Field field_purpose: "${f.field_purpose}" vs looking for: "${fieldPurpose}"`);
+        console.log(`Match result:`, f.field_purpose === fieldPurpose);
+        return f.field_purpose === fieldPurpose;
+    });
+    
+    if (field) {
+        console.log(`Found field for ${fieldPurpose}:`, field);
+        console.log(`Field ID: ${field.field_id}`);
+        console.log(`Member form_responses for this field:`, member.form_responses[field.field_id]);
+        
+        if (member.form_responses[field.field_id]) {
+            console.log(`Returning value: ${member.form_responses[field.field_id]}`);
+            return member.form_responses[field.field_id];
+        } else {
+            console.log(`No value found in form_responses for field_id: ${field.field_id}`);
+        }
+    } else {
+        console.log(`No field found with field_purpose: ${fieldPurpose}`);
     }
     
+    console.log(`=== END FINDING FIELD VALUE FOR: ${fieldPurpose} ===`);
     return null;
 }
 
