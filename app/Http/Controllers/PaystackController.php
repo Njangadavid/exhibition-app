@@ -28,11 +28,25 @@ class PaystackController extends Controller
         // Find the event
         $event = Event::where('slug', $eventSlug)->firstOrFail();
 
-        // Find the booking by access token
-        $booking = Booking::with(['floorplanItem'])
-            ->where('access_token', $accessToken)
+        // Find booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)
             ->where('access_token_expires_at', '>', now())
             ->firstOrFail();
+        $booking = $boothOwner->booking()->with(['floorplanItem'])->first();
+
+        if (!$booking) {
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'No booking found for this access token. Please start over.');
+        }
+
+        // Debug: Log the data we're working with
+        Log::info('Paystack payment initialization data', [
+            'booth_owner_id' => $boothOwner->id,
+            'booth_owner_form_responses' => $boothOwner->form_responses,
+            'booking_id' => $booking->id,
+            'floorplan_item' => $booking->floorplanItem,
+            'access_token' => $boothOwner->access_token
+        ]);
 
         // Check if access token is valid
         if (!$booking->isAccessTokenValid()) {
@@ -81,16 +95,16 @@ class PaystackController extends Controller
             // Initialize Paystack transaction with balance amount
             $transactionData = [
                 'amount' => $balance * 100, // Convert to kobo (Paystack expects amount in smallest currency unit)
-                'email' => $booking->owner_details['email'],
+                'email' => $boothOwner->form_responses['email'] ?? 'no-email@example.com',
                 'reference' => $reference,
-                'callback_url' => route('paystack.callback', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]),
+                'callback_url' => route('paystack.callback', ['eventSlug' => $event->slug, 'accessToken' => $boothOwner->access_token]),
                 'webhook_url' => url('/api/webhooks/paystack'), // Use full URL for webhook
                 'currency' => $paymentMethod->getConfig('currency', 'USD'),
                 'metadata' => [
                     'booking_id' => $booking->id,
                     'event_id' => $event->id,
                     'space_label' => $booking->floorplanItem->label,
-                    'owner_name' => $booking->owner_details['name'],
+                    'owner_name' => $boothOwner->form_responses['name'] ?? 'Unknown Owner',
                     'balance_paid' => $balance,
                     'total_amount' => $booking->floorplanItem->price ?? 0,
                     'previous_payments' => $booking->total_paid,
@@ -176,11 +190,16 @@ class PaystackController extends Controller
         // Find the event
         $event = Event::where('slug', $eventSlug)->firstOrFail();
 
-        // Find the booking by access token
-        $booking = Booking::with(['floorplanItem'])
-            ->where('access_token', $accessToken)
+        // Find booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)
             ->where('access_token_expires_at', '>', now())
             ->firstOrFail();
+        $booking = $boothOwner->booking()->with(['floorplanItem'])->first();
+
+        if (!$booking) {
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'No booking found for this access token. Please start over.');
+        }
 
         // Check if access token is valid
         if (!$booking->isAccessTokenValid()) {
@@ -295,11 +314,16 @@ class PaystackController extends Controller
         // Find the event
         $event = Event::where('slug', $eventSlug)->firstOrFail();
 
-        // Find the booking by access token
-        $booking = Booking::with(['floorplanItem', 'payments'])
-            ->where('access_token', $accessToken)
+        // Find booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)
             ->where('access_token_expires_at', '>', now())
             ->firstOrFail();
+        $booking = $boothOwner->booking()->with(['floorplanItem', 'payments'])->first();
+
+        if (!$booking) {
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'No booking found for this access token. Please start over.');
+        }
 
         // Check if access token is valid
         if (!$booking->isAccessTokenValid()) {
@@ -319,11 +343,16 @@ class PaystackController extends Controller
             // Find the event
             $event = Event::where('slug', $eventSlug)->firstOrFail();
 
-            // Find the booking by access token
-            $booking = Booking::with(['floorplanItem', 'payments'])
-                ->where('access_token', $accessToken)
+            // Find booth owner by access token, then get the booking
+            $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)
                 ->where('access_token_expires_at', '>', now())
                 ->firstOrFail();
+            $booking = $boothOwner->booking()->with(['floorplanItem', 'payments'])->first();
+
+            if (!$booking) {
+                return redirect()->route('events.public.floorplan', $eventSlug)
+                    ->with('error', 'No booking found for this access token. Please start over.');
+            }
 
             // Check if access token is valid
             if (!$booking->isAccessTokenValid()) {
