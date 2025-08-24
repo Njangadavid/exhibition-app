@@ -141,31 +141,38 @@
 
 <!-- Simple Member Edit Modal -->
 <div class="modal fade" id="editMemberModal" tabindex="-1" aria-labelledby="editMemberModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg" style="max-width: 800px;">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editMemberModalLabel">Edit Member</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="editMemberModalLabel">
+                    <i class="bi bi-person-edit me-2"></i>Edit Member
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body p-4">
                 <form id="editMemberForm">
+                    @csrf
                     <input type="hidden" id="editMemberId" name="member_id">
                     <input type="hidden" id="editMemberIndex" name="member_index">
                     
-                    <!-- Dynamic form fields will be populated here -->
+                    <!-- Dynamic form fields with sections and proper layout -->
                     <div id="editFormFields"></div>
                     
-                    <div class="form-check mt-3">
+                    <div class="form-check mt-4 p-3 bg-light rounded border">
                         <input class="form-check-input" type="checkbox" id="editResendEmail" name="resend_member_email">
-                        <label class="form-check-label" for="editResendEmail">
-                            Resend welcome email to this member
+                        <label class="form-check-label fw-medium" for="editResendEmail">
+                            <i class="bi bi-envelope me-2"></i>Resend welcome email to this member
                         </label>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveMemberEdit()">Save Changes</button>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveMemberEdit()">
+                    <i class="bi bi-check-circle me-2"></i>Save Changes
+                </button>
             </div>
         </div>
     </div>
@@ -173,19 +180,29 @@
 
 <!-- Simple Member Delete Modal -->
 <div class="modal fade" id="deleteMemberModal" tabindex="-1" aria-labelledby="deleteMemberModalLabel" aria-hidden="true">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title" id="deleteMemberModalLabel">Delete Member</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-            <p>Are you sure you want to delete this member? This action cannot be undone.</p>
-            <input type="hidden" id="deleteMemberId" name="member_id">
-            <input type="hidden" id="deleteMemberIndex" name="member_index">
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-danger" onclick="confirmDeleteMember()">Delete Member</button>
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteMemberModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Delete Member
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <i class="bi bi-question-circle text-warning" style="font-size: 3rem;"></i>
+                <p class="mt-3 mb-0 fw-medium">Are you sure you want to delete this member?</p>
+                <p class="text-muted small">This action cannot be undone.</p>
+                <input type="hidden" id="deleteMemberId" name="member_id">
+                <input type="hidden" id="deleteMemberIndex" name="member_index">
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteMember()">
+                    <i class="bi bi-trash me-2"></i>Delete Member
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -466,14 +483,14 @@ function displayExistingMembers(members) {
         // Debug: Log the member data to see what fields we have
         console.log('Member data:', member);
         console.log('Available fields:', Object.keys(member));
-        console.log('Current form data:', window.currentFormData);
+        console.log('Form fields available:', member.form_fields);
         
-        // Use field purposes to find the correct values
-        const memberName = findFieldByPurpose(member, window.currentFormData, 'member_name') || `Member ${index + 1}`;
-        const memberEmail = findFieldByPurpose(member, window.currentFormData, 'member_email') || 'No email provided';
-        const memberPhone = findFieldByPurpose(member, window.currentFormData, 'member_phone');
-        const memberCompany = findFieldByPurpose(member, window.currentFormData, 'member_company');
-        const memberTitle = findFieldByPurpose(member, window.currentFormData, 'member_title');
+        // Use form fields to find the correct values by field_purpose
+        const memberName = findMemberFieldValue(member, 'member_name') || `Member ${index + 1}`;
+        const memberEmail = findMemberFieldValue(member, 'member_email') || 'No email provided';
+        const memberPhone = findMemberFieldValue(member, 'member_phone');
+        const memberCompany = findMemberFieldValue(member, 'member_company');
+        const memberTitle = findMemberFieldValue(member, 'member_title');
         
         // Debug: Log what we found
         console.log('Found name:', memberName);
@@ -486,19 +503,19 @@ function displayExistingMembers(members) {
             <div class="col-md-6 col-lg-4">
                 <div class="card border-success">
                     <div class="card-body p-3">
-                                                 <div class="d-flex justify-content-between align-items-start mb-2">
-                             <h6 class="card-title mb-0 text-success">
-                                 <i class="bi bi-person-check me-2"></i>${memberName}
-                             </h6>
-                             <div class="btn-group btn-group-sm" role="group">
-                                 <button type="button" class="btn btn-outline-primary" onclick="editMemberModal(${member.id}, ${index})" title="Edit Member">
-                                     <i class="bi bi-pencil"></i>
-                                 </button>
-                                 <button type="button" class="btn btn-outline-danger" onclick="deleteMemberModal(${member.id}, ${index})" title="Remove Member">
-                                     <i class="bi bi-trash"></i>
-                                 </button>
-                             </div>
-                         </div>
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title mb-0 text-success">
+                                <i class="bi bi-person-check me-2"></i>${memberName}
+                            </h6>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary" onclick="editMemberModal(${member.id}, ${index})" title="Edit Member">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" onclick="deleteMemberModal(${member.id}, ${index})" title="Remove Member">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
                         <div class="mb-2">
                             ${memberEmail !== 'No email provided' ? `
                                 <p class="card-text small text-muted mb-1">
@@ -517,13 +534,14 @@ function displayExistingMembers(members) {
                             ` : ''}
                             ${memberTitle ? `
                                 <p class="card-text small text-muted mb-1">
-                                    <i class="bi bi-person-badge me-1"></i>${memberTitle}
+                                    <i class="bi bi-briefcase me-1"></i>${memberTitle}
                                 </p>
                             ` : ''}
                         </div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="badge bg-success">Added</span>
-                            <small class="text-muted">Member ${index + 1}</small>
+                        <div class="text-center">
+                            <small class="text-muted">
+                                <i class="bi bi-qr-code me-1"></i>QR: ${member.qr_code}
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -533,9 +551,21 @@ function displayExistingMembers(members) {
     
     list.innerHTML = membersHtml;
     container.style.display = 'block';
+}
+
+// Helper function to find member field value by field_purpose
+function findMemberFieldValue(member, fieldPurpose) {
+    if (!member.form_fields) {
+        return null;
+    }
     
-    // Show action buttons
-    document.getElementById('continueToPaymentBtn').style.display = 'inline-block';
+    // Find the field with the specified purpose
+    const field = Object.values(member.form_fields).find(f => f.field_purpose === fieldPurpose);
+    if (field && member.form_responses[field.field_id]) {
+        return member.form_responses[field.field_id];
+    }
+    
+    return null;
 }
 
 // Simple modal-based member management functions
@@ -564,77 +594,87 @@ function populateEditForm(member) {
     
     // Get form fields from currentFormData
     if (window.currentFormData && window.currentFormData.fields) {
-        window.currentFormData.fields.forEach(field => {
-            if (field.type !== 'section') {
+        let currentSection = null;
+        let rowOpen = false;
+        
+        window.currentFormData.fields.forEach((field, index) => {
+            if (field.type === 'section') {
+                // Close previous row if open
+                if (rowOpen) {
+                    html += '</div>';
+                    rowOpen = false;
+                }
+                
+                // Start new section
+                currentSection = field.label;
+                html += `
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <h6 class="text-primary border-bottom pb-2 mb-3">
+                                <i class="bi bi-collection me-2"></i>${field.label}
+                            </h6>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Regular field
                 const value = member.form_responses[field.field_id] || '';
                 const required = field.required ? 'required' : '';
                 const fieldName = `edit_${field.field_id}`;
                 
+                // Determine column width based on field width
+                let colClass = 'col-12';
+                if (field.width === 'half') {
+                    colClass = 'col-md-6';
+                } else if (field.width === 'third') {
+                    colClass = 'col-md-4';
+                } else if (field.width === 'quarter') {
+                    colClass = 'col-md-3';
+                }
+                
+                // Start new row if needed
+                if (!rowOpen) {
+                    html += '<div class="row">';
+                    rowOpen = true;
+                }
+                
+                // Add field with proper styling
                 html += `
-                    <div class="mb-3">
-                        <label for="${fieldName}" class="form-label">${field.label}</label>
-                        <input type="text" class="form-control" id="${fieldName}" name="${fieldName}" 
-                               value="${value}" ${required}>
+                    <div class="${colClass} mb-3">
+                        <label for="${fieldName}" class="form-label fw-semibold small mb-1">
+                            ${field.label}
+                            ${field.required ? '<span class="text-danger">*</span>' : ''}
+                        </label>
+                        <input type="${field.type === 'email' ? 'email' : 'text'}" 
+                               class="form-control form-control-sm" 
+                               id="${fieldName}" 
+                               name="${fieldName}" 
+                               value="${value}" 
+                               ${required}
+                               placeholder="Enter ${field.label.toLowerCase()}">
                     </div>
                 `;
+                
+                // Close row if it's full or if next field is a section
+                const nextField = window.currentFormData.fields[index + 1];
+                if (nextField && nextField.type === 'section') {
+                    html += '</div>';
+                    rowOpen = false;
+                } else if (colClass === 'col-12' || colClass === 'col-md-6') {
+                    // Close row after full-width or half-width fields
+                    html += '</div>';
+                    rowOpen = false;
+                }
             }
         });
+        
+        // Close last row if open
+        if (rowOpen) {
+            html += '</div>';
+        }
     }
     
     container.innerHTML = html;
-}
-
-function saveMemberEdit() {
-    const memberId = document.getElementById('editMemberId').value;
-    const memberIndex = document.getElementById('editMemberIndex').value;
-    const resendEmail = document.getElementById('editResendEmail').checked;
-    
-    // Collect form data
-    const formData = {};
-    const form = document.getElementById('editMemberForm');
-    form.querySelectorAll('input[name^="edit_"]').forEach(input => {
-        const fieldId = input.name.replace('edit_', '');
-        formData[fieldId] = input.value;
-    });
-    
-    // Add resend email flag
-    if (resendEmail) {
-        formData.resend_member_email = '1';
-    }
-    
-    console.log('Saving member edit:', { memberId, memberIndex, formData });
-    
-    // Send update request
-    const submitData = new FormData();
-    submitData.append('member_data', JSON.stringify(formData));
-    if (resendEmail) {
-        submitData.append('resend_member_email', '1');
-    }
-    
-    fetch('{{ route("bookings.update-member", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token, "memberId" => ":memberId"]) }}'.replace(':memberId', memberId), {
-        method: 'POST',
-        body: submitData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editMemberModal'));
-            modal.hide();
-            
-            // Reload page to show updated data
-            location.reload();
-        } else {
-            showAlert(data.message || 'Failed to update member', 'danger');
-        }
-    })
-    .catch(error => {
-        console.error('Error updating member:', error);
-        showAlert('An error occurred while updating member', 'danger');
-    });
 }
 
 function deleteMemberModal(memberId, memberIndex) {
@@ -653,11 +693,15 @@ function confirmDeleteMember() {
     
     console.log('Deleting member:', { memberId, memberIndex });
     
-    // Send delete request
+    // Get CSRF token from the edit form
+    const csrfToken = document.querySelector('input[name="_token"]').value;
+    
+    // Send delete request with CSRF token
     fetch('{{ route("bookings.delete-member", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token, "memberId" => ":memberId"]) }}'.replace(':memberId', memberId), {
         method: 'DELETE',
         headers: {
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken
         }
     })
     .then(response => response.json())
@@ -676,6 +720,85 @@ function confirmDeleteMember() {
     .catch(error => {
         console.error('Error deleting member:', error);
         showAlert('An error occurred while deleting member', 'danger');
+    });
+}
+
+// Add some utility functions for better UX
+function showLoadingState(button, text = 'Loading...') {
+    button.disabled = true;
+    button.innerHTML = `<i class="bi bi-hourglass-split me-2"></i>${text}`;
+}
+
+function restoreButtonState(button, originalText) {
+    button.disabled = false;
+    button.innerHTML = originalText;
+}
+
+// Improve the save function with loading states
+function saveMemberEdit() {
+    const memberId = document.getElementById('editMemberId').value;
+    const memberIndex = document.getElementById('editMemberIndex').value;
+    const resendEmail = document.getElementById('editResendEmail').checked;
+    const saveButton = document.querySelector('#editMemberModal .btn-primary');
+    const originalButtonText = saveButton.innerHTML;
+    
+    // Show loading state
+    showLoadingState(saveButton, 'Saving...');
+    
+    // Collect form data
+    const formData = {};
+    const form = document.getElementById('editMemberForm');
+    form.querySelectorAll('input[name^="edit_"]').forEach(input => {
+        const fieldId = input.name.replace('edit_', '');
+        formData[fieldId] = input.value.trim();
+    });
+    
+    // Add resend email flag
+    if (resendEmail) {
+        formData.resend_member_email = '1';
+    }
+    
+    console.log('Saving member edit:', { memberId, memberIndex, formData });
+    
+    // Send update request with CSRF token
+    const submitData = new FormData();
+    submitData.append('member_data', JSON.stringify(formData));
+    if (resendEmail) {
+        submitData.append('resend_member_email', '1');
+    }
+    
+    // Get CSRF token from the form
+    const csrfToken = form.querySelector('input[name="_token"]').value;
+    
+    fetch('{{ route("bookings.update-member", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token, "memberId" => ":memberId"]) }}'.replace(':memberId', memberId), {
+        method: 'POST',
+        body: submitData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editMemberModal'));
+            modal.hide();
+            
+            // Show success message before reload
+            showAlert('Member updated successfully!', 'success');
+            
+            // Reload page to show updated data
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.message || 'Failed to update member', 'danger');
+            restoreButtonState(saveButton, originalButtonText);
+        }
+    })
+    .catch(error => {
+        console.error('Error updating member:', error);
+        showAlert('An error occurred while updating member', 'danger');
+        restoreButtonState(saveButton, originalButtonText);
     });
 }
 

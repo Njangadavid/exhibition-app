@@ -412,18 +412,29 @@ class BookingController extends Controller
             return redirect()->back()->with('error', 'No registration forms found for this event. Please contact the organizer.');
         }
 
-        // Load booth members for display
+        // Load booth members for display with form field information
         $boothMembers = $boothOwner->boothMembers;
+        
+        // Get form fields to map field_purpose to field_id
+        $formFields = [];
+        if ($memberForm) {
+            $formFields = \App\Models\FormField::where('form_builder_id', $memberForm->id)
+                ->where('type', '!=', 'section')
+                ->get()
+                ->keyBy('field_id');
+        }
         
         Log::info('Member form view loading successfully', [
             'booking_id' => $booking->id,
             'booth_members_count' => $boothMembers->count(),
-            'booth_members' => $boothMembers->map(function($member) {
+            'form_fields_count' => $formFields->count(),
+            'booth_members' => $boothMembers->map(function($member) use ($formFields) {
                 return [
                     'id' => $member->id,
                     'qr_code' => $member->qr_code,
                     'status' => $member->status,
-                    'form_responses' => $member->form_responses
+                    'form_responses' => $member->form_responses,
+                    'form_fields' => $formFields // Include form fields for frontend use
                 ];
             })
         ]);
