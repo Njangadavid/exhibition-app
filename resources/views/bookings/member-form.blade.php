@@ -569,7 +569,13 @@ function saveMemberChanges(index) {
     // Save to database - only send the updated member data
     const submitData = new FormData();
     submitData.append('member_data', JSON.stringify(formData)); // Send the updated member data
-    submitData.append('_token', '{{ csrf_token() }}');
+    
+    // Check if resend email is requested
+    const resendEmailCheckbox = document.getElementById('resend_member_email');
+    if (resendEmailCheckbox && resendEmailCheckbox.checked) {
+        submitData.append('resend_member_email', '1');
+        console.log('Resend email requested for member update');
+    }
     
     // Find the member ID from the booth members data
     const memberId = findMemberId(formData);
@@ -586,7 +592,8 @@ function saveMemberChanges(index) {
         method: 'PUT',
         body: submitData,
         headers: {
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
         }
     })
     .then(response => response.json())
