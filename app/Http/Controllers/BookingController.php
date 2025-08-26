@@ -371,7 +371,7 @@ class BookingController extends Controller
         }
 
         // Get existing booth members
-        $boothMembers = $boothOwner->boothMembers()->with('formFields')->get();
+        $boothMembers = $boothOwner->boothMembers()->get();
         
         // Get the member registration form for this event
         $memberForm = \App\Models\FormBuilder::where('event_id', $event->id)
@@ -388,7 +388,7 @@ class BookingController extends Controller
                 'created_at' => $member->created_at,
                 'updated_at' => $member->updated_at,
                 'form_responses' => $member->form_responses,
-                'form_fields' => $member->formFields
+                'form_fields' => [] // Empty array since formFields relationship doesn't exist
             ];
         });
 
