@@ -1525,10 +1525,19 @@ class BookingController extends Controller
     {
         try {
             $event = Event::where('slug', $eventSlug)->firstOrFail();
-            $booking = $event->bookings()
-                ->where('access_token', $accessToken)
+            
+            // Find booth owner by access token, then get the booking
+            $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)
                 ->where('access_token_expires_at', '>', now())
                 ->firstOrFail();
+            $booking = $boothOwner->booking;
+
+            if (!$booking) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No booking found for this access token. Please start over.'
+                ], 400);
+            }
 
             // Check if access token is valid
             if (!$booking->isAccessTokenValid()) {

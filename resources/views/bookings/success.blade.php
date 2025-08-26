@@ -69,28 +69,28 @@
                                     <i class="bi bi-person text-muted me-2"></i>
                                     <strong>Name:</strong>
                                 </div>
-                                <div class="ms-4">{{ $booking->owner_details['name'] ?? 'N/A' }}</div>
+                                <div class="ms-4">{{ $booking->boothOwner->form_responses['name'] ?? 'N/A' }}</div>
                             </div>
                             <div class="mb-3">
                                 <div class="d-flex align-items-center mb-2">
                                     <i class="bi bi-envelope text-muted me-2"></i>
                                     <strong>Email:</strong>
                                 </div>
-                                <div class="ms-4">{{ $booking->owner_details['email'] ?? 'N/A' }}</div>
+                                <div class="ms-4">{{ $booking->boothOwner->form_responses['email'] ?? 'N/A' }}</div>
                             </div>
                             <div class="mb-3">
                                 <div class="d-flex align-items-center mb-2">
                                     <i class="bi bi-telephone text-muted me-2"></i>
                                     <strong>Phone:</strong>
                                 </div>
-                                <div class="ms-4">{{ $booking->owner_details['phone'] ?? 'N/A' }}</div>
+                                <div class="ms-4">{{ $booking->boothOwner->form_responses['phone'] ?? 'N/A' }}</div>
                             </div>
                             <div class="mb-3">
                                 <div class="d-flex align-items-center mb-2">
                                     <i class="bi bi-briefcase text-muted me-2"></i>
                                     <strong>Company:</strong>
                                 </div>
-                                <div class="ms-4">{{ $booking->owner_details['company_name'] ?? 'N/A' }}</div>
+                                <div class="ms-4">{{ $booking->boothOwner->form_responses['company_name'] ?? 'N/A' }}</div>
                             </div>
                         </div>
                     </div>

@@ -90,19 +90,19 @@
                     </h5>
                     <div class="info-row">
                         <span class="info-label">Name:</span>
-                        <span class="info-value">{{ $booking->owner_details['name'] ?? 'N/A' }}</span>
+                        <span class="info-value">{{ $booking->boothOwner->form_responses['name'] ?? 'N/A' }}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Email:</span>
-                        <span class="info-value">{{ $booking->owner_details['email'] ?? 'N/A' }}</span>
+                        <span class="info-value">{{ $booking->boothOwner->form_responses['email'] ?? 'N/A' }}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Phone:</span>
-                        <span class="info-value">{{ $booking->owner_details['phone'] ?? 'N/A' }}</span>
+                        <span class="info-value">{{ $booking->boothOwner->form_responses['phone'] ?? 'N/A' }}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Company:</span>
-                        <span class="info-value">{{ $booking->owner_details['company_name'] ?? 'N/A' }}</span>
+                        <span class="info-value">{{ $booking->boothOwner->form_responses['company_name'] ?? 'N/A' }}</span>
                     </div>
                 </div>
             </div>
@@ -226,11 +226,12 @@
         <button onclick="resendPaymentEmail()" class="btn btn-primary btn-lg me-3">
             <i class="bi bi-envelope me-2"></i>Resend Payment Email
         </button>
-        
-                 <a href="{{ route('bookings.owner-form-token', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]) }}"
-            class="btn btn-outline-secondary btn-lg">
-             <i class="bi bi-pencil-square me-2"></i>Edit Details
-         </a>
+         
+         <a href="{{ route('bookings.owner-form-token', ['eventSlug' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]) }}"
+             class="btn btn-outline-secondary btn-lg">
+              <i class="bi bi-pencil-square me-2"></i>Edit Details
+          </a>
+               
     </div>
 </div>
 @endsection
@@ -246,7 +247,7 @@ function resendPaymentEmail() {
         button.disabled = true;
         
         // Make AJAX request to resend payment email
-        fetch('{{ route("bookings.resend-payment-email", ["eventSlug" => $event->slug, "accessToken" => $booking->access_token]) }}', {
+        fetch('{{ route("bookings.resend-payment-email", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token]) }}', {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
