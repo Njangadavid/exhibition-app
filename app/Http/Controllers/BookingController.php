@@ -373,6 +373,11 @@ class BookingController extends Controller
         // Get existing booth members
         $boothMembers = $boothOwner->boothMembers()->with('formFields')->get();
         
+        // Get the member registration form for this event
+        $memberForm = \App\Models\FormBuilder::where('event_id', $event->id)
+            ->where('type', 'member_registration')
+            ->first();
+        
         // Transform booth members to include form_fields data
         $transformedBoothMembers = $boothMembers->map(function ($member) {
             return [
@@ -387,7 +392,7 @@ class BookingController extends Controller
             ];
         });
 
-        return view('bookings.member-form', compact('event', 'booking', 'boothMembers', 'transformedBoothMembers'));
+        return view('bookings.member-form', compact('event', 'booking', 'boothMembers', 'transformedBoothMembers', 'memberForm'));
     }
 
     /**

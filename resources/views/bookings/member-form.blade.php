@@ -40,7 +40,7 @@
                                 <div class="d-flex align-items-center mb-2">
                                     <i class="bi bi-person-circle text-info me-2"></i>
                                     <span class="fw-medium">Owner:</span>
-                                    <span class="ms-2">{{ $booking->owner_details['name'] ?? 'N/A' }}</span>
+                                    <span class="ms-2">{{ $booking->boothOwner->form_responses['name'] ?? 'N/A' }}</span>
                                 </div>
                             </div>
                         </div>
