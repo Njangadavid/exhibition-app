@@ -7,9 +7,15 @@
 
         <title>{{ config('app.name', 'Exhibition App') }}</title>
 
+        <!-- Favicon -->
+        <link rel="icon" type="image/x-icon" href="/images/sajili-5.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="/images/sajili-5.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/images/sajili-5.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="/images/sajili-5.png">
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
         
         <!-- Bootstrap Icons -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -79,18 +85,29 @@
             }
             
             .logo {
-                font-size: 1.75rem;
-                font-weight: 700;
-                color: var(--primary-color);
-                text-decoration: none;
                 display: flex;
                 align-items: center;
-                gap: 0.5rem;
+                gap: 12px;
+                text-decoration: none;
+                color: var(--text-primary);
+                font-size: 1.5rem;
+                font-weight: 700;
+                transition: all 0.3s ease;
             }
             
-            .logo-icon {
-                font-size: 2rem;
-                color: var(--accent-color);
+            .logo img {
+                height: 40px;
+                width: auto;
+                transition: transform 0.3s ease;
+            }
+            
+            .logo:hover img {
+                transform: scale(1.05);
+            }
+            
+            .logo:hover {
+                color: var(--primary-color);
+                transform: translateY(-1px);
             }
             
             .nav-buttons {
@@ -114,27 +131,33 @@
             }
             
             .btn-primary {
-                background: var(--primary-color);
+                background: var(--text-secondary);
                 color: white;
+                border: 1px solid var(--border-color);
                 box-shadow: var(--shadow-sm);
             }
             
             .btn-primary:hover {
-                background: var(--primary-dark);
+                background: var(--text-primary);
                 transform: translateY(-1px);
                 box-shadow: var(--shadow-md);
             }
             
             .btn-outline {
-                background: transparent;
+                background: white;
                 color: var(--primary-color);
-                border: 2px solid var(--primary-color);
+                border: 2px solid white;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+                font-weight: 600;
+                transition: all 0.3s ease;
             }
             
             .btn-outline:hover {
-                background: var(--primary-color);
+                background: transparent;
                 color: white;
-                transform: translateY(-1px);
+                border-color: white;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
             }
             
             .btn-secondary {
@@ -389,8 +412,8 @@
         <header class="header" id="header">
             <div class="header-content">
                 <a href="/" class="logo">
-                    <i class="bi bi-palette-fill logo-icon"></i>
-                    Exhibition App
+                    <img src="/images/sajili-5.png" alt="ExhibitHub" style="height: 40px; width: auto;">
+                    ExhibitHub
                 </a>
                 <div class="nav-buttons">
                     @if (Route::has('login'))
@@ -421,7 +444,7 @@
                             Go to Dashboard
                         </a>
                     @else
-                        <a href="{{ route('login') }}" class="btn btn-outline">
+                        <a href="{{ route('login') }}" class="btn btn-outline btn-light">
                             <i class="bi bi-rocket-takeoff"></i>
                             Get Started
                         </a>

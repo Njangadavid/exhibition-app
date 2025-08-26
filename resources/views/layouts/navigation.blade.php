@@ -7,8 +7,8 @@
                 <!-- Logo -->
                 <div class="navbar-brand d-flex align-items-center me-4">
                     <a href="{{ route('dashboard') }}" class="d-flex align-items-center text-decoration-none">
-                        <span class="fs-2 me-2">🎨</span>
-                        <span class="fw-bold fs-4 text-dark">Exhibition App</span>
+                        <img src="/images/sajili-5.png" alt="SAJILI Logo" style="height: 40px; width: auto; margin-right: 12px;">
+                        <span class="fw-bold fs-4 text-dark">{{ config('app.name', 'Exhibition App') }}</span>
                     </a>
                 </div>
 

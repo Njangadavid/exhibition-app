@@ -5,7 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Laravel') }}</title>
+    <title>{{ config('app.name', 'Exhibition App') }}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/images/sajili-5.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/sajili-5.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/sajili-5.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/sajili-5.png">
+    <link rel="shortcut icon" href="/images/sajili-5.png">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -13,11 +20,7 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    
+     
     @stack('styles')
 </head>
 <body class="font-sans antialiased">
@@ -39,8 +42,7 @@
         </main>
     </div>
     
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    @stack('scripts')
+    
+     @stack('scripts')
 </body>
 </html>

@@ -7,6 +7,13 @@
 
         <title>{{ config('app.name', 'Exhibition App') }}</title>
 
+        <!-- Favicon -->
+        <link rel="icon" type="image/x-icon" href="/images/sajili-5.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="/images/sajili-5.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/images/sajili-5.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="/images/sajili-5.png">
+        <link rel="shortcut icon" href="/images/sajili-5.png">
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
@@ -38,7 +45,7 @@
             }
             
             .auth-container {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
                 min-height: 100vh;
                 display: flex;
                 align-items: center;
@@ -47,23 +54,23 @@
             }
             
             .auth-card {
-                background: rgba(255, 255, 255, 0.95);
-                backdrop-filter: blur(10px);
-                border-radius: 20px;
-                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+                background: white;
+                border-radius: 16px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
                 overflow: hidden;
                 width: 100%;
                 max-width: 450px;
                 position: relative;
+                border: 1px solid #e2e8f0;
             }
             
             .auth-header {
-                background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-                color: white;
-                padding: 30px;
+                background: #f8fafc;
+                color: #1e293b;
+                padding: 32px 32px 24px;
                 text-align: center;
                 position: relative;
-                overflow: hidden;
+                border-bottom: 1px solid #e2e8f0;
             }
             
             .auth-header::before {
@@ -73,37 +80,46 @@
                 left: 0;
                 right: 0;
                 bottom: 0;
-                background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-                opacity: 0.3;
+                background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="rgba(148,163,184,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+                opacity: 0.5;
             }
             
             .auth-header-content {
                 position: relative;
                 z-index: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
             }
             
-            .app-logo {
-                font-size: 2.5rem;
-                margin-bottom: 10px;
+            .auth-header-content img {
+                display: block;
+                margin: 0 auto 16px auto;
+                max-width: 100%;
+                height: auto;
             }
             
             .app-title {
                 font-size: 1.5rem;
                 font-weight: 600;
-                margin-bottom: 5px;
+                margin-bottom: 6px;
+                color: #1e293b;
             }
             
             .app-subtitle {
                 font-size: 0.9rem;
-                opacity: 0.9;
+                color: #64748b;
+                font-weight: 400;
             }
             
             .auth-body {
-                padding: 40px;
+                padding: 24px;
+                background: white;
             }
             
             .form-group {
-                margin-bottom: 24px;
+                margin-bottom: 12px;
             }
             
             .form-label {
@@ -111,33 +127,35 @@
                 font-size: 0.875rem;
                 font-weight: 500;
                 color: #374151;
-                margin-bottom: 8px;
+                margin-bottom: 4px;
             }
             
             .form-input {
                 width: 100%;
-                padding: 12px 16px;
-                border: 2px solid #e5e7eb;
-                border-radius: 12px;
-                font-size: 1rem;
-                transition: all 0.3s ease;
+                padding: 8px 12px;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                font-size: 0.95rem;
+                transition: all 0.2s ease;
                 background-color: white;
+                color: #1f2937;
             }
             
             .form-input:focus {
                 outline: none;
-                border-color: #4f46e5;
-                box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
             }
             
             .form-input.error {
                 border-color: #ef4444;
+                box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
             }
             
             .error-message {
-                color: #ef4444;
-                font-size: 0.875rem;
-                margin-top: 6px;
+                color: #dc2626;
+                font-size: 0.8rem;
+                margin-top: 2px;
                 display: flex;
                 align-items: center;
                 gap: 4px;
@@ -146,47 +164,48 @@
             .checkbox-group {
                 display: flex;
                 align-items: center;
-                gap: 8px;
-                margin-bottom: 24px;
+                gap: 6px;
+                margin-bottom: 12px;
             }
             
             .checkbox-input {
-                width: 18px;
-                height: 18px;
-                accent-color: #4f46e5;
+                width: 14px;
+                height: 14px;
+                accent-color: #3b82f6;
             }
             
             .checkbox-label {
-                font-size: 0.875rem;
+                font-size: 0.8rem;
                 color: #6b7280;
             }
             
             .auth-actions {
                 display: flex;
                 flex-direction: column;
-                gap: 16px;
+                gap: 8px;
             }
             
             .btn-primary {
-                background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+                background: #3b82f6;
                 color: white;
-                padding: 14px 24px;
+                padding: 8px 16px;
                 border: none;
-                border-radius: 12px;
-                font-size: 1rem;
-                font-weight: 600;
+                border-radius: 6px;
+                font-size: 0.95rem;
+                font-weight: 500;
                 cursor: pointer;
-                transition: all 0.3s ease;
+                transition: all 0.2s ease;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                gap: 8px;
+                gap: 6px;
                 width: 100%;
             }
             
             .btn-primary:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3);
+                background: #2563eb;
+                transform: translateY(-1px);
+                box-shadow: 0 3px 8px rgba(59, 130, 246, 0.2);
             }
             
             .btn-primary:active {
@@ -195,49 +214,50 @@
             
             .forgot-password {
                 text-align: center;
-                margin-top: 16px;
+                margin-top: 8px;
             }
             
             .forgot-password a {
-                color: #4f46e5;
+                color: #6b7280;
                 text-decoration: none;
-                font-size: 0.875rem;
-                transition: color 0.3s ease;
+                font-size: 0.8rem;
+                transition: color 0.2s ease;
             }
             
             .forgot-password a:hover {
-                color: #7c3aed;
+                color: #3b82f6;
                 text-decoration: underline;
             }
             
             .auth-footer {
                 text-align: center;
-                margin-top: 24px;
-                padding-top: 24px;
+                margin-top: 12px;
+                padding-top: 12px;
                 border-top: 1px solid #e5e7eb;
             }
             
             .auth-footer a {
-                color: #4f46e5;
+                color: #3b82f6;
                 text-decoration: none;
                 font-weight: 500;
-                transition: color 0.3s ease;
+                transition: color 0.2s ease;
             }
             
             .auth-footer a:hover {
-                color: #7c3aed;
+                color: #2563eb;
             }
             
             .session-status {
-                background: #10b981;
-                color: white;
+                background: #d1fae5;
+                color: #065f46;
                 padding: 12px 16px;
-                border-radius: 12px;
-                margin-bottom: 24px;
+                border-radius: 8px;
+                margin-bottom: 20px;
                 font-size: 0.875rem;
                 display: flex;
                 align-items: center;
                 gap: 8px;
+                border: 1px solid #a7f3d0;
             }
             
             @media (max-width: 640px) {
@@ -246,11 +266,11 @@
                 }
                 
                 .auth-body {
-                    padding: 30px 20px;
+                    padding: 24px 20px;
                 }
                 
                 .auth-header {
-                    padding: 20px;
+                    padding: 24px 20px 20px;
                 }
                 
                 .app-logo {
@@ -268,7 +288,7 @@
             <div class="auth-card">
                 <div class="auth-header">
                     <div class="auth-header-content">
-                        <div class="app-logo">🎨</div>
+                        <img src="/images/sajili-5.png" alt="SAJILI Logo" style="height: 60px; width: auto; margin-bottom: 16px;">
                         <h1 class="app-title">{{ config('app.name', 'Exhibition App') }}</h1>
                         <p class="app-subtitle">
                             @if(request()->routeIs('login'))

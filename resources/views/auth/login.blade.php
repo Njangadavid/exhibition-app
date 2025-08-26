@@ -89,7 +89,7 @@
             </div>
         @endif
 
-        <!-- Register Link -->
+        <!-- Register Link
         <div class="auth-footer">
             <p class="text-gray-600 text-sm">
                 Don't have an account? 
@@ -97,6 +97,6 @@
                     Create one here
                 </a>
             </p>
-        </div>
+        </div> -->
     </form>
 </x-guest-layout>

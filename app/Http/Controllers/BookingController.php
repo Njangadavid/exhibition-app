@@ -103,7 +103,13 @@ class BookingController extends Controller
             }
         }
 
-        return view('bookings.owner-form', compact('event', 'item', 'existingBooking', 'isEditing'));
+        // Get the booth owner if we're editing
+        $boothOwner = null;
+        if ($isEditing && $existingBooking) {
+            $boothOwner = $existingBooking->boothOwner;
+        }
+
+        return view('bookings.owner-form', compact('event', 'item', 'existingBooking', 'isEditing', 'boothOwner'));
     }
 
     /**
@@ -345,81 +351,123 @@ class BookingController extends Controller
     /**
      * Show the member registration form.
      */
-//    public function processMemberForm(Request $request, $eventSlug, $accessToken)
-//    {
-//        $request->validate([
-//            'form_data' => 'required|array',
-//        ]);
-//
-//        $event = Event::where('slug', $eventSlug)->firstOrFail();
-//        
-//        // Find booth owner by access token, then get the booking
-//        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
-//        $booking = $boothOwner->booking;
-//        
-//        if (!$booking) {
-//            return redirect()->route('events.public.floorplan', $eventSlug)
-//                ->with('error', 'No booking found for this access token. Please start over.');
-//        }
-//
-//        // Verify access token is valid
-//        if (!$booking->isAccessTokenValid()) {
-//            return redirect()->route('events.public.floorplan', $eventSlug)
-//                ->with('error', 'Invalid or expired access link. Please start over.');
-//        }
-//
-//        try {
-//            // Store member form submission
-//            FormSubmission::create([
-//                'form_builder_id' => $request->member_form_id,
-//                'submission_data' => $request->form_data,
-//                'submitted_at' => now(),
-//            ]);
-//
-//            // Ensure we have a booth owner
-//            if (!$booking->boothOwner) {
-//                // Create booth owner from existing owner_details
-//                $ownerDetails = $booking->owner_details ?? [];
-//                $boothOwner = \App\Models\BoothOwner::create([
-//                    'qr_code' => \App\Models\BoothOwner::generateQrCode(),
-//                    'form_responses' => $ownerDetails,
-//                    'access_token' => \App\Models\BoothOwner::generateAccessToken(),
-//                    'access_token_expires_at' => now()->addYear(),
-//                ]);
-//                $booking->update(['booth_owner_id' => $boothOwner->id]);
-//            }
-//
-//            // Create booth member
-//            $boothMember = \App\Models\BoothMember::create([
-//                'booth_owner_id' => $booking->boothOwner->id,
-//                'qr_code' => \App\Models\BoothMember::generateQrCode(),
-//                'form_responses' => $request->form_data,
-//                'status' => 'active'
-//            ]);
-//
-//            Log::info('Booth member created successfully', [
-//                'booking_id' => $booking->id,
-//                'member_id' => $boothMember->id,
-//                'member_data' => $request->form_data
-//            ]);
-//
-//            // Note: Member registration email is now handled in saveMembers method
-//            // to avoid duplicate email sending
-//            Log::info('Member added successfully, email will be sent via saveMembers', [
-//                'booking_id' => $booking->id,
-//                'member_id' => $boothMember->id,
-//                'trigger_type' => 'member_registration'
-//            ]);
-//
-//            // Redirect to payment using booth owner's access token
-//            return redirect()->route('bookings.payment', [
-//                'eventSlug' => $eventSlug,
-//                'accessToken' => $booking->boothOwner->access_token
-//            ]);
-//        } catch (\Exception $e) {
-//            return redirect()->back()->with('error', 'Failed to save member details. Please try again.');
-//        }
-//    }
+    public function showMemberForm(Request $request, $eventSlug, $accessToken)
+    {
+        $event = Event::where('slug', $eventSlug)->firstOrFail();
+        
+        // Find booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
+        $booking = $boothOwner->booking;
+        
+        if (!$booking) {
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'No booking found for this access token. Please start over.');
+        }
+
+        // Verify access token is valid
+        if (!$booking->isAccessTokenValid()) {
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'Invalid or expired access link. Please start over.');
+        }
+
+        // Get existing booth members
+        $boothMembers = $boothOwner->boothMembers()->with('formFields')->get();
+        
+        // Transform booth members to include form_fields data
+        $transformedBoothMembers = $boothMembers->map(function ($member) {
+            return [
+                'id' => $member->id,
+                'booth_owner_id' => $member->booth_owner_id,
+                'qr_code' => $member->qr_code,
+                'status' => $member->status,
+                'created_at' => $member->created_at,
+                'updated_at' => $member->updated_at,
+                'form_responses' => $member->form_responses,
+                'form_fields' => $member->formFields
+            ];
+        });
+
+        return view('bookings.member-form', compact('event', 'booking', 'boothMembers', 'transformedBoothMembers'));
+    }
+
+    /**
+     * Process member registration form.
+     */
+    public function processMemberForm(Request $request, $eventSlug, $accessToken)
+    {
+        $request->validate([
+            'form_data' => 'required|array',
+        ]);
+
+        $event = Event::where('slug', $eventSlug)->firstOrFail();
+        
+        // Find booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
+        $booking = $boothOwner->booking;
+        
+        if (!$booking) {
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'No booking found for this access token. Please start over.');
+        }
+
+        // Verify access token is valid
+        if (!$booking->isAccessTokenValid()) {
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'Invalid or expired access link. Please start over.');
+        }
+
+        try {
+            // Store member form submission
+            FormSubmission::create([
+                'form_builder_id' => $request->member_form_id,
+                'submission_data' => $request->form_data,
+                'submitted_at' => now(),
+            ]);
+
+            // Ensure we have a booth owner
+            if (!$booking->boothOwner) {
+                // Create booth owner from existing owner_details
+                $ownerDetails = $booking->owner_details ?? [];
+                $boothOwner = \App\Models\BoothOwner::create([
+                    'qr_code' => \App\Models\BoothOwner::generateQrCode(),
+                    'form_responses' => $ownerDetails,
+                    'access_token' => \App\Models\BoothOwner::generateAccessToken(),
+                    'access_token_expires_at' => now()->addYear(),
+                ]);
+                $booking->update(['booth_owner_id' => $boothOwner->id]);
+            }
+
+            // Create booth member
+            $boothMember = \App\Models\BoothMember::create([
+                'booth_owner_id' => $booking->boothOwner->id,
+                'qr_code' => \App\Models\BoothMember::generateQrCode(),
+                'form_responses' => $request->form_data,
+                'status' => 'active'
+            ]);
+
+            Log::info('Booth member created successfully', [
+                'booking_id' => $booking->id,
+                'member_id' => $boothMember->id,
+                'member_data' => $request->form_data
+            ]);
+
+            // Note: Member registration email is now handled in saveMembers method
+            // to avoid duplicate email sending
+            Log::info('Member added successfully, email will be sent via saveMembers', [
+                'booking_id' => $booking->id,
+                'member_id' => $boothMember->id,
+                'trigger_type' => 'member_registration'
+            ]);
+
+            // Redirect to payment using booth owner's access token
+            return redirect()->route('bookings.payment', [
+                'eventSlug' => $eventSlug,
+                'accessToken' => $booking->boothOwner->access_token
+            ]);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to save member details. Please try again.');
+        }
+    }
 
     /**
      * Save members to booking (AJAX endpoint).
