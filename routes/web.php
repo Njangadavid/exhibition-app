@@ -92,4 +92,193 @@ Route::post('/event/{eventSlug}/booking/{accessToken}/resend-payment-email', [Bo
 // Resend member registration email route
 Route::post('/event/{eventSlug}/booking/{accessToken}/resend-member-email', [BookingController::class, 'resendMemberEmail'])->name('bookings.resend-member-email');
 
+// Artisan Commands for cPanel (Web-based execution)
+Route::prefix('artisan')->group(function () {
+    // Clear caches
+    Route::get('/clear-cache', function () {
+        try {
+            \Artisan::call('cache:clear');
+            \Artisan::call('config:clear');
+            \Artisan::call('view:clear');
+            \Artisan::call('route:clear');
+            return response()->json([
+                'success' => true,
+                'message' => 'All caches cleared successfully!',
+                'commands' => ['cache:clear', 'config:clear', 'view:clear', 'route:clear']
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error clearing caches: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('artisan.clear-cache');
+
+    // Run migrations
+    Route::get('/migrate', function () {
+        try {
+            \Artisan::call('migrate', ['--force' => true]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Migrations completed successfully!',
+                'output' => \Artisan::output()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error running migrations: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('artisan.migrate');
+
+    // Run migrations with status
+    Route::get('/migrate-status', function () {
+        try {
+            \Artisan::call('migrate:status');
+            return response()->json([
+                'success' => true,
+                'message' => 'Migration status retrieved successfully!',
+                'output' => \Artisan::output()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error getting migration status: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('artisan.migrate-status');
+
+    // Optimize application
+    Route::get('/optimize', function () {
+        try {
+            \Artisan::call('optimize');
+            \Artisan::call('config:cache');
+            \Artisan::call('route:cache');
+            \Artisan::call('view:cache');
+            return response()->json([
+                'success' => true,
+                'message' => 'Application optimized successfully!',
+                'commands' => ['optimize', 'config:cache', 'route:cache', 'view:cache']
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error optimizing application: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('artisan.optimize');
+
+    // Clear and optimize
+    Route::get('/clear-and-optimize', function () {
+        try {
+            // Clear everything first
+            \Artisan::call('cache:clear');
+            \Artisan::call('config:clear');
+            \Artisan::call('view:clear');
+            \Artisan::call('route:clear');
+            
+            // Then optimize
+            \Artisan::call('optimize');
+            \Artisan::call('config:cache');
+            \Artisan::call('route:cache');
+            \Artisan::call('view:cache');
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Application cleared and optimized successfully!',
+                'commands' => [
+                    'Cleared: cache, config, view, route',
+                    'Optimized: application, config, route, view'
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error clearing and optimizing: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('artisan.clear-and-optimize');
+
+    // Queue work (process pending jobs)
+    Route::get('/queue-work', function () {
+        try {
+            \Artisan::call('queue:work', ['--once' => true]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Queue processed successfully!',
+                'output' => \Artisan::output()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error processing queue: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('artisan.queue-work');
+
+    // Check application status
+    Route::get('/status', function () {
+        try {
+            $status = [
+                'app_name' => config('app.name'),
+                'app_env' => config('app.env'),
+                'app_debug' => config('app.debug'),
+                'database_connection' => \DB::connection()->getPdo() ? 'Connected' : 'Failed',
+                'cache_driver' => config('cache.default'),
+                'queue_driver' => config('queue.default'),
+                'storage_link' => file_exists(public_path('storage')) ? 'Linked' : 'Not Linked',
+                'php_version' => PHP_VERSION,
+                'laravel_version' => app()->version(),
+                'memory_usage' => memory_get_usage(true),
+                'peak_memory' => memory_get_peak_usage(true)
+            ];
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Application status retrieved successfully!',
+                'status' => $status
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error getting status: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('artisan.status');
+
+    // Create storage link
+    Route::get('/storage-link', function () {
+        try {
+            \Artisan::call('storage:link');
+            return response()->json([
+                'success' => true,
+                'message' => 'Storage link created successfully!',
+                'output' => \Artisan::output()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error creating storage link: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('artisan.storage-link');
+
+    // List all available commands
+    Route::get('/list', function () {
+        try {
+            \Artisan::call('list');
+            return response()->json([
+                'success' => true,
+                'message' => 'Available commands listed successfully!',
+                'output' => \Artisan::output()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error listing commands: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('artisan.list');
+});
+
 require __DIR__.'/auth.php';
