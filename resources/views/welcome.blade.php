@@ -9,73 +9,149 @@
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
         
-        <!-- Material Icons -->
-        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
         
-        <!-- Material Web Components -->
-        <script type="module" src="https://unpkg.com/@material/web@1.0.0/index.js"></script>
-
         <!-- Scripts -->
-            @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
         
-            <style>
+        <style>
             :root {
-                --md-sys-color-primary: #6750a4;
-                --md-sys-color-on-primary: #ffffff;
-                --md-sys-color-primary-container: #eaddff;
-                --md-sys-color-on-primary-container: #21005d;
-                --md-sys-color-secondary: #625b71;
-                --md-sys-color-on-secondary: #ffffff;
-                --md-sys-color-secondary-container: #e8def8;
-                --md-sys-color-on-secondary-container: #1d192b;
-                --md-sys-color-surface: #fffbfe;
-                --md-sys-color-on-surface: #1c1b1f;
-                --md-sys-color-surface-variant: #e7e0ec;
-                --md-sys-color-on-surface-variant: #49454f;
-                --md-sys-color-outline: #79747e;
-                --md-sys-color-outline-variant: #cac4d0;
-                --md-sys-color-error: #ba1a1a;
-                --md-sys-color-on-error: #ffffff;
-                --md-sys-color-error-container: #ffdad6;
-                --md-sys-color-on-error-container: #410002;
+                --primary-color: #2563eb;
+                --primary-dark: #1d4ed8;
+                --secondary-color: #64748b;
+                --accent-color: #f59e0b;
+                --success-color: #10b981;
+                --warning-color: #f59e0b;
+                --error-color: #ef4444;
+                --text-primary: #1e293b;
+                --text-secondary: #64748b;
+                --text-light: #94a3b8;
+                --bg-primary: #ffffff;
+                --bg-secondary: #f8fafc;
+                --bg-accent: #f1f5f9;
+                --border-color: #e2e8f0;
+                --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+                --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+                --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+                --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
             }
             
-            .dark {
-                --md-sys-color-primary: #d0bcff;
-                --md-sys-color-on-primary: #381e72;
-                --md-sys-color-primary-container: #4f378b;
-                --md-sys-color-on-primary-container: #eaddff;
-                --md-sys-color-secondary: #ccc2dc;
-                --md-sys-color-on-secondary: #332d41;
-                --md-sys-color-secondary-container: #4a4458;
-                --md-sys-color-on-secondary-container: #e8def8;
-                --md-sys-color-surface: #1c1b1f;
-                --md-sys-color-on-surface: #e6e1e5;
-                --md-sys-color-surface-variant: #49454f;
-                --md-sys-color-on-surface-variant: #cac4d0;
-                --md-sys-color-outline: #938f99;
-                --md-sys-color-outline-variant: #49454f;
-                --md-sys-color-error: #ffb4ab;
-                --md-sys-color-on-error: #690005;
-                --md-sys-color-error-container: #93000a;
-                --md-sys-color-on-error-container: #ffdad6;
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
             }
             
             body {
-                margin: 0;
-                padding: 0;
-                font-family: 'Figtree', sans-serif;
-                background-color: var(--md-sys-color-surface);
-                color: var(--md-sys-color-on-surface);
-                transition: background-color 0.3s ease, color 0.3s ease;
+                font-family: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                line-height: 1.6;
+                color: var(--text-primary);
+                background-color: var(--bg-primary);
+            }
+            
+            .header {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(10px);
+                border-bottom: 1px solid var(--border-color);
+                z-index: 1000;
+                transition: all 0.3s ease;
+            }
+            
+            .header.scrolled {
+                background: rgba(255, 255, 255, 0.98);
+                box-shadow: var(--shadow-md);
+            }
+            
+            .header-content {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 1rem 2rem;
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+            
+            .logo {
+                font-size: 1.75rem;
+                font-weight: 700;
+                color: var(--primary-color);
+                text-decoration: none;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            
+            .logo-icon {
+                font-size: 2rem;
+                color: var(--accent-color);
+            }
+            
+            .nav-buttons {
+                display: flex;
+                gap: 1rem;
+                align-items: center;
+            }
+            
+            .btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.75rem 1.5rem;
+                border-radius: 0.5rem;
+                font-weight: 500;
+                text-decoration: none;
+                transition: all 0.3s ease;
+                border: none;
+                cursor: pointer;
+                font-size: 0.875rem;
+            }
+            
+            .btn-primary {
+                background: var(--primary-color);
+                color: white;
+                box-shadow: var(--shadow-sm);
+            }
+            
+            .btn-primary:hover {
+                background: var(--primary-dark);
+                transform: translateY(-1px);
+                box-shadow: var(--shadow-md);
+            }
+            
+            .btn-outline {
+                background: transparent;
+                color: var(--primary-color);
+                border: 2px solid var(--primary-color);
+            }
+            
+            .btn-outline:hover {
+                background: var(--primary-color);
+                color: white;
+                transform: translateY(-1px);
+            }
+            
+            .btn-secondary {
+                background: var(--bg-secondary);
+                color: var(--text-secondary);
+                border: 1px solid var(--border-color);
+            }
+            
+            .btn-secondary:hover {
+                background: var(--bg-accent);
+                transform: translateY(-1px);
             }
             
             .hero-section {
-                background: linear-gradient(135deg, var(--md-sys-color-primary) 0%, var(--md-sys-color-secondary) 100%);
-                color: var(--md-sys-color-on-primary);
-                padding: 80px 20px;
+                background: linear-gradient(135deg, var(--primary-color) 0%, #1e40af 50%, #1e3a8a 100%);
+                color: white;
+                padding: 120px 20px 80px;
                 text-align: center;
                 position: relative;
                 overflow: hidden;
@@ -89,28 +165,31 @@
                 right: 0;
                 bottom: 0;
                 background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-                opacity: 0.3;
+                opacity: 0.1;
             }
             
             .hero-content {
                 position: relative;
                 z-index: 1;
-                max-width: 800px;
+                max-width: 900px;
                 margin: 0 auto;
             }
             
             .hero-title {
-                font-size: 3.5rem;
+                font-size: clamp(2.5rem, 5vw, 4rem);
                 font-weight: 700;
-                margin-bottom: 1rem;
-                text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                margin-bottom: 1.5rem;
+                line-height: 1.2;
             }
             
             .hero-subtitle {
-                font-size: 1.25rem;
-                margin-bottom: 2rem;
-                opacity: 0.9;
+                font-size: clamp(1.125rem, 2.5vw, 1.375rem);
+                margin-bottom: 2.5rem;
+                opacity: 0.95;
                 font-weight: 400;
+                max-width: 600px;
+                margin-left: auto;
+                margin-right: auto;
             }
             
             .cta-buttons {
@@ -122,103 +201,168 @@
             
             .features-section {
                 padding: 80px 20px;
-                background-color: var(--md-sys-color-surface-variant);
+                background: var(--bg-secondary);
+            }
+            
+            .section-header {
+                text-align: center;
+                margin-bottom: 4rem;
+            }
+            
+            .section-title {
+                font-size: clamp(2rem, 4vw, 2.5rem);
+                font-weight: 700;
+                color: var(--text-primary);
+                margin-bottom: 1rem;
+            }
+            
+            .section-subtitle {
+                font-size: 1.125rem;
+                color: var(--text-secondary);
+                max-width: 600px;
+                margin: 0 auto;
             }
             
             .features-grid {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
                 gap: 2rem;
                 max-width: 1200px;
                 margin: 0 auto;
             }
             
             .feature-card {
-                background-color: var(--md-sys-color-surface);
-                border-radius: 16px;
-                padding: 2rem;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-                transition: transform 0.3s ease, box-shadow 0.3s ease;
-                border: 1px solid var(--md-sys-color-outline-variant);
+                background: var(--bg-primary);
+                border-radius: 1rem;
+                padding: 2.5rem 2rem;
+                box-shadow: var(--shadow-sm);
+                transition: all 0.3s ease;
+                border: 1px solid var(--border-color);
+                text-align: center;
             }
             
             .feature-card:hover {
                 transform: translateY(-8px);
-                box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+                box-shadow: var(--shadow-xl);
+                border-color: var(--primary-color);
             }
             
             .feature-icon {
                 font-size: 3rem;
-                color: var(--md-sys-color-primary);
-                margin-bottom: 1rem;
+                margin-bottom: 1.5rem;
+                display: block;
             }
             
             .feature-title {
-                font-size: 1.5rem;
+                font-size: 1.375rem;
                 font-weight: 600;
                 margin-bottom: 1rem;
-                color: var(--md-sys-color-on-surface);
+                color: var(--text-primary);
             }
             
             .feature-description {
-                color: var(--md-sys-color-on-surface-variant);
-                line-height: 1.6;
+                color: var(--text-secondary);
+                line-height: 1.7;
+                font-size: 0.95rem;
             }
             
-            .header {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                background-color: var(--md-sys-color-surface);
-                border-bottom: 1px solid var(--md-sys-color-outline-variant);
-                z-index: 1000;
-                backdrop-filter: blur(10px);
-                background-color: rgba(255, 251, 254, 0.8);
+            .stats-section {
+                padding: 80px 20px;
+                background: var(--bg-primary);
             }
             
-            .dark .header {
-                background-color: rgba(28, 27, 31, 0.8);
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 2rem;
+                max-width: 800px;
+                margin: 0 auto;
             }
             
-            .header-content {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 1rem 2rem;
+            .stat-item {
+                text-align: center;
+                padding: 2rem 1rem;
+            }
+            
+            .stat-number {
+                font-size: 3rem;
+                font-weight: 700;
+                color: var(--primary-color);
+                margin-bottom: 0.5rem;
+            }
+            
+            .stat-label {
+                color: var(--text-secondary);
+                font-weight: 500;
+            }
+            
+            .cta-section {
+                padding: 80px 20px;
+                background: linear-gradient(135deg, var(--bg-accent) 0%, var(--bg-secondary) 100%);
+                text-align: center;
+            }
+            
+            .cta-content {
+                max-width: 600px;
+                margin: 0 auto;
+            }
+            
+            .cta-title {
+                font-size: 2rem;
+                font-weight: 700;
+                color: var(--text-primary);
+                margin-bottom: 1rem;
+            }
+            
+            .cta-description {
+                color: var(--text-secondary);
+                margin-bottom: 2rem;
+                font-size: 1.125rem;
+            }
+            
+            .footer {
+                background: var(--text-primary);
+                color: white;
+                padding: 3rem 20px 2rem;
+                text-align: center;
+            }
+            
+            .footer-content {
                 max-width: 1200px;
                 margin: 0 auto;
             }
             
-            .logo {
-                font-size: 1.5rem;
-                font-weight: 700;
-                color: var(--md-sys-color-primary);
-                text-decoration: none;
-            }
-            
-            .nav-buttons {
+            .footer-links {
                 display: flex;
-                gap: 1rem;
+                justify-content: center;
+                gap: 2rem;
+                margin-bottom: 2rem;
+                flex-wrap: wrap;
             }
             
-            .theme-toggle {
-                background: none;
-                border: none;
-                color: var(--md-sys-color-on-surface);
-                cursor: pointer;
-                padding: 0.5rem;
-                border-radius: 50%;
-                transition: background-color 0.3s ease;
+            .footer-link {
+                color: var(--text-light);
+                text-decoration: none;
+                transition: color 0.3s ease;
             }
             
-            .theme-toggle:hover {
-                background-color: var(--md-sys-color-outline-variant);
+            .footer-link:hover {
+                color: white;
+            }
+            
+            .footer-bottom {
+                border-top: 1px solid var(--text-secondary);
+                padding-top: 2rem;
+                color: var(--text-light);
             }
             
             @media (max-width: 768px) {
-                .hero-title {
-                    font-size: 2.5rem;
+                .header-content {
+                    padding: 1rem;
+                }
+                
+                .hero-section {
+                    padding: 100px 20px 60px;
                 }
                 
                 .cta-buttons {
@@ -230,58 +374,56 @@
                     grid-template-columns: 1fr;
                 }
                 
-                .header-content {
-                    padding: 1rem;
+                .stats-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+                
+                .footer-links {
+                    flex-direction: column;
+                    gap: 1rem;
                 }
             }
-            </style>
+        </style>
     </head>
     <body>
-        <header class="header">
+        <header class="header" id="header">
             <div class="header-content">
-                <a href="/" class="logo">🎨 Exhibition App</a>
+                <a href="/" class="logo">
+                    <i class="bi bi-palette-fill logo-icon"></i>
+                    Exhibition App
+                </a>
                 <div class="nav-buttons">
-                    <button class="theme-toggle" onclick="toggleTheme()">
-                        <span class="material-icons" id="theme-icon">dark_mode</span>
-                    </button>
-            @if (Route::has('login'))
-                    @auth
-                            <a href="{{ url('/dashboard') }}" class="md-filled-button">
-                            Dashboard
-                        </a>
-                    @else
-                            <a href="{{ route('login') }}" class="md-filled-button">
-                            Log in
-                        </a>
-                        @if (Route::has('register'))
-                                <a href="{{ route('register') }}" class="md-outlined-button">
-                                Register
+                    @if (Route::has('login'))
+                        @auth
+                            <a href="{{ url('/dashboard') }}" class="btn btn-primary">
+                                <i class="bi bi-speedometer2"></i>
+                                Dashboard
                             </a>
-                        @endif
-                    @endauth
-            @endif
+                        @else
+                            <a href="{{ route('login') }}" class="btn btn-primary">
+                                <i class="bi bi-box-arrow-in-right"></i>
+                                Sign In
+                            </a>
+                        @endauth
+                    @endif
                 </div>
             </div>
         </header>
 
         <section class="hero-section">
             <div class="hero-content">
-                <h1 class="hero-title">Welcome to Exhibition App</h1>
-                <p class="hero-subtitle">Discover, showcase, and manage amazing exhibitions with our powerful platform</p>
+                <h1 class="hero-title">Transform Your Exhibitions</h1>
+                <p class="hero-subtitle">Professional exhibition management platform for artists, galleries, and event organizers. Create stunning showcases, manage bookings, and connect with audiences worldwide.</p>
                 <div class="cta-buttons">
                     @auth
-                        <a href="{{ url('/dashboard') }}" class="md-filled-button">
-                            <span class="material-icons">dashboard</span>
+                        <a href="{{ url('/dashboard') }}" class="btn btn-outline">
+                            <i class="bi bi-speedometer2"></i>
                             Go to Dashboard
                         </a>
                     @else
-                        <a href="{{ route('login') }}" class="md-filled-button">
-                            <span class="material-icons">login</span>
+                        <a href="{{ route('login') }}" class="btn btn-outline">
+                            <i class="bi bi-rocket-takeoff"></i>
                             Get Started
-                        </a>
-                        <a href="{{ route('register') }}" class="md-outlined-button">
-                            <span class="material-icons">person_add</span>
-                            Create Account
                         </a>
                     @endauth
                 </div>
@@ -289,68 +431,116 @@
         </section>
 
         <section class="features-section">
+            <div class="section-header">
+                <h2 class="section-title">Why Choose Exhibition App?</h2>
+                <p class="section-subtitle">Built for modern exhibition management with powerful features that streamline your workflow</p>
+            </div>
             <div class="features-grid">
                 <div class="feature-card">
-                    <div class="feature-icon">🖼️</div>
-                    <h3 class="feature-title">Exhibition Management</h3>
-                    <p class="feature-description">Create and manage exhibitions with ease. Organize artwork, set schedules, and track visitor engagement.</p>
+                    <i class="bi bi-grid-3x3-gap-fill feature-icon" style="color: var(--primary-color);"></i>
+                    <h3 class="feature-title">Smart Booth Management</h3>
+                    <p class="feature-description">Easily manage booth assignments, track availability, and handle complex floorplan layouts with our intuitive interface.</p>
                 </div>
                 
                 <div class="feature-card">
-                    <div class="feature-icon">👥</div>
-                    <h3 class="feature-title">Artist Profiles</h3>
-                    <p class="feature-description">Showcase artist portfolios, manage submissions, and connect creators with art enthusiasts worldwide.</p>
+                    <i class="bi bi-people-fill feature-icon" style="color: var(--success-color);"></i>
+                    <h3 class="feature-title">Member Registration</h3>
+                    <p class="feature-description">Streamlined member management with custom forms, QR codes for check-ins, and automated email communications.</p>
                 </div>
                 
                 <div class="feature-card">
-                    <div class="feature-icon">📊</div>
-                    <h3 class="feature-title">Analytics & Insights</h3>
-                    <p class="feature-description">Track visitor statistics, analyze engagement patterns, and optimize your exhibitions for better results.</p>
+                    <i class="bi bi-credit-card-fill feature-icon" style="color: var(--accent-color);"></i>
+                    <h3 class="feature-title">Payment Processing</h3>
+                    <p class="feature-description">Secure payment handling with Paystack integration, automated receipts, and comprehensive financial tracking.</p>
                 </div>
                 
                 <div class="feature-card">
-                    <div class="feature-icon">🌐</div>
-                    <h3 class="feature-title">Global Reach</h3>
-                    <p class="feature-description">Share your exhibitions with audiences worldwide through our integrated digital platform.</p>
+                    <i class="bi bi-envelope-fill feature-icon" style="color: var(--warning-color);"></i>
+                    <h3 class="feature-title">Email Automation</h3>
+                    <p class="feature-description">Automated email workflows for registrations, confirmations, and updates with customizable templates.</p>
                 </div>
                 
                 <div class="feature-card">
-                    <div class="feature-icon">🔒</div>
-                    <h3 class="feature-title">Secure & Reliable</h3>
-                    <p class="feature-description">Built with modern security standards to protect your data and ensure smooth operation.</p>
-        </div>
-
+                    <i class="bi bi-phone-fill feature-icon" style="color: var(--primary-color);"></i>
+                    <h3 class="feature-title">Mobile Responsive</h3>
+                    <p class="feature-description">Fully responsive design that works perfectly on all devices, from desktop to mobile phones.</p>
+                </div>
+                
                 <div class="feature-card">
-                    <div class="feature-icon">📱</div>
-                    <h3 class="feature-title">Mobile Friendly</h3>
-                    <p class="feature-description">Access and manage your exhibitions from any device with our responsive design.</p>
+                    <i class="bi bi-shield-check feature-icon" style="color: var(--success-color);"></i>
+                    <h3 class="feature-title">Enterprise Security</h3>
+                    <p class="feature-description">Built with modern security standards, secure access tokens, and robust data protection measures.</p>
                 </div>
             </div>
         </section>
 
+        <section class="stats-section">
+            <div class="section-header">
+                <h2 class="section-title">Trusted by Exhibition Professionals</h2>
+                <p class="section-subtitle">Join thousands of organizers who trust our platform</p>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">500+</div>
+                    <div class="stat-label">Exhibitions Managed</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">10K+</div>
+                    <div class="stat-label">Booths Booked</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">50K+</div>
+                    <div class="stat-label">Members Registered</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">99.9%</div>
+                    <div class="stat-label">Uptime</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta-section">
+            <div class="cta-content">
+                <h2 class="cta-title">Ready to Get Started?</h2>
+                <p class="cta-description">Join the community of exhibition professionals and transform how you manage your events.</p>
+                @auth
+                    <a href="{{ url('/dashboard') }}" class="btn btn-primary">
+                        <i class="bi bi-speedometer2"></i>
+                        Access Dashboard
+                    </a>
+                @else
+                    <a href="{{ route('login') }}" class="btn btn-primary">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        Sign In Now
+                    </a>
+                @endauth
+            </div>
+        </section>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-links">
+                    <a href="#" class="footer-link">About Us</a>
+                    <a href="#" class="footer-link">Features</a>
+                    <a href="#" class="footer-link">Support</a>
+                    <a href="#" class="footer-link">Contact</a>
+                </div>
+                <div class="footer-bottom">
+                    <p>&copy; {{ date('Y') }} Exhibition App. All rights reserved.</p>
+                </div>
+            </div>
+        </footer>
+
         <script>
-            // Theme toggle functionality
-            function toggleTheme() {
-                const body = document.body;
-                const themeIcon = document.getElementById('theme-icon');
-                
-                if (body.classList.contains('dark')) {
-                    body.classList.remove('dark');
-                    themeIcon.textContent = 'dark_mode';
-                    localStorage.setItem('theme', 'light');
+            // Header scroll effect
+            window.addEventListener('scroll', function() {
+                const header = document.getElementById('header');
+                if (window.scrollY > 50) {
+                    header.classList.add('scrolled');
                 } else {
-                    body.classList.add('dark');
-                    themeIcon.textContent = 'light_mode';
-                    localStorage.setItem('theme', 'dark');
+                    header.classList.remove('scrolled');
                 }
-            }
-            
-            // Check for saved theme preference
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.body.classList.add('dark');
-                document.getElementById('theme-icon').textContent = 'light_mode';
-            }
+            });
             
             // Smooth scrolling for navigation
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
