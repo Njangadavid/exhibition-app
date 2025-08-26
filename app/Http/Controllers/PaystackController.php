@@ -268,8 +268,8 @@ class PaystackController extends Controller
                     'amount' => $transaction->data->amount / 100
                 ]);
 
-                return redirect()->route('bookings.success', ['eventSlug' => $eventSlug, 'accessToken' => $booking->access_token])
-                    ->with('success', 'Payment successful! Your booking has been confirmed.');
+                return redirect()->route('bookings.success', ['eventSlug' => $eventSlug, 'accessToken' => $boothOwner->access_token])
+                    ->with('success', 'Payment completed successfully!');
             } else {
                 // Payment failed
                 $payment = Payment::where('gateway_transaction_id', $reference)->first();
@@ -286,7 +286,7 @@ class PaystackController extends Controller
                     'response' => $transaction
                 ]);
 
-                return redirect()->route('bookings.payment', ['eventSlug' => $eventSlug, 'accessToken' => $booking->access_token])
+                return redirect()->route('bookings.payment', ['eventSlug' => $eventSlug, 'accessToken' => $boothOwner->access_token])
                     ->with('error', 'Payment failed. Please try again.');
             }
         } catch (\Exception $e) {
@@ -301,7 +301,7 @@ class PaystackController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
 
-            return redirect()->route('bookings.payment', ['eventSlug' => $eventSlug, 'accessToken' => $booking->access_token])
+            return redirect()->route('bookings.payment', ['eventSlug' => $eventSlug, 'accessToken' => $boothOwner->access_token])
                 ->with('error', 'Payment verification failed. Please contact support.');
         }
     }

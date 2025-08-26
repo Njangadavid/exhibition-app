@@ -107,7 +107,7 @@
                             <!-- Step 1: Select Space -->
                             @if(isset($booking) && $booking->access_token)
                             <!-- Always clickable if access token exists -->
-                            <a href="{{ route('events.public.floorplan-token', ['event' => $event->slug, 'accessToken' => $booking->access_token]) }}" class="text-decoration-none">
+                            <a href="{{ route('events.public.floorplan-token', ['event' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]) }}" class="text-decoration-none">
                                 <div class="d-flex align-items-center">
                                     <span class="badge {{ $currentStep == 1 ? 'bg-primary' : 'bg-success' }} rounded-pill me-2">1</span>
                                     <small class="{{ $currentStep == 1 ? 'text-primary fw-medium' : 'text-success' }}">Select Space</small>
@@ -125,7 +125,7 @@
                             <!-- Step 2: Owner Details -->
                             @if(isset($booking) && $booking->access_token)
                             <!-- Always clickable if access token exists -->
-                            <a href="{{ route('bookings.owner-form-token', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]) }}" class="text-decoration-none">
+                            <a href="{{ route('bookings.owner-form-token', ['eventSlug' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]) }}" class="text-decoration-none">
                                 <div class="d-flex align-items-center">
                                     <span class="badge {{ $currentStep == 2 ? 'bg-primary' : 'bg-success' }} rounded-pill me-2">2</span>
                                     <small class="{{ $currentStep == 2 ? 'text-primary fw-medium' : 'text-success' }}">Owner Details</small>
@@ -143,7 +143,7 @@
                             <!-- Step 3: Add Members -->
                             @if(isset($booking) && $booking->access_token)
                             <!-- Always clickable if access token exists -->
-                            <a href="{{ route('bookings.member-form', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]) }}" class="text-decoration-none">
+                            <a href="{{ route('bookings.member-form', ['eventSlug' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]) }}" class="text-decoration-none">
                                 <div class="d-flex align-items-center">
                                     <span class="badge {{ $currentStep == 3 ? 'bg-primary' : 'bg-success' }} rounded-pill me-2">3</span>
                                     <small class="{{ $currentStep == 3 ? 'text-primary fw-medium' : 'text-success' }}">Add Members</small>
@@ -161,7 +161,7 @@
                             <!-- Step 4: Payment -->
                             @if(isset($booking) && $booking->access_token)
                             <!-- Always clickable if access token exists -->
-                            <a href="{{ route('bookings.payment', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]) }}" class="text-decoration-none">
+                            <a href="{{ route('bookings.payment', ['eventSlug' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]) }}" class="text-decoration-none">
                                 <div class="d-flex align-items-center position-relative">
                                     <span class="badge {{ $currentStep == 4 ? 'bg-primary' : ($booking->balance > 0 ? 'bg-danger' : 'bg-success') }} rounded-pill me-2">4</span>
                                     <small class="{{ $currentStep == 4 ? 'text-primary fw-medium' : ($booking->balance > 0 ? 'text-danger fw-bold' : 'text-success') }}">Payment</small>
@@ -193,7 +193,7 @@
                             <!-- Step 5: Receipt -->
                             @if(isset($booking) && $booking->access_token && $booking->hasCompletedPayments())
                             <!-- Only visible if there's a completed payment -->
-                            <a href="{{ route('bookings.receipt', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]) }}" class="text-decoration-none">
+                            <a href="{{ route('bookings.receipt', ['eventSlug' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]) }}" class="text-decoration-none">
                                 <div class="d-flex align-items-center">
                                     <span class="badge {{ $currentStep == 5 ? 'bg-primary' : 'bg-success' }} rounded-pill me-2">5</span>
                                     <small class="{{ $currentStep == 5 ? 'text-primary fw-medium' : 'text-success' }}">Receipt</small>
@@ -221,7 +221,7 @@
                                 <div class="row g-1 mt-1">
                                     <div class="col text-center">
                                         @if(isset($booking) && $booking->access_token)
-                                        <a href="{{ route('events.public.floorplan-token', ['event' => $event->slug, 'accessToken' => $booking->access_token]) }}" class="text-decoration-none">
+                                        <a href="{{ route('events.public.floorplan-token', ['event' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]) }}" class="text-decoration-none">
                                             <div class="d-flex flex-column align-items-center">
                                                 <span class="badge {{ (isset($currentStep) && $currentStep >= 1) ? ($currentStep == 1 ? 'bg-primary' : 'bg-success') : 'bg-secondary' }} rounded-pill mb-1">1</span>
                                                 <small class="{{ (isset($currentStep) && $currentStep >= 1) ? ($currentStep == 1 ? 'text-primary' : 'text-success') : 'text-muted' }}" style="font-size: 0.7rem;">Select</small>
@@ -236,7 +236,7 @@
                                     </div>
                                     <div class="col text-center">
                                         @if(isset($booking) && $booking->access_token)
-                                        <a href="{{ route('bookings.owner-form-token', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]) }}" class="text-decoration-none">
+                                        <a href="{{ route('bookings.owner-form-token', ['eventSlug' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]) }}" class="text-decoration-none">
                                             <div class="d-flex flex-column align-items-center">
                                                 <span class="badge {{ (isset($currentStep) && $currentStep >= 2) ? ($currentStep == 2 ? 'bg-primary' : 'bg-success') : 'bg-secondary' }} rounded-pill mb-1">2</span>
                                                 <small class="{{ (isset($currentStep) && $currentStep >= 2) ? ($currentStep == 2 ? 'text-primary' : 'text-success') : 'text-muted' }}" style="font-size: 0.7rem;">Details</small>
@@ -251,7 +251,7 @@
                                     </div>
                                     <div class="col text-center">
                                         @if(isset($booking) && $booking->access_token)
-                                        <a href="{{ route('bookings.member-form', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]) }}" class="text-decoration-none">
+                                        <a href="{{ route('bookings.member-form', ['eventSlug' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]) }}" class="text-decoration-none">
                                             <div class="d-flex flex-column align-items-center">
                                                 <span class="badge {{ (isset($currentStep) && $currentStep >= 3) ? ($currentStep == 3 ? 'bg-primary' : 'bg-success') : 'bg-secondary' }} rounded-pill mb-1">3</span>
                                                 <small class="{{ (isset($currentStep) && $currentStep >= 3) ? ($currentStep == 3 ? 'text-primary' : 'text-success') : 'text-muted' }}" style="font-size: 0.7rem;">Members</small>
@@ -266,7 +266,7 @@
                                     </div>
                                     <div class="col text-center">
                                         @if(isset($booking) && $booking->access_token)
-                                        <a href="{{ route('bookings.payment', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]) }}" class="text-decoration-none">
+                                        <a href="{{ route('bookings.payment', ['eventSlug' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]) }}" class="text-decoration-none">
                                             <div class="d-flex flex-column align-items-center position-relative">
                                                 <span class="badge {{ (isset($currentStep) && $currentStep >= 4) ? ($currentStep == 4 ? 'bg-primary' : ($booking->balance > 0 ? 'bg-danger' : 'bg-success')) : 'bg-secondary' }} rounded-pill mb-1">4</span>
                                                 <small class="{{ (isset($currentStep) && $currentStep >= 4) ? ($currentStep == 4 ? 'text-primary' : ($booking->balance > 0 ? 'text-danger fw-bold' : 'text-success')) : 'text-muted' }}" style="font-size: 0.7rem;">Payment</small>
@@ -296,7 +296,7 @@
                                     <div class="col text-center">
                                         @if(isset($booking) && $booking->access_token && $booking->hasCompletedPayments())
                                         <!-- Only visible if there's a completed payment -->
-                                        <a href="{{ route('bookings.receipt', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]) }}" class="text-decoration-none">
+                                        <a href="{{ route('bookings.receipt', ['eventSlug' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]) }}" class="text-decoration-none">
                                             <div class="d-flex flex-column align-items-center">
                                                 <span class="badge {{ (isset($currentStep) && $currentStep >= 5) ? ($currentStep == 5 ? 'bg-primary' : 'bg-success') : 'bg-secondary' }} rounded-pill mb-1">5</span>
                                                 <small class="{{ (isset($currentStep) && $currentStep >= 5) ? ($currentStep == 5 ? 'text-primary' : 'text-success') : 'text-muted' }}" style="font-size: 0.7rem;">Receipt</small>

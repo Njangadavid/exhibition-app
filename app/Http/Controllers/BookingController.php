@@ -229,8 +229,8 @@ class BookingController extends Controller
                 ]);
 
                 // Update existing booking
-                $existingBooking->update([
-                    'owner_details' => [
+                $existingBooking->boothOwner->update([
+                    'form_responses' => [
                         'name' => $request->owner_name,
                         'email' => $request->owner_email,
                         'phone' => $request->owner_phone,
@@ -344,109 +344,6 @@ class BookingController extends Controller
 
     /**
      * Show the member registration form.
-     */
-    public function showMemberForm($eventSlug, $accessToken)
-    {
-        Log::info('=== MEMBER FORM LOADING START ===', [
-            'event_slug' => $eventSlug,
-            'access_token' => $accessToken
-        ]);
-
-        $event = Event::where('slug', $eventSlug)->firstOrFail();
-        
-        // Find booth owner by access token, then get the booking
-        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
-        $booking = $boothOwner->booking;
-        
-        if (!$booking) {
-            Log::error('Booth owner found but no booking associated', [
-                'booth_owner_id' => $boothOwner->id,
-                'access_token' => $accessToken
-            ]);
-            return redirect()->route('events.public.floorplan', $eventSlug)
-                ->with('error', 'No booking found for this access token. Please start over.');
-        }
-
-        Log::info('Event and booking loaded', [
-            'event_id' => $event->id,
-            'booking_reference' => $booking->booking_reference
-        ]);
-
-        // Verify access token is valid
-        if (!$booking->isAccessTokenValid()) {
-            Log::warning('Invalid or expired access token', [
-                'access_token' => $accessToken,
-                'booking_id' => $booking->id
-            ]);
-            return redirect()->route('events.public.floorplan', $eventSlug)
-                ->with('error', 'Invalid or expired access link. Please start over.');
-        }
-
-        Log::info('Access token verification passed');
-
-        // Get the member registration form for this event
-        // First try to find a member_registration form, then fall back to any form
-        $memberForm = FormBuilder::where('event_id', $event->id)
-            ->where('type', 'member_registration')
-            ->first();
-
-        if (!$memberForm) {
-            // Fallback: use any available form for this event
-            $memberForm = FormBuilder::where('event_id', $event->id)->first();
-            Log::info('No member_registration form found, using fallback form', [
-                'fallback_form_id' => $memberForm?->id,
-                'fallback_form_name' => $memberForm?->name,
-                'fallback_form_type' => $memberForm?->type
-            ]);
-        }
-
-        Log::info('Member form search result', [
-            'form_found' => $memberForm ? true : false,
-            'form_id' => $memberForm?->id,
-            'form_name' => $memberForm?->name,
-            'form_type' => $memberForm?->type
-        ]);
-
-        if (!$memberForm) {
-            Log::warning('No forms found for this event - redirecting back');
-            return redirect()->back()->with('error', 'No registration forms found for this event. Please contact the organizer.');
-        }
-
-        // Load booth members for display with form field information
-        $boothMembers = $boothOwner->boothMembers;
-        
-        // Get form fields to map field_purpose to field_id
-        $formFields = [];
-        if ($memberForm) {
-            $formFields = \App\Models\FormField::where('form_builder_id', $memberForm->id)
-                ->where('type', '!=', 'section')
-                ->get()
-                ->keyBy('field_id');
-        }
-        
-        // Transform booth members to include form fields
-        $transformedBoothMembers = $boothMembers->map(function($member) use ($formFields) {
-            return [
-                'id' => $member->id,
-                'qr_code' => $member->qr_code,
-                'status' => $member->status,
-                'form_responses' => $member->form_responses,
-                'form_fields' => $formFields // Include form fields for frontend use
-            ];
-        });
-        
-        Log::info('Member form view loading successfully', [
-            'booking_id' => $booking->id,
-            'booth_members_count' => $boothMembers->count(),
-            'form_fields_count' => $formFields->count(),
-            'transformed_booth_members' => $transformedBoothMembers
-        ]);
-        
-        return view('bookings.member-form', compact('event', 'booking', 'memberForm', 'transformedBoothMembers'));
-    }
-
-    /**
-     * Process member registration.
      */
 //    public function processMemberForm(Request $request, $eventSlug, $accessToken)
 //    {
@@ -1295,7 +1192,12 @@ class BookingController extends Controller
                     $item->remaining_amount = $activeBooking->remaining_amount;
 
                     // Add owner details for company information display
-                    $item->owner_details = $activeBooking->owner_details;
+                    $item->owner_details = [
+                        'company_name' => $activeBooking->boothOwner?->form_responses['company_name'] ?? 'Company not specified',
+                        'name' => $activeBooking->boothOwner?->form_responses['name'] ?? 'Contact not specified',
+                        'email' => $activeBooking->boothOwner?->form_responses['email'] ?? 'Email not specified',
+                        'phone' => $activeBooking->boothOwner?->form_responses['phone'] ?? 'Phone not specified'
+                    ];
 
                     // Check if this is the user's current booking
                     if ($existingBooking && $existingBooking->floorplan_item_id == $item->id) {
@@ -1329,15 +1231,15 @@ class BookingController extends Controller
             abort(404, 'Event not found.');
         }
 
-        // Find existing booking via access token
-        $existingBooking = $event->bookings()
-            ->where('access_token', $accessToken)
+        // Find booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)
             ->where('access_token_expires_at', '>', now())
-            ->with(['floorplanItem'])
-            ->first();
-
+            ->firstOrFail();
+        
+        $existingBooking = $boothOwner->booking;
+        
         if (!$existingBooking) {
-            abort(404, 'Invalid or expired access link.');
+            abort(404, 'No booking found for this access token. Please start over.');
         }
 
         // Load floorplan data with items if exists
@@ -1367,7 +1269,12 @@ class BookingController extends Controller
                     $item->remaining_amount = $activeBooking->remaining_amount;
 
                     // Add owner details for company information display
-                    $item->owner_details = $activeBooking->owner_details;
+                    $item->owner_details = [
+                        'company_name' => $activeBooking->boothOwner?->form_responses['company_name'] ?? 'Company not specified',
+                        'name' => $activeBooking->boothOwner?->form_responses['name'] ?? 'Contact not specified',
+                        'email' => $activeBooking->boothOwner?->form_responses['email'] ?? 'Email not specified',
+                        'phone' => $activeBooking->boothOwner?->form_responses['phone'] ?? 'Phone not specified'
+                    ];
 
                     // Check if this is the user's current booking
                     if ($existingBooking->floorplan_item_id == $item->id) {

@@ -167,7 +167,7 @@ class SendEmailJob implements ShouldQueue
         $event = $booking->event;
         $accountLink = route('bookings.owner-form-token', [
             'eventSlug' => $event->slug,
-            'accessToken' => $booking->access_token
+            'accessToken' => $booking->boothOwner->access_token
         ]);
 
         $footer = '
