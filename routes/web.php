@@ -279,6 +279,103 @@ Route::prefix('artisan')->group(function () {
             ], 500);
         }
     })->name('artisan.list');
+
+    // Build Vite assets for production
+    Route::get('/build', function () {
+        try {
+            // Check if npm is available
+            $npmPath = shell_exec('which npm 2>&1');
+            if (empty($npmPath)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'NPM is not available on this server. Please build assets locally and upload them.',
+                    'instructions' => [
+                        '1. Run "npm run build" locally',
+                        '2. Upload the "public/build" folder to your server',
+                        '3. Ensure the build folder is in your public_html/public/ directory'
+                    ]
+                ], 500);
+            }
+
+            // Check if package.json exists
+            if (!file_exists(base_path('package.json'))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'package.json not found. Please ensure you have the correct project structure.'
+                ], 500);
+            }
+
+            // Install dependencies if node_modules doesn't exist
+            if (!is_dir(base_path('node_modules'))) {
+                \Artisan::call('shell_exec', ['command' => 'npm install']);
+            }
+
+            // Build assets
+            $buildCommand = 'npm run build';
+            $output = shell_exec($buildCommand . ' 2>&1');
+            
+            if (file_exists(public_path('build/manifest.json'))) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Vite assets built successfully!',
+                    'output' => $output,
+                    'manifest_exists' => true,
+                    'build_path' => public_path('build')
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Build completed but manifest.json not found. Check the output for errors.',
+                    'output' => $output,
+                    'manifest_exists' => false
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error building assets: ' . $e->getMessage(),
+                'instructions' => [
+                    '1. Run "npm run build" locally',
+                    '2. Upload the "public/build" folder to your server',
+                    '3. Ensure the build folder is in your public_html/public/ directory'
+                ]
+            ], 500);
+        }
+    })->name('artisan.build');
+
+    // Check Vite build status
+    Route::get('/build-status', function () {
+        try {
+            $manifestPath = public_path('build/manifest.json');
+            $buildDir = public_path('build');
+            
+            $status = [
+                'manifest_exists' => file_exists($manifestPath),
+                'build_dir_exists' => is_dir($buildDir),
+                'manifest_path' => $manifestPath,
+                'build_dir_path' => $buildDir,
+                'build_dir_contents' => is_dir($buildDir) ? scandir($buildDir) : [],
+                'public_path' => public_path(),
+                'base_path' => base_path()
+            ];
+            
+            if (file_exists($manifestPath)) {
+                $manifest = json_decode(file_get_contents($manifestPath), true);
+                $status['manifest_content'] = $manifest;
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Build status checked successfully!',
+                'status' => $status
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error checking build status: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('artisan.build-status');
 });
 
 require __DIR__.'/auth.php';
