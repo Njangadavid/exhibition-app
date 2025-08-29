@@ -227,10 +227,6 @@
             <i class="bi bi-envelope me-2"></i>Resend Payment Email
         </button>
          
-         <a href="{{ route('bookings.owner-form-token', ['eventSlug' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]) }}"
-             class="btn btn-outline-secondary btn-lg">
-              <i class="bi bi-pencil-square me-2"></i>Edit Details
-          </a>
                
     </div>
 </div>

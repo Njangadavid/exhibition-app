@@ -30,7 +30,7 @@ $hasCompletedPayment = $booking->hasCompletedPayments();
                         <div>
                             <h6 class="mb-1">Payment Completed!</h6>
                             <p class="mb-2">Your booking has been confirmed. You can view your receipt or continue with any remaining balance.</p>
-                            <a href="{{ route('bookings.receipt', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]) }}" class="btn btn-outline-success btn-sm">
+                            <a href="{{ route('bookings.receipt', ['eventSlug' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]) }}" class="btn btn-outline-success btn-sm">
                                 <i class="bi bi-receipt me-1"></i>View Receipt
                             </a>
                         </div>
@@ -76,7 +76,7 @@ $hasCompletedPayment = $booking->hasCompletedPayments();
                                 <h6 class="fw-bold text-primary mb-3">Space Details</h6>
 
                                 <div class="mb-2">
-                                    <strong>Space:</strong> {{ $booking->floorplanItem->label ?? 'N/A' }}
+                                    <strong>Booth Number:</strong> {{ $booking->floorplanItem->label ?? 'N/A' }}
                                 </div>
                                 <div class="mb-2">
                                     <strong>Type:</strong> {{ ucfirst($booking->floorplanItem->type ?? 'booth') }}
@@ -85,7 +85,7 @@ $hasCompletedPayment = $booking->hasCompletedPayments();
                                     <strong>Capacity:</strong> {{ $booking->floorplanItem->max_capacity ?? 5 }} members
                                 </div>
                                 <div class="mb-2">
-                                    <strong>Members Registered:</strong> {{ count($booking->member_details ?? []) }}
+                                    <strong>Members Registered:</strong> {{ $booking->boothMembers ? count($booking->boothMembers) : 0 }}
                                 </div>
                             </div>
 
@@ -93,16 +93,16 @@ $hasCompletedPayment = $booking->hasCompletedPayments();
                             <div class="col-md-6">
                                 <h6 class="fw-bold text-primary mb-3">Owner Details</h6>
                                 <div class="mb-2">
-                                    <strong>Name:</strong> {{ $booking->owner_details['name'] ?? 'N/A' }}
+                                    <strong>Name:</strong> {{ $booking->boothOwner->form_responses['name'] ?? 'N/A' }}
                                 </div>
                                 <div class="mb-2">
-                                    <strong>Email:</strong> {{ $booking->owner_details['email'] ?? 'N/A' }}
+                                    <strong>Email:</strong> {{ $booking->boothOwner->form_responses['email'] ?? 'N/A' }}
                                 </div>
                                 <div class="mb-2">
-                                    <strong>Phone:</strong> {{ $booking->owner_details['phone'] ?? 'N/A' }}
+                                    <strong>Phone:</strong> {{ $booking->boothOwner->form_responses['phone'] ?? 'N/A' }}
                                 </div>
                                 <div class="mb-2">
-                                    <strong>Company:</strong> {{ $booking->owner_details['company_name'] ?? 'N/A' }}
+                                    <strong>Company:</strong> {{ $booking->boothOwner->form_responses['company_name'] ?? 'N/A' }}
                                 </div>
                             </div>
                         </div>
@@ -117,7 +117,7 @@ $hasCompletedPayment = $booking->hasCompletedPayments();
                                     <span>${{ number_format($totalAmount, 2) }}</span>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span>Members ({{ count($booking->member_details ?? []) }} registered)</span>
+                                    <span>Exhibitors ({{ $booking->boothMembers ? count($booking->boothMembers) : 0 }} registered)</span>
                                     <span class="text-success">Included</span>
                                 </div>
 
@@ -176,7 +176,7 @@ $hasCompletedPayment = $booking->hasCompletedPayments();
                                             @endif
                                             <h6 class="card-title mt-2">{{ $defaultPaymentMethod->name }}</h6>
                                             <p class="card-text text-muted small">{{ $defaultPaymentMethod->description ?? 'Secure payment processing' }}</p>
-                                            <form action="{{ route('bookings.process-payment', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]) }}" method="POST" class="d-inline">
+                                            <form action="{{ route('bookings.process-payment', ['eventSlug' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]) }}" method="POST" class="d-inline">
                                                 @csrf
                                                 <button type="submit" class="btn btn-success btn-lg mt-2">
                                                     <i class="bi bi-credit-card me-1"></i>Pay Balance ${{ number_format($balance, 2) }}
@@ -213,7 +213,7 @@ $hasCompletedPayment = $booking->hasCompletedPayments();
                         </div>
 
                         <div class="d-flex justify-content-center gap-3">
-                            <a href="{{ route('bookings.receipt', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]) }}" class="btn btn-success btn-lg">
+                            <a href="{{ route('bookings.receipt', ['eventSlug' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]) }}" class="btn btn-success btn-lg">
                                 <i class="bi bi-receipt me-2"></i>View Receipt
                             </a>
 

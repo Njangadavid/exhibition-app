@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Validation\ValidationException;
+
 use Illuminate\Http\Request;
 use App\Models\Event;
 use App\Models\FloorplanDesign;
@@ -204,7 +206,16 @@ class EventController extends Controller
      */
     public function saveFloorplan(Request $request, Event $event)
     {
-        $validated = $request->validate([
+        try {
+            // Log the incoming request data
+            \Illuminate\Support\Facades\Log::info('Floorplan save request received', [
+                'event_id' => $event->id,
+                'request_data' => $request->all(),
+                'items_count' => count($request->input('items', [])),
+                'sample_item' => $request->input('items.0', 'No items')
+            ]);
+            
+            $validated = $request->validate([
             // Floorplan design properties
             'name' => 'string|max:255',
             'canvas_size' => 'string',
@@ -227,6 +238,12 @@ class EventController extends Controller
             'default_label_position' => 'string|in:top,bottom,left,right,center',
             'default_price' => 'numeric',
             'enable_auto_labeling' => 'boolean',
+            'default_booth_width_meters' => 'numeric|min:0.1|max:100',
+            'default_booth_height_meters' => 'numeric|min:0.1|max:100',
+            'default_label_font_size' => 'integer|min:8|max:72',
+            'default_label_background_color' => 'string|regex:/^#[0-9A-F]{6}$/i',
+            'default_label_color' => 'string|regex:/^#[0-9A-F]{6}$/i',
+
             
             // Items array
             'items' => 'array',
@@ -238,21 +255,44 @@ class EventController extends Controller
             'items.*.height' => 'nullable|numeric',
             'items.*.radius' => 'nullable|numeric',
             'items.*.size' => 'nullable|numeric',
-            'items.*.rotation' => 'numeric',
-            'items.*.fill_color' => 'string',
-            'items.*.stroke_color' => 'string',
-            'items.*.border_width' => 'integer',
+            'items.*.rotation' => 'nullable|numeric',
+            'items.*.fill_color' => 'nullable|string',
+            'items.*.stroke_color' => 'nullable|string',
+            'items.*.border_width' => 'nullable|integer',
+            'items.*.font_family' => 'nullable|string',
+            'items.*.font_size' => 'nullable|integer',
+            'items.*.text_color' => 'nullable|string',
             'items.*.bookable' => 'boolean',
-            'items.*.max_capacity' => 'integer',
+            'items.*.max_capacity' => 'nullable|integer',
             'items.*.label' => 'nullable|string',
             'items.*.item_name' => 'nullable|string',
             'items.*.price' => 'nullable|numeric',
             'items.*.label_position' => 'nullable|string|in:top,bottom,left,right,center',
             'items.*.text_content' => 'nullable|string',
+            'items.*.label_font_size' => 'nullable|integer|min:8|max:72',
+            'items.*.label_background_color' => 'nullable|string|regex:/^#[0-9A-F]{6}$/i',
+            'items.*.label_color' => 'nullable|string|regex:/^#[0-9A-F]{6}$/i',
+            'items.*.booth_width_meters' => 'nullable|numeric|min:0.1|max:100',
+            'items.*.booth_height_meters' => 'nullable|numeric|min:0.1|max:100',
         ]);
+        
+        } catch (ValidationException $e) {
+            \Illuminate\Support\Facades\Log::warning('Floorplan validation failed', [
+                'event_id' => $event->id,
+                'errors' => $e->errors(),
+                'request_data' => $request->all()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Floorplan validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        }
 
         try {
             DB::beginTransaction();
+            \Illuminate\Support\Facades\Log::info('Database transaction started for floorplan save');
 
             // Create or update floorplan design
             $floorplanDesign = $event->floorplanDesign()->updateOrCreate(
@@ -262,14 +302,30 @@ class EventController extends Controller
                 }, ARRAY_FILTER_USE_KEY)
             );
 
+            \Illuminate\Support\Facades\Log::info('Floorplan design created/updated', [
+                'floorplan_id' => $floorplanDesign->id,
+                'event_id' => $event->id
+            ]);
+
             if (isset($validated['items'])) {
                 // Get existing items to preserve IDs
                 $existingItems = $floorplanDesign->items()->get()->keyBy('item_id');
                 $newItemIds = collect($validated['items'])->pluck('item_id')->toArray();
                 
+                \Illuminate\Support\Facades\Log::info('Processing floorplan items', [
+                    'existing_count' => $existingItems->count(),
+                    'new_count' => count($validated['items']),
+                    'sample_item_data' => $validated['items'][0] ?? 'No items'
+                ]);
+                
                 // Delete items that are no longer in the floorplan
                 $itemsToDelete = $existingItems->keys()->diff($newItemIds);
                 if ($itemsToDelete->count() > 0) {
+                    \Illuminate\Support\Facades\Log::info('Items to be deleted', [
+                        'item_ids_to_delete' => $itemsToDelete->toArray(),
+                        'floorplan_id' => $floorplanDesign->id
+                    ]);
+                    
                     // Check if any of these items have bookings
                     $itemsWithBookings = $floorplanDesign->items()
                         ->whereIn('item_id', $itemsToDelete)
@@ -277,6 +333,10 @@ class EventController extends Controller
                         ->get();
                     
                     if ($itemsWithBookings->count() > 0) {
+                        \Illuminate\Support\Facades\Log::warning('Cannot delete items with existing bookings', [
+                            'items_with_bookings' => $itemsWithBookings->pluck('item_name', 'item_id')
+                        ]);
+                        
                         DB::rollBack();
                         return response()->json([
                             'success' => false,
@@ -286,24 +346,55 @@ class EventController extends Controller
                     }
                     
                     $floorplanDesign->items()->whereIn('item_id', $itemsToDelete)->delete();
+                    \Illuminate\Support\Facades\Log::info('Deleted floorplan items', ['deleted_count' => $itemsToDelete->count()]);
                 }
                 
                 // Update or create items
-                foreach ($validated['items'] as $itemData) {
+                foreach ($validated['items'] as $index => $itemData) {
+                    \Illuminate\Support\Facades\Log::info('Processing item', [
+                        'index' => $index,
+                        'item_id' => $itemData['item_id'],
+                        'type' => $itemData['type'],
+                        'fill_color' => $itemData['fill_color'],
+                        'stroke_color' => $itemData['stroke_color'],
+                        'border_width' => $itemData['border_width'],
+                        'label_font_size' => $itemData['label_font_size'] ?? 'null',
+                        'label_background_color' => $itemData['label_background_color'] ?? 'null',
+                        'label_color' => $itemData['label_color'] ?? 'null'
+                    ]);
+                    
                     $itemData['floorplan_design_id'] = $floorplanDesign->id;
                     
                     if ($existingItems->has($itemData['item_id'])) {
                         // Update existing item to preserve ID and relationships
                         $existingItem = $existingItems->get($itemData['item_id']);
                         $existingItem->update($itemData);
+                        \Illuminate\Support\Facades\Log::info('Updated existing item', [
+                            'item_id' => $itemData['item_id'],
+                            'label_font_size' => $itemData['label_font_size'] ?? 'null',
+                            'label_background_color' => $itemData['label_background_color'] ?? 'null',
+                            'label_color' => $itemData['label_color'] ?? 'null'
+                        ]);
                     } else {
                         // Create new item
                         FloorplanItem::create($itemData);
+                        \Illuminate\Support\Facades\Log::info('Created new item', [
+                            'item_id' => $itemData['item_id'],
+                            'label_font_size' => $itemData['label_font_size'] ?? 'null',
+                            'label_background_color' => $itemData['label_background_color'] ?? 'null',
+                            'label_color' => $itemData['label_color'] ?? 'null'
+                        ]);
                     }
                 }
+                
+                \Illuminate\Support\Facades\Log::info('Floorplan items processed successfully');
             }
 
             DB::commit();
+            \Illuminate\Support\Facades\Log::info('Floorplan saved successfully', [
+                'floorplan_id' => $floorplanDesign->id,
+                'total_items' => isset($validated['items']) ? count($validated['items']) : 0
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -313,6 +404,14 @@ class EventController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            \Illuminate\Support\Facades\Log::error('Error saving floorplan', [
+                'event_id' => $event->id,
+                'error' => $e->getMessage(),
+                'error_class' => get_class($e),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
             
             return response()->json([
                 'success' => false,

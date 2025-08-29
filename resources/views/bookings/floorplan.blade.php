@@ -9,6 +9,16 @@
 
 @push('styles')
     @vite(['resources/css/app.css'])
+    <style>
+        :root {
+            --available-color: #e5e7eb;
+            --available-stroke: #d1d5db;
+            --reserved-color: #f59e0b;
+            --reserved-stroke: #f59e0b;
+            --booked-color: #dc2626;
+            --booked-stroke: #dc2626;
+        }
+    </style>
 @endpush
 
 @push('scripts')
@@ -40,8 +50,8 @@
                                             <span class="text-muted small">Progress: Step {{ $existingBooking->current_booking_progress ?? 1 }} of 4</span>
                                         </div>
                                         <div class="text-muted small">
-                                            <strong>Owner:</strong> {{ $existingBooking->owner_details['name'] ?? 'N/A' }} | 
-                                            <strong>Members:</strong> {{ count($existingBooking->member_details ?? []) }} | 
+                                            <strong>Owner:</strong> {{ $existingBooking->boothOwner->form_responses['name'] ?? 'N/A' }} | 
+                                            <strong>Members:</strong> {{ $existingBooking->boothMembers ? count($existingBooking->boothMembers) : 0 }} | 
                                             <strong>Price:</strong> ${{ number_format($existingBooking->floorplanItem->price ?? 0, 2) }}
                                         </div>
                                     </div>
@@ -83,15 +93,15 @@
                                         <span class="text-muted small">My Booking</span>
                                     </div>
                                     <div class="d-flex align-items-center">
-                                        <div class="me-1" style="width: 16px; height: 16px; background-color: #e5e7eb; border: 2px solid #d1d5db; border-radius: 2px;"></div>
+                                        <div class="me-1" style="width: 16px; height: 16px; background-color: var(--available-color, #e5e7eb); border: 2px solid var(--available-stroke, #d1d5db); border-radius: 2px;"></div>
                                         <span class="text-muted small">Available</span>
                                     </div>
                                     <div class="d-flex align-items-center">
-                                        <div class="me-1" style="width: 16px; height: 16px; background-color: #f59e0b; border: 2px solid #d97706; border-radius: 2px;"></div>
+                                        <div class="me-1" style="width: 16px; height: 16px; background-color: var(--reserved-color, #f59e0b); border: 2px solid var(--reserved-stroke, #f59e0b); border-radius: 2px;"></div>
                                         <span class="text-muted small">Reserved</span>
                                     </div>
                                     <div class="d-flex align-items-center">
-                                        <div class="me-1" style="width: 16px; height: 16px; background-color: #1e40af; border: 2px solid #1e3a8a; border-radius: 2px;"></div>
+                                        <div class="me-1" style="width: 16px; height: 16px; background-color: var(--booked-color, #dc2626); border: 2px solid var(--booked-stroke, #dc2626); border-radius: 2px;"></div>
                                         <span class="text-muted small">Booked</span>
                                     </div>
                                 </div>
@@ -137,6 +147,26 @@
                                                 </div>
                                             </div>
                                             
+                                            <!-- Booth Size (Physical Dimensions) -->
+                                            <div id="boothSizeInfo" class="mb-3" style="display: none;">
+                                                <div class="p-2 bg-light rounded border-start border-3 border-info">
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        <i class="bi bi-rulers text-info me-2"></i>
+                                                        <small class="fw-bold text-dark">Physical Dimensions</small>
+                                                    </div>
+                                                    <div class="row g-2">
+                                                        <div class="col-6 text-center">
+                                                            <div class="text-info fw-bold" id="boothWidthMeters">3.0m</div>
+                                                            <small class="text-muted">Width</small>
+                                                        </div>
+                                                        <div class="col-6 text-center">
+                                                            <div class="text-info fw-bold" id="boothHeightMeters">2.0m</div>
+                                                            <small class="text-muted">Length</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
                                             <!-- Company Information (for reserved/booked booths) -->
                                             <div id="companyInfo" class="mb-3" style="display: none;">
                                                 <div class="p-2 bg-light rounded border-start border-3 border-warning">
@@ -145,6 +175,13 @@
                                                         <small class="fw-bold text-dark">Occupied by</small>
                                                     </div>
                                                     <div id="companyDetails">
+                                                        <!-- Company Logo -->
+                                                        <div class="text-center mb-2" id="companyLogoContainer">
+                                                            <div class="d-inline-flex align-items-center justify-content-center bg-white rounded border" style="width: 60px; height: 60px;">
+                                                                <i class="bi bi-building text-muted" style="font-size: 1.5rem;" id="companyLogoIcon"></i>
+                                                                <img id="companyLogo" class="d-none" style="width: 50px; height: 50px; object-fit: contain; border-radius: 4px;">
+                                                            </div>
+                                                        </div>
                                                         <div class="d-flex align-items-center mb-1">
                                                             <i class="bi bi-briefcase text-muted me-2" style="font-size: 0.75rem;"></i>
                                                             <span id="companyName" class="fw-medium text-dark" style="font-size: 0.85rem;">-</span>
@@ -384,6 +421,59 @@
 
             }
             
+            // Load floorplan defaults and update CSS variables
+            function loadFloorplanDefaults() {
+                // Get floorplan defaults from the page data
+                const floorplanData = @json($event->floorplanDesign ?? null);
+                if (floorplanData) {
+                    window.floorplanDefaults = {
+                        // Basic styling defaults
+                        fill_color: floorplanData.fill_color || '#e5e7eb',
+                        stroke_color: floorplanData.stroke_color || '#d1d5db',
+                        border_width: floorplanData.border_width || 2,
+                        text_color: floorplanData.text_color || '#111827',
+                        font_family: floorplanData.font_family || 'Arial',
+                        font_size: floorplanData.font_size || 12,
+                        
+                        // Label customization defaults
+                        default_label_font_size: floorplanData.default_label_font_size || 12,
+                        default_label_background_color: floorplanData.default_label_background_color || '#ffffff',
+                        default_label_color: floorplanData.default_label_color || '#111827',
+                        default_label_position: floorplanData.default_label_position || 'top',
+                        
+                        // Booth size defaults (physical dimensions)
+                        default_booth_width_meters: floorplanData.default_booth_width_meters || 3.0,
+                        default_booth_height_meters: floorplanData.default_booth_height_meters || 2.0,
+                        
+                        // Booking status colors (global, not overridable)
+                        default_booked_color: floorplanData.default_booked_color || '#dc2626',
+                        default_reserved_color: floorplanData.default_reserved_color || '#f59e0b',
+                        
+                        // Additional useful defaults
+                        bg_color: floorplanData.bg_color || '#ffffff',
+                        canvas_width: floorplanData.canvas_width || 800,
+                        canvas_height: floorplanData.canvas_height || 600
+                    };
+                    console.log(window.floorplanDefaults);
+                    
+                    // Update CSS variables for the legend
+                    document.documentElement.style.setProperty('--available-color', window.floorplanDefaults.fill_color);
+                    document.documentElement.style.setProperty('--available-stroke', window.floorplanDefaults.stroke_color);
+                    document.documentElement.style.setProperty('--reserved-color', window.floorplanDefaults.default_reserved_color);
+                    document.documentElement.style.setProperty('--reserved-stroke', window.floorplanDefaults.default_reserved_color);
+                    document.documentElement.style.setProperty('--booked-color', window.floorplanDefaults.default_booked_color);
+                    document.documentElement.style.setProperty('--booked-stroke', window.floorplanDefaults.default_booked_color);
+                    
+                    // Update canvas background color if available
+                    if (window.floorplanDefaults.bg_color) {
+                        const canvas = document.getElementById('floorplanCanvas');
+                        if (canvas) {
+                            canvas.style.backgroundColor = window.floorplanDefaults.bg_color;
+                        }
+                    }
+                }
+            }
+            
             // Load floorplan data
             function loadFloorplan() {
                 @if($floorplanDesign)
@@ -392,7 +482,8 @@
                     if (floorplanData && floorplanData.items && floorplanData.items.length > 0) {
                         shapes = floorplanData.items;
                         
-
+                        // Load and merge booking data
+                        loadAndMergeBookingData();
                         
                         redrawCanvas();
                         document.getElementById('canvasInstructions').classList.add('hidden');
@@ -402,6 +493,20 @@
                 @else
                     document.getElementById('canvasInstructions').classList.remove('hidden');
                 @endif
+            }
+            
+            // Load booking data and merge with floorplan items
+            function loadAndMergeBookingData() {
+                // The backend now provides owner_details directly in the floorplan items
+                // So we just need to log the data and redraw the canvas
+                console.log('Shapes with owner details from backend:', shapes);
+                
+                // Log any additional booking data that might be needed
+                const eventBookings = @json($event->bookings ?? []);
+                console.log('Event bookings loaded:', eventBookings);
+                
+                // Redraw canvas with the data provided by backend
+                redrawCanvas();
             }
             
             // Redraw canvas with all shapes
@@ -433,7 +538,7 @@
                 shape.size = parseFloat(shape.size) || 50;
                 shape.borderWidth = parseInt(shape.borderWidth) || 2;
                 
-                // Set fill and stroke based on booking status with professional color scheme
+                // Set fill and stroke based on booking status with property inheritance
                 let fillColor, strokeColor;
                 
                 // Only apply status-based colors to bookable items
@@ -444,31 +549,33 @@
                         fillColor = '#10b981';
                         strokeColor = '#059669';
                     } else if (shape.booking_status === 'booked') {
-                        // Booked/Confirmed by others - Dark Blue (Professional)
-                        fillColor = '#1e40af';
-                        strokeColor = '#1e3a8a';
+                        // Booked/Confirmed by others - Use floorplan default booked color
+                        fillColor = window.floorplanDefaults?.default_booked_color || '#dc2626';
+                        strokeColor = window.floorplanDefaults?.default_booked_color || '#dc2626';
                     } else if (shape.booking_status === 'reserved') {
-                        // Reserved by others - Orange (Attention)
-                        fillColor = '#f59e0b';
-                        strokeColor = '#d97706';
+                        // Reserved by others - Use floorplan default reserved color
+                        fillColor = window.floorplanDefaults?.default_reserved_color || '#f59e0b';
+                        strokeColor = window.floorplanDefaults?.default_reserved_color || '#f59e0b';
                     } else if (shape.booking_status === 'available') {
-                        // Available - Light Gray (Neutral/Available)
-                        fillColor = '#e5e7eb';
-                        strokeColor = '#d1d5db';
+                        // Available - Use floorplan default fill color (inheritance)
+                        fillColor = shape.fill_color || window.floorplanDefaults?.fill_color || '#e5e7eb';
+                        strokeColor = shape.stroke_color || window.floorplanDefaults?.stroke_color || '#d1d5db';
                     } else {
-                        // Fallback to database values, then global colors
-                        fillColor = shape.fill_color || (window.globalFloorplanColors ? window.globalFloorplanColors.fillColor : '#e5e7eb');
-                        strokeColor = shape.stroke_color || (window.globalFloorplanColors ? window.globalFloorplanColors.strokeColor : '#d1d5db');
+                        // Fallback to inheritance system
+                        fillColor = shape.fill_color || window.floorplanDefaults?.fill_color || '#e5e7eb';
+                        strokeColor = shape.stroke_color || window.floorplanDefaults?.stroke_color || '#d1d5db';
                     }
                 } else {
-                    // Non-bookable items use their original colors
-                    fillColor = shape.fill_color || (window.globalFloorplanColors ? window.globalFloorplanColors.fillColor : '#e5e7eb');
-                    strokeColor = shape.stroke_color || (window.globalFloorplanColors ? window.globalFloorplanColors.strokeColor : '#d1d5db');
+                    // Non-bookable items use inheritance system
+                    fillColor = shape.fill_color || window.floorplanDefaults?.fill_color || '#e5e7eb';
+                    strokeColor = shape.stroke_color || window.floorplanDefaults?.stroke_color || '#d1d5db';
                 }
                 
+                // Apply all inherited properties for consistent styling
                 ctx.fillStyle = fillColor;
                 ctx.strokeStyle = strokeColor;
-                ctx.lineWidth = shape.borderWidth || (window.globalFloorplanColors ? window.globalFloorplanColors.borderWidth : 2);
+                ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 2;
+                ctx.font = `${shape.font_size || window.floorplanDefaults?.font_size || 12}px ${shape.font_family || window.floorplanDefaults?.font_family || 'Arial'}`;
                 
                 // Apply rotation if exists
                 if (shape.rotation && shape.rotation !== 0) {
@@ -647,6 +754,19 @@
                         const centerTX = shape.x + (shape.width || 120) / 2;
                         const centerTY = shape.y + (shape.height || 30) / 2;
                         
+                        // Debug: Log text item properties
+                        if (shape.type === 'text') {
+                            console.log('Text item properties:', {
+                                fill_color: shape.fill_color,
+                                text_color: shape.text_color,
+                                stroke_color: shape.stroke_color,
+                                text_content: shape.text_content,
+                                text: shape.text,
+                                font_size: shape.font_size,
+                                font_family: shape.font_family
+                            });
+                        }
+                        
                         // Apply rotation if shape has rotation
                         if (shape.rotation && shape.rotation !== 0) {
                             ctx.save();
@@ -655,18 +775,25 @@
                             ctx.translate(-centerTX, -centerTY);
                         }
                         
-                        // Set text properties
-                        ctx.fillStyle = shape.textColor || '#111827';
-                        ctx.font = `${shape.fontSize || 16}px ${shape.fontFamily || 'Arial'}`;
+                        // Draw text background/fill if fill color is specified
+                        if (shape.fill_color || window.floorplanDefaults?.fill_color) {
+                            const fillColor = shape.fill_color || window.floorplanDefaults?.fill_color;
+                            ctx.fillStyle = fillColor;
+                            ctx.fillRect(shape.x, shape.y, shape.width || 120, shape.height || 30);
+                        }
+                        
+                        // Set text properties - use inheritance
+                        ctx.fillStyle = shape.text_color || window.floorplanDefaults?.text_color || '#111827';
+                        ctx.font = `${shape.font_size || window.floorplanDefaults?.font_size || 16}px ${shape.font_family || window.floorplanDefaults?.font_family || 'Arial'}`;
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
                         
                         // Draw text at center of the shape
-                        ctx.fillText(shape.text_content, centerTX, centerTY);
+                        ctx.fillText(shape.text_content || shape.text || 'TEXT', centerTX, centerTY);
                         
-                        // Draw text boundary rectangle for visual feedback
-                        ctx.strokeStyle =   'rgba(0,0,0,0.1)';
-                        ctx.lineWidth = 1;
+                        // Draw text boundary rectangle for visual feedback - use inheritance
+                        ctx.strokeStyle = shape.stroke_color || window.floorplanDefaults?.stroke_color || 'rgba(0,0,0,0.1)';
+                        ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 1;
                         ctx.strokeRect(shape.x, shape.y, shape.width || 120, shape.height || 30);
                         
                         // Restore canvas context if rotation was applied
@@ -712,8 +839,10 @@
                     const centerX = shape.type === 'circle' ? (shape.x + (shape.radius || width/2)) : (shape.x + width / 2);
                     const centerY = shape.type === 'circle' ? (shape.y + (shape.radius || height/2)) : (shape.y + height / 2);
 
-                    // Measure text to size background
-                    ctx.font = 'bold 10px Arial';
+                    // Measure text to size background - use inherited font properties
+                    const labelFontSize = shape.label_font_size || window.floorplanDefaults?.default_label_font_size || 10;
+                    const labelFontFamily = window.floorplanDefaults?.font_family || 'Arial';
+                    ctx.font = `bold ${labelFontSize}px ${labelFontFamily}`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     const textMetrics = ctx.measureText(shape.label);
@@ -727,7 +856,7 @@
                      let boxX = centerX - boxW / 2;
                      let boxY = centerY - boxH / 2;
                      const offset = 6; // small gap from item edge
-                     const position = shape.label_position || '{{ $floorplanDesign->default_label_position ?? 'top' }}';
+                     const position = shape.label_position || window.floorplanDefaults?.default_label_position || 'top';
 
                      if (position === 'top') {
                          boxX = centerX - boxW / 2;
@@ -752,16 +881,19 @@
                      const textX = Math.round(boxX + boxW / 2);
                      const textY = Math.round(boxY + boxH / 2);
 
-                     // Draw label background and border
-                     ctx.fillStyle = 'rgba(0, 123, 255, 0.9)';
+                     // Draw label background and border - use inherited colors
+                     const labelBgColor = shape.label_background_color || window.floorplanDefaults?.default_label_background_color || 'rgba(0, 123, 255, 0.9)';
+                     const labelBorderColor = shape.stroke_color || window.floorplanDefaults?.stroke_color || '#007bff';
+                     ctx.fillStyle = labelBgColor;
                      ctx.fillRect(boxX, boxY, boxW, boxH);
-                     ctx.strokeStyle = '#007bff';
+                     ctx.strokeStyle = labelBorderColor;
                      ctx.lineWidth = 1;
                      ctx.strokeRect(boxX, boxY, boxW, boxH);
 
-                     // Draw text with improved rendering
-                     ctx.fillStyle = '#ffffff';
-                     ctx.font = 'bold 10px Arial'; // Re-set font for consistency
+                     // Draw text with improved rendering - use inherited text color and font
+                     const labelTextColor = shape.label_color || window.floorplanDefaults?.default_label_color || '#ffffff';
+                     ctx.fillStyle = labelTextColor;
+                     ctx.font = `bold ${labelFontSize}px ${labelFontFamily}`; // Use inherited font properties
                      ctx.textAlign = 'center';
                      ctx.textBaseline = 'middle';
                      ctx.fillText(shape.label, textX, textY);
@@ -860,6 +992,19 @@
                 document.getElementById('itemMaxCapacity').textContent = shape.max_capacity || 5;
                 document.getElementById('itemPrice').textContent = `$${shape.price || 100}`;
                 
+                // Show/hide and populate booth size information
+                const boothSizeInfo = document.getElementById('boothSizeInfo');
+                if (shape.type === 'booth') {
+                    boothSizeInfo.style.display = 'block';
+                    // Use item-specific booth size or inherit from floorplan defaults
+                    const boothWidth = shape.booth_width_meters || window.floorplanDefaults?.default_booth_width_meters || 3.0;
+                    const boothHeight = shape.booth_height_meters || window.floorplanDefaults?.default_booth_height_meters || 2.0;
+                    document.getElementById('boothWidthMeters').textContent = `${boothWidth}m`;
+                    document.getElementById('boothHeightMeters').textContent = `${boothHeight}m`;
+                } else {
+                    boothSizeInfo.style.display = 'none';
+                }
+                
                 // Set status based on booking status
                 const statusElement = document.getElementById('itemStatus');
                 const statusText = document.getElementById('statusText');
@@ -925,6 +1070,9 @@
                     bookNowGroup.style.display = 'none';
                     companyInfo.style.display = 'block';
                     
+                    // Debug: Log reserved booth data
+                    console.log('Reserved booth data:', shape);
+                    
                     // Show company information for reserved booths
                     showCompanyInfo(shape);
                 } else if (shape.booking_status === 'booked') {
@@ -933,6 +1081,9 @@
                     statusText.textContent = 'This booth is not available for booking';
                     bookNowGroup.style.display = 'none';
                     companyInfo.style.display = 'block';
+                    
+                    // Debug: Log booked booth data
+                    console.log('Booked booth data:', shape);
                     
                     // Show company information for booked booths
                     showCompanyInfo(shape);
@@ -955,14 +1106,45 @@
             function showCompanyInfo(shape) {
                 const companyName = document.getElementById('companyName');
                 const companyContact = document.getElementById('companyContact');
+                const companyLogo = document.getElementById('companyLogo');
+                const companyLogoIcon = document.getElementById('companyLogoIcon');
+                
+                // Debug: Log the shape data to see what we're working with
+                console.log('Company info shape data:', shape);
+                console.log('Owner details:', shape.owner_details);
                 
                 // Get company details from the shape data
                 if (shape.owner_details) {
                     companyName.textContent = shape.owner_details.company_name || 'Company not specified';
                     companyContact.textContent = shape.owner_details.name || 'Contact not specified';
+                    
+                    // Handle company logo - use the same approach as owner form
+                    const logoPath = shape.owner_details.company_logo;
+                    
+                    console.log('Logo path from owner_details:', logoPath);
+                    
+                    if (logoPath) {
+                        // Use the same Storage::url() approach as the owner form
+                        // The path is relative to storage/app/public/ (e.g., "company-logos/filename.png")
+                        // This matches the Laravel Storage::url() behavior exactly like in owner-form.blade.php
+                        const logoUrl = `/storage/${logoPath}`;
+                        
+                        companyLogo.src = logoUrl;
+                        companyLogo.classList.remove('d-none');
+                        companyLogoIcon.classList.add('d-none');
+                        console.log('Logo displayed:', logoUrl);
+                        console.log('Original path:', logoPath, 'Constructed URL:', logoUrl);
+                    } else {
+                        companyLogo.classList.add('d-none');
+                        companyLogoIcon.classList.remove('d-none');
+                        console.log('No logo found, showing fallback icon');
+                    }
                 } else {
                     companyName.textContent = 'Company not specified';
                     companyContact.textContent = 'Contact not specified';
+                    companyLogo.classList.add('d-none');
+                    companyLogoIcon.classList.remove('d-none');
+                    console.log('No owner details found');
                 }
             }
             
@@ -974,9 +1156,9 @@
                 const clickX = event.clientX;
                 const clickY = event.clientY;
                 
-                // Get panel dimensions
+                // Get panel dimensions (updated for enhanced popup)
                 const panelWidth = 280;
-                const panelHeight = 200; // Approximate height
+                const panelHeight = 320; // Increased height for enhanced content
                 
                 // On mobile devices (small screens), center the popup
                 if (window.innerWidth < 768) {
@@ -988,7 +1170,7 @@
                     return;
                 }
                 
-                // Desktop positioning
+                // Desktop positioning with intelligent space usage
                 let left = clickX + 20; // 20px offset from click
                 let top = clickY - panelHeight / 2; // Center vertically on click
                 
@@ -997,13 +1179,26 @@
                     left = clickX - panelWidth - 20;
                 }
                 
-                // Adjust if going off top edge
+                // Intelligent vertical positioning - prefer space above if available
+                const spaceAbove = clickY - 20;
+                const spaceBelow = window.innerHeight - clickY - 20;
+                
+                if (spaceAbove >= panelHeight) {
+                    // Position above click point if there's enough space
+                    top = clickY - panelHeight - 10;
+                } else if (spaceBelow >= panelHeight) {
+                    // Position below click point if there's enough space below
+                    top = clickY + 10;
+                } else {
+                    // Center on click point if neither above nor below has enough space
+                    top = clickY - panelHeight / 2;
+                }
+                
+                // Ensure popup stays within viewport bounds
                 if (top < 20) {
                     top = 20;
                 }
-                
-                // Adjust if going off bottom edge
-                if (top + panelHeight > window.innerHeight) {
+                if (top + panelHeight > window.innerHeight - 20) {
                     top = window.innerHeight - panelHeight - 20;
                 }
                 
@@ -1151,10 +1346,10 @@
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 
                 // Back wall panels
-                ctx.fillStyle = '#E6E6FA'; // Light lavender panels
+                ctx.fillStyle = fillColor; // Light lavender panels
                 const backPanelHeight = height * 0.8;
                 ctx.fillRect(shape.x + 5, shape.y + 5, width - 10, backPanelHeight);
-                ctx.strokeStyle = '#9370DB';
+                ctx.strokeStyle = strokeColor;
                 ctx.lineWidth = 1;
                 ctx.strokeRect(shape.x + 5, shape.y + 5, width - 10, backPanelHeight);
                 
@@ -1184,40 +1379,29 @@
                 ctx.fillRect(counterX + 5, counterY + counterHeight, legWidth, 8);
                 ctx.fillRect(counterX + counterWidth - 8, counterY + counterHeight, legWidth, 8);
                 
-                // Display screens/monitors on back wall
-                ctx.fillStyle = '#000'; // Black screens
-                const screenWidth = width * 0.25;
-                const screenHeight = height * 0.2;
-                // Left screen
-                ctx.fillRect(shape.x + width * 0.15, shape.y + height * 0.2, screenWidth, screenHeight);
-                // Right screen  
-                ctx.fillRect(shape.x + width * 0.6, shape.y + height * 0.2, screenWidth, screenHeight);
-                
-                // Screen content (blue glow)
-                ctx.fillStyle = '#1E90FF';
-                ctx.fillRect(shape.x + width * 0.15 + 2, shape.y + height * 0.2 + 2, screenWidth - 4, screenHeight - 4);
-                ctx.fillRect(shape.x + width * 0.6 + 2, shape.y + height * 0.2 + 2, screenWidth - 4, screenHeight - 4);
                 
                 // Booth branding/logo area (center of back wall)
-                ctx.fillStyle = '#FFD700'; // Gold background for logo
-                const logoWidth = width * 0.3;
-                const logoHeight = height * 0.15;
+                ctx.fillStyle =  shape.fill_color || window.floorplanDefaults?.fill_color || '#FFD700'; // Gold background for logo
+                const logoWidth = width * 0.5;
+                const logoHeight = height * 0.18;
                 const logoX = shape.x + (width - logoWidth) / 2;
-                const logoY = shape.y + height * 0.05;
+                const logoY = shape.y + height * 0.1;
                 ctx.fillRect(logoX, logoY, logoWidth, logoHeight);
-                ctx.strokeStyle = '#FF8C00';
+                ctx.strokeStyle = shape.stroke_color || window.floorplanDefaults?.stroke_color || '#FF8C00';
                 ctx.lineWidth = 2;
                 ctx.strokeRect(logoX, logoY, logoWidth, logoHeight);
                 
-                // Company name placeholder
-                ctx.fillStyle = '#000';
-                ctx.font = '8px Arial';
+                // Company name placeholder - use inheritance for font properties
+                ctx.fillStyle = shape.text_color || window.floorplanDefaults?.text_color || '#0000FF';
+                ctx.font = `${shape.font_size || window.floorplanDefaults?.font_size || 8}px ${shape.font_family || window.floorplanDefaults?.font_family || 'Arial'}`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 const textX = Math.round(logoX + logoWidth/2);
                 const textY = Math.round(logoY + logoHeight/2 + 3);
-                ctx.fillText('EXPO', textX, textY);
+                ctx.fillText('BOOTH', textX, textY);
                 ctx.textAlign = 'start';
+
+                
                 ctx.textBaseline = 'alphabetic';
                 
                 // Promotional materials/brochures on counter
@@ -1261,11 +1445,11 @@
                 ctx.fillStyle = fillColor;
                 ctx.fillRect(shape.x, shape.y, width, height);
                 ctx.strokeStyle = strokeColor;
-                ctx.lineWidth = 2;
+                ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 2;
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 
                 // Table legs
-                ctx.fillStyle = '#654321';
+                ctx.fillStyle = fillColor;
                 const legWidth = 4;
                 const legHeight = 15;
                 ctx.fillRect(shape.x + 5, shape.y + height, legWidth, legHeight);
@@ -1292,7 +1476,7 @@
                 ctx.fillStyle = fillColor;
                 ctx.fillRect(shape.x, shape.y, width, height * 0.4);
                 ctx.strokeStyle = strokeColor;
-                ctx.lineWidth = 1;
+                ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 1;
                 ctx.strokeRect(shape.x, shape.y, width, height * 0.4);
                 
                 // Seat (lower part) - use passed colors for status indication
@@ -1315,7 +1499,7 @@
                 
                 // Chair back vertical slats for detail
                 ctx.strokeStyle = '#4A4A4A';
-                ctx.lineWidth = 1;
+                ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 1;
                 for (let i = 1; i < 4; i++) {
                     const x = shape.x + (width / 4) * i;
                     ctx.beginPath();
@@ -1348,7 +1532,7 @@
                 ctx.fillStyle = fillColor;
                 ctx.fillRect(shape.x, shape.y, width, height);
                 ctx.strokeStyle = strokeColor;
-                ctx.lineWidth = 2;
+                ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 2;
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 
                 // Desk edge highlight (3D effect)
@@ -1357,7 +1541,7 @@
                 ctx.fillRect(shape.x, shape.y, 3, height);
                 
                 // Monitor/screen area
-                ctx.fillStyle = '#000';
+                ctx.fillStyle = strokeColor;
                 const monitorWidth = width * 0.3;
                 const monitorHeight = height * 0.35;
                 const monitorX = shape.x + width * 0.1;
@@ -1365,7 +1549,7 @@
                 ctx.fillRect(monitorX, monitorY, monitorWidth, monitorHeight);
                 
                 // Monitor screen (blue glow)
-                ctx.fillStyle = '#1E90FF';
+                ctx.fillStyle = fillColor;
                 ctx.fillRect(monitorX + 2, monitorY + 2, monitorWidth - 4, monitorHeight - 4);
                 
                 // Monitor stand
@@ -1382,7 +1566,7 @@
                 const keyboardY = shape.y + height * 0.6;
                 ctx.fillRect(keyboardX, keyboardY, keyboardWidth, keyboardHeight);
                 ctx.strokeStyle = '#D3D3D3';
-                ctx.lineWidth = 1;
+                ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 1;
                 ctx.strokeRect(keyboardX, keyboardY, keyboardWidth, keyboardHeight);
                 
                 // Keyboard keys (small rectangles)
@@ -1408,7 +1592,7 @@
                 // Desk drawers/storage
                 ctx.fillStyle = '#654321';
                 ctx.strokeStyle = '#4A4A4A';
-                ctx.lineWidth = 1;
+                ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 1;
                 
                 // Right side drawers
                 const drawerWidth = width * 0.25;
@@ -1460,7 +1644,7 @@
                 ctx.fillStyle = fillColor;
                 ctx.fillRect(shape.x, shape.y, width, height);
                 ctx.strokeStyle = strokeColor;
-                ctx.lineWidth = 2;
+                ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 2;
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 
                 // Counter top surface (lighter wood)
@@ -1468,7 +1652,7 @@
                 const topHeight = height * 0.2;
                 ctx.fillRect(shape.x, shape.y, width, topHeight);
                 ctx.strokeStyle = '#A0522D';
-                ctx.lineWidth = 1;
+                ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 1;
                 ctx.strokeRect(shape.x, shape.y, width, topHeight);
                 
                 // Counter edge highlight (3D effect)
@@ -1480,7 +1664,7 @@
                 const panelWidth = width / 3;
                 ctx.fillStyle = '#654321';
                 ctx.strokeStyle = '#4A4A4A';
-                ctx.lineWidth = 1;
+                ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 1;
                 
                 for (let i = 0; i < 3; i++) {
                     const panelX = shape.x + i * panelWidth;
@@ -1492,8 +1676,9 @@
                     ctx.strokeRect(panelX + 2, panelY, panelWidth - 4, panelH);
                     
                     // Panel inset detail
-                    ctx.strokeStyle = '#8B4513';
-                    ctx.strokeRect(panelX + 6, panelY + 4, panelWidth - 12, panelH - 8);
+                                    ctx.strokeStyle = '#8B4513';
+                ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 1;
+                ctx.strokeRect(panelX + 6, panelY + 4, panelWidth - 12, panelH - 8);
                     
                     // Door handle
                     ctx.fillStyle = '#C0C0C0'; // Silver handle
@@ -1516,7 +1701,7 @@
                 const registerY = shape.y - registerHeight + topHeight;
                 ctx.fillRect(registerX, registerY, registerWidth, registerHeight);
                 ctx.strokeStyle = '#000';
-                ctx.lineWidth = 1;
+                ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 1;
                 ctx.strokeRect(registerX, registerY, registerWidth, registerHeight);
                 
                 // Cash register screen
@@ -1531,7 +1716,7 @@
                         const btnY = registerY + registerHeight * 0.4 + row * 4;
                         ctx.fillRect(btnX, btnY, 4, 3);
                         ctx.strokeStyle = '#D3D3D3';
-                        ctx.lineWidth = 0.5;
+                        ctx.lineWidth = (shape.border_width || window.floorplanDefaults?.border_width || 1) * 0.5;
                         ctx.strokeRect(btnX, btnY, 4, 3);
                     }
                 }
@@ -1609,7 +1794,7 @@
                 ctx.fillStyle = fillColor;
                 ctx.fillRect(shape.x, shape.y, width, height);
                 ctx.strokeStyle = strokeColor;
-                ctx.lineWidth = 3;
+                ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 3;
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 
                 // Stage edge highlight (3D effect)
@@ -1625,7 +1810,7 @@
                 // Left side curtain
                 ctx.fillRect(shape.x, shape.y, curtainWidth, curtainHeight);
                 ctx.strokeStyle = '#4B0082'; // Indigo border
-                ctx.lineWidth = 2;
+                ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 2;
                 ctx.strokeRect(shape.x, shape.y, curtainWidth, curtainHeight);
                 
                 // Right side curtain
@@ -1634,7 +1819,7 @@
                 
                 // Curtain folds/pleats
                 ctx.strokeStyle = '#4B0082';
-                ctx.lineWidth = 1;
+                ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 1;
                 for (let i = 0; i < 3; i++) {
                     const foldX = shape.x + 2 + i * 3;
                     ctx.beginPath();
@@ -1651,7 +1836,7 @@
                 
                 // Stage floor pattern (wooden planks)
                 ctx.strokeStyle = '#FFD700'; // Golden lines
-                ctx.lineWidth = 2;
+                ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 2;
                 for (let i = 0; i < 4; i++) {
                     const y = shape.y + height - 15 - i * 12;
                     ctx.beginPath();
@@ -1672,7 +1857,7 @@
                     const currentStepX = stepX - i * 5;
                     ctx.fillRect(currentStepX, stepY, currentStepWidth, stepHeight);
                     ctx.strokeStyle = '#8B4513';
-                    ctx.lineWidth = 1;
+                    ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 1;
                     ctx.strokeRect(currentStepX, stepY, currentStepWidth, stepHeight);
                 }
                 
@@ -1687,7 +1872,7 @@
                     
                     // Light beam effect
                     ctx.strokeStyle = '#FFFF99';
-                    ctx.lineWidth = 1;
+                    ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 1;
                     ctx.globalAlpha = 0.3;
                     ctx.beginPath();
                     ctx.moveTo(lightX, lightY);
@@ -3856,7 +4041,7 @@
                 ctx.fill();
                 
                 // Building shadow
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.fillStyle = 'rgba(110, 105, 105, 0.3)';
                 ctx.fillRect(shape.x + 2, shape.y + height + 2, width, height * 0.1);
                 
                 // Restore canvas context if rotation was applied
@@ -4090,6 +4275,7 @@
             
             // Initialize
             initCanvas();
+            loadFloorplanDefaults();
             loadFloorplan();
         });
 

@@ -6,6 +6,7 @@ use App\Models\Event;
 use App\Models\FloorplanItem;
 use App\Models\Booking;
 use App\Models\FormBuilder;
+use App\Models\FormField;
 use App\Models\FormSubmission;
 use App\Services\EmailCommunicationService;
 use Illuminate\Http\Request;
@@ -378,8 +379,17 @@ class BookingController extends Controller
             ->where('type', 'member_registration')
             ->first();
         
+        // Get form fields if memberForm exists
+        $formFields = [];
+        if ($memberForm) {
+            $formFields = \App\Models\FormField::where('form_builder_id', $memberForm->id)
+                ->where('type', '!=', 'section')
+                ->get()
+                ->toArray();
+        }
+        
         // Transform booth members to include form_fields data
-        $transformedBoothMembers = $boothMembers->map(function ($member) {
+        $transformedBoothMembers = $boothMembers->map(function ($member) use ($formFields) {
             return [
                 'id' => $member->id,
                 'booth_owner_id' => $member->booth_owner_id,
@@ -388,7 +398,7 @@ class BookingController extends Controller
                 'created_at' => $member->created_at,
                 'updated_at' => $member->updated_at,
                 'form_responses' => $member->form_responses,
-                'form_fields' => [] // Empty array since formFields relationship doesn't exist
+                'form_fields' => $formFields // Use actual form fields from FormBuilder
             ];
         });
 
@@ -678,6 +688,9 @@ class BookingController extends Controller
             return redirect()->route('events.public.floorplan', $eventSlug)
                 ->with('error', 'No booking found for this access token. Please start over.');
         }
+
+        // Load the boothOwner and boothMembers relationships so the view can access owner details and member count
+        $booking->load(['boothOwner', 'boothMembers']);
 
         // Verify access token is valid
         if (!$booking->isAccessTokenValid()) {
@@ -1214,7 +1227,7 @@ class BookingController extends Controller
             $existingBooking = $event->bookings()
                 ->where('access_token', $accessToken)
                 ->where('access_token_expires_at', '>', now())
-                ->with(['floorplanItem'])
+                ->with(['floorplanItem', 'boothMembers'])
                 ->first();
         }
 
@@ -1222,6 +1235,9 @@ class BookingController extends Controller
         $floorplanDesign = $event->floorplanDesign;
         if ($floorplanDesign) {
             $floorplanDesign->load('items');
+            
+            // Load booth owners for company information
+            $event->load('boothOwners');
 
             // Load booking information for each item to determine availability
             $items = $floorplanDesign->items;
@@ -1249,7 +1265,8 @@ class BookingController extends Controller
                         'company_name' => $activeBooking->boothOwner?->form_responses['company_name'] ?? 'Company not specified',
                         'name' => $activeBooking->boothOwner?->form_responses['name'] ?? 'Contact not specified',
                         'email' => $activeBooking->boothOwner?->form_responses['email'] ?? 'Email not specified',
-                        'phone' => $activeBooking->boothOwner?->form_responses['phone'] ?? 'Phone not specified'
+                        'phone' => $activeBooking->boothOwner?->form_responses['phone'] ?? 'Phone not specified',
+                        'company_logo' => $activeBooking->boothOwner?->form_responses['company_logo'] ?? null
                     ];
 
                     // Check if this is the user's current booking
@@ -1289,7 +1306,7 @@ class BookingController extends Controller
             ->where('access_token_expires_at', '>', now())
             ->firstOrFail();
         
-        $existingBooking = $boothOwner->booking;
+        $existingBooking = $boothOwner->booking()->with(['floorplanItem', 'boothMembers'])->first();
         
         if (!$existingBooking) {
             abort(404, 'No booking found for this access token. Please start over.');
@@ -1299,6 +1316,9 @@ class BookingController extends Controller
         $floorplanDesign = $event->floorplanDesign;
         if ($floorplanDesign) {
             $floorplanDesign->load('items');
+            
+            // Load booth owners for company information
+            $event->load('boothOwners');
 
             // Load booking information for each item to determine availability
             $items = $floorplanDesign->items;
@@ -1326,7 +1346,8 @@ class BookingController extends Controller
                         'company_name' => $activeBooking->boothOwner?->form_responses['company_name'] ?? 'Company not specified',
                         'name' => $activeBooking->boothOwner?->form_responses['name'] ?? 'Contact not specified',
                         'email' => $activeBooking->boothOwner?->form_responses['email'] ?? 'Email not specified',
-                        'phone' => $activeBooking->boothOwner?->form_responses['phone'] ?? 'Phone not specified'
+                        'phone' => $activeBooking->boothOwner?->form_responses['phone'] ?? 'Phone not specified',
+                        'company_logo' => $activeBooking->boothOwner?->form_responses['company_logo'] ?? null
                     ];
 
                     // Check if this is the user's current booking
@@ -1357,12 +1378,12 @@ class BookingController extends Controller
     private function getBookingProgress(Booking $booking): int
     {
         // Step 1: Space selected (always true if booking exists)
-        if (!$booking->owner_details || empty($booking->owner_details['name'])) {
+        if (!$booking->boothOwner || empty($booking->boothOwner->form_responses['name'])) {
             return 1;
         }
 
         // Step 2: Owner details completed
-        if (!$booking->member_details || empty($booking->member_details)) {
+        if (!$booking->boothMembers || $booking->boothMembers->isEmpty()) {
             return 2;
         }
 

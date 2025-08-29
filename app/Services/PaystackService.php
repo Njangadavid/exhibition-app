@@ -43,7 +43,7 @@ class PaystackService
 
             // Log the data being sent to Paystack
             Log::info('Sending data to Paystack', [
-                'amount' => $data['amount'] * 100,
+                'amount' => $data['amount'],
                 'email' => $data['email'],
                 'reference' => $data['reference'],
                 'callback_url' => $data['callback_url'],
@@ -53,7 +53,7 @@ class PaystackService
             ]);
 
             $transaction = $this->paystack->transaction->initialize([
-                'amount' => $data['amount'] * 100, // Convert to cents (smallest currency unit)
+                'amount' => $data['amount'], // Convert to cents (smallest currency unit)
                 'email' => $data['email'],
                 'reference' => $data['reference'],
                 'callback_url' => $data['callback_url'],

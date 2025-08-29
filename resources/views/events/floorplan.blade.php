@@ -1,4 +1,4 @@
-<x-event-layout :event="$event">
+<x-event-layout>
 
     <div class="py-4">
         <div class="container-fluid">
@@ -16,7 +16,12 @@
                                 <i class="bi bi-chevron-left"></i>
                             </button>
                         </div>
-                        <div class="card-body py-2">
+                        <div class="card-body p-0 d-flex flex-column" style="height: calc(100vh - 150px);">
+                            <!-- Scrollable content area -->
+                            <div class="flex-grow-1 overflow-y-auto p-3" style="position: relative;">
+                                <!-- Scroll indicator -->
+                                <div class="scroll-indicator" style="position: absolute; top: 0; right: 8px; width: 6px; height: 100%; background: linear-gradient(to bottom, #e2e8f0 0%, transparent 20%, transparent 80%, #e2e8f0 100%); border-radius: 3px; opacity: 0.6; pointer-events: none;"></div>
+                                
                             <form class="d-flex flex-column gap-3">
                                 <!-- Basic Settings -->
                                 <div>
@@ -156,6 +161,20 @@
                                     </div>
 
                                     <div class="mb-2">
+                                        <label class="form-label small mb-1 fw-semibold">Default Booth Size (Physical)</label>
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <input type="number" class="form-control form-control-sm" id="defaultBoothWidthMeters" value="3.0" min="0.1" max="100" step="0.1">
+                                                <small class="form-text text-muted small">Width (meters)</small>
+                                            </div>
+                                            <div class="col-6">
+                                                <input type="number" class="form-control form-control-sm" id="defaultBoothHeightMeters" value="2.0" min="0.1" max="100" step="0.1">
+                                                <small class="form-text text-muted small">Height (meters)</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-2">
                                         <label class="form-label small mb-1 fw-semibold">Label Prefix</label>
                                         <input type="text" class="form-control form-control-sm" id="labelPrefix" value="A" maxlength="3">
                                         <small class="form-text text-muted small">Prefix for booth labels (A, B, C, etc.)</small>
@@ -194,36 +213,79 @@
                                     </div>
                                 </div>
 
-                                <!-- Action Buttons -->
-                                <div class="pt-2">
-                                    <button type="button" class="btn btn-primary btn-sm w-100 mb-2 py-2" id="saveFloorplanBtn">
-                                        <i class="bi bi-save me-1"></i>
-                                        <span class="small">Save Floorplan</span>
-                                    </button>
-                                    <button type="button" class="btn btn-secondary btn-sm w-100 py-2" id="resetDefaults">
-                                        <i class="bi bi-arrow-clockwise me-1"></i>
-                                        <span class="small">Reset to Defaults</span>
-                                    </button>
+                                <!-- Label Styling -->
+                                <div>
+                                    <h6 class="fw-bold mb-2 small">Label Styling</h6>
                                     
-                                    <!-- Floorplan Maintenance -->
-                                    <hr class="my-3">
-                                    <div class="small text-muted mb-2">Floorplan Maintenance</div>
-                                    <button type="button" class="btn btn-outline-warning btn-sm w-100 mb-2 py-2" id="checkOrphanedBookingsBtn">
-                                        <i class="bi bi-exclamation-triangle me-1"></i>
-                                        <span class="small">Check Orphaned Bookings</span>
+                                    <div class="mb-2">
+                                        <label class="form-label small mb-1 fw-semibold">Default Label Font Size</label>
+                                        <select class="form-select form-select-sm" id="defaultLabelFontSize">
+                                            <option value="8">8px (Small)</option>
+                                            <option value="10">10px (Medium)</option>
+                                            <option value="12" selected>12px (Standard)</option>
+                                            <option value="14">14px (Large)</option>
+                                            <option value="16">16px (Extra Large)</option>
+                                        </select>
+                                        <small class="form-text text-muted small">Font size for booth labels</small>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <label class="form-label small mb-1 fw-semibold">Default Label Background Color</label>
+                                        <div class="d-flex gap-2">
+                                            <input type="color" value="#ffffff" class="form-control form-control-color" id="defaultLabelBackgroundColor" style="width: 50px; height: 32px;">
+                                            <input type="text" value="#ffffff" class="form-control form-control-sm" id="defaultLabelBackgroundColorText" placeholder="#ffffff">
+                                        </div>
+                                        <small class="form-text text-muted small">Background color for booth labels</small>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <label class="form-label small mb-1 fw-semibold">Default Label Color</label>
+                                        <div class="d-flex gap-2">
+                                            <input type="color" value="#000000" class="form-control form-control-color" id="defaultLabelColor" style="width: 50px; height: 32px;">
+                                            <input type="text" value="#000000" class="form-control form-control-sm" id="defaultLabelColorText" placeholder="#000000">
+                                        </div>
+                                        <small class="form-text text-muted small">Text color for booth labels</small>
+                                    </div>
+                                </div>
+
+
+
+
+                            </form>
+                        </div>
+                        
+                        <!-- Fixed bottom section for action buttons -->
+                        <div class="border-top p-3 bg-light">
+                            <!-- All main buttons on same line -->
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-primary btn-sm flex-fill py-2" id="saveFloorplanBtn">
+                                        <i class="bi bi-save me-1"></i>
+                                    <span class="small">Save</span>
                                     </button>
-                                    <button type="button" class="btn btn-outline-danger btn-sm w-100 py-2" id="cleanupOrphanedBookingsBtn" style="display: none;">
+                                <button type="button" class="btn btn-secondary btn-sm flex-fill py-2" id="resetDefaults">
+                                        <i class="bi bi-arrow-clockwise me-1"></i>
+                                    <span class="small">Reset</span>
+                                    </button>
+                                <button type="button" class="btn btn-outline-warning btn-sm flex-fill py-2" id="checkOrphanedBookingsBtn">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>
+                                    <span class="small">Check</span>
+                                    </button>
+                            </div>
+                            
+                            <!-- Hidden cleanup button (shows when needed) -->
+                            <!-- <div class="d-flex gap-2 mt-2" id="cleanupButtonContainer" style="display: none;">
+                                <button type="button" class="btn btn-outline-danger btn-sm w-100 py-2" id="cleanupOrphanedBookingsBtn">
                                         <i class="bi bi-trash me-1"></i>
                                         <span class="small">Clean Up Orphaned Bookings</span>
                                     </button>
+                            </div> -->
                                 </div>
-                            </form>
                         </div>
                     </div>
                 </div>
 
                 <!-- Floorplan Canvas -->
-                <div class="col-lg-9">
+                <div class="col-lg-9" id="canvasContainer">
                     <div class="card">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -247,9 +309,57 @@
                                             <input type="text" class="form-control form-control-sm" id="itemName" placeholder="Enter item name">
                                         </div>
                                         
+                                        <!-- Default Booth Size (Physical) - Editable for bookable items -->
+                                        <div class="mb-2" id="boothSizeDisplay" style="display: none;">
+                                            <h6 class="fw-bold mb-2 small">Physical Dimensions</h6>
+                                            <small class="form-text text-muted small mb-2 d-block">These are the physical dimensions that customers will see when booking</small>
+                                            
+                                            <div class="row g-2">
+                                                <div class="col-6">
+                                                    <label class="form-label small mb-1 fw-semibold">Width (meters)</label>
+                                                    <input type="number" class="form-control form-control-sm" id="itemBoothWidthMeters" min="0.1" max="100" step="0.1" placeholder="Leave empty for default">
+                                                    <small class="form-text text-muted small">Physical width in meters</small>
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label small mb-1 fw-semibold">Height (meters)</label>
+                                                    <input type="number" class="form-control form-control-sm" id="itemBoothHeightMeters" min="0.1" max="100" step="0.1" placeholder="Leave empty for default">
+                                                    <small class="form-text text-muted small">Physical height in meters</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
                                         <div class="mb-2">
                                             <label class="form-label small mb-1 fw-semibold">Custom Label</label>
                                             <input type="text" class="form-control form-control-sm" id="itemLabel" placeholder="Enter custom label">
+                                        </div>
+                                        
+                                        <!-- Visual Properties Override -->
+                                        <div class="mb-2">
+                                            <h6 class="fw-bold mb-2 small">Visual Properties</h6>
+                                            
+                                            <div class="mb-2">
+                                                <label class="form-label small mb-1 fw-semibold">Fill Color</label>
+                                                <div class="d-flex gap-2">
+                                                    <input type="color" class="form-control form-control-color" id="itemFillColor" style="width: 50px; height: 32px;">
+                                                    <input type="text" class="form-control form-control-sm" id="itemFillColorText" placeholder="Leave empty for default">
+                                                </div>
+                                                <small class="form-text text-muted small">Override default fill color</small>
+                                            </div>
+                                            
+                                            <div class="mb-2">
+                                                <label class="form-label small mb-1 fw-semibold">Stroke Color</label>
+                                                <div class="d-flex gap-2">
+                                                    <input type="color" class="form-control form-control-color" id="itemStrokeColor" style="width: 50px; height: 32px;">
+                                                    <input type="text" class="form-control form-control-sm" id="itemStrokeColorText" placeholder="Leave empty for default">
+                                                </div>
+                                                <small class="form-text text-muted small">Override default stroke color</small>
+                                            </div>
+                                            
+                                            <div class="mb-2">
+                                                <label class="form-label small mb-1 fw-semibold">Border Width</label>
+                                                <input type="number" class="form-control form-control-sm" id="itemBorderWidth" min="1" max="10" placeholder="Leave empty for default">
+                                                <small class="form-text text-muted small">Override default border width</small>
+                                            </div>
                                         </div>
                                         
                                         <div class="mb-2">
@@ -286,6 +396,116 @@
                                             <small class="form-text text-muted small">Leave empty for default</small>
                                         </div>
                                         
+                                        <!-- Label Customization -->
+                                        <div class="mb-2" id="labelCustomizationGroup">
+                                            <h6 class="fw-bold mb-2 small">Label Customization</h6>
+                                            
+                                            <div class="mb-2">
+                                                <label class="form-label small mb-1 fw-semibold">Label Font Size</label>
+                                                <select class="form-select form-select-sm" id="itemLabelFontSize">
+                                                    <option value="">Use Default ({{ $floorplanDesign->default_label_font_size ?? 12 }}px)</option>
+                                                    <option value="8">8px (Small)</option>
+                                                    <option value="10">10px (Medium)</option>
+                                                    <option value="12">12px (Standard)</option>
+                                                    <option value="14">14px (Large)</option>
+                                                    <option value="16">16px (Extra Large)</option>
+                                                </select>
+                                                <small class="form-text text-muted small">Override default label font size</small>
+                                            </div>
+                                            
+                                            <div class="mb-2">
+                                                <label class="form-label small mb-1 fw-semibold">Label Background Color</label>
+                                                <div class="d-flex gap-2">
+                                                    <input type="color" class="form-control form-control-color" id="itemLabelBackgroundColor" style="width: 50px; height: 32px;">
+                                                    <input type="text" class="form-control form-control-sm" id="itemLabelBackgroundColorText" placeholder="Leave empty for default">
+                                                </div>
+                                                <small class="form-text text-muted small">Override default label background color</small>
+                                            </div>
+                                            
+                                            <div class="mb-2">
+                                                <label class="form-label small mb-1 fw-semibold">Label Color</label>
+                                                <div class="d-flex gap-2">
+                                                    <input type="color" class="form-control form-control-color" id="itemLabelColor" style="width: 50px; height: 32px;">
+                                                    <input type="text" class="form-control form-control-sm" id="itemLabelColorText" placeholder="Leave empty for default">
+                                                </div>
+                                                <small class="form-text text-muted small">Override default label text color</small>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Text Customization (for text items) -->
+                                        <div class="mb-2" id="textCustomizationGroup" style="display: none;">
+                                            <h6 class="fw-bold mb-2 small">Text Customization</h6>
+                                            
+                                            <div class="mb-2">
+                                                <label class="form-label small mb-1 fw-semibold">Text Content</label>
+                                                <input type="text" class="form-control form-control-sm" id="itemTextContent" placeholder="Enter text content">
+                                                <small class="form-text text-muted small">The text to display</small>
+                                            </div>
+                                            
+                                            <div class="mb-2">
+                                                <label class="form-label small mb-1 fw-semibold">Text Color</label>
+                                                <div class="d-flex gap-2">
+                                                    <input type="color" class="form-control form-control-color" id="itemTextColor" style="width: 50px; height: 32px;">
+                                                    <input type="text" class="form-control form-control-sm" id="itemTextColorText" placeholder="Leave empty for default">
+                                                </div>
+                                                <small class="form-text text-muted small">Override default text color</small>
+                                            </div>
+                                            
+                                            <div class="mb-2">
+                                                <label class="form-label small mb-1 fw-semibold">Fill Color (Background)</label>
+                                                <div class="d-flex gap-2">
+                                                    <input type="color" class="form-control form-control-color" id="itemFillColor" style="width: 50px; height: 32px;">
+                                                    <input type="text" class="form-control form-control-sm" id="itemFillColorText" placeholder="Leave empty for default">
+                                                </div>
+                                                <small class="form-text text-muted small">Override default fill color</small>
+                                            </div>
+                                            
+                                            <div class="mb-2">
+                                                <label class="form-label small mb-1 fw-semibold">Stroke Color (Border)</label>
+                                                <div class="d-flex gap-2">
+                                                    <input type="color" class="form-control form-control-color" id="itemStrokeColor" style="width: 50px; height: 32px;">
+                                                    <input type="text" class="form-control form-control-sm" id="itemStrokeColorText" placeholder="Leave empty for default">
+                                                </div>
+                                                <small class="form-text text-muted small">Override default stroke color</small>
+                                            </div>
+                                            
+                                            <div class="mb-2">
+                                                <label class="form-label small mb-1 fw-semibold">Font Size</label>
+                                                <select class="form-select form-select-sm" id="itemFontSize">
+                                                    <option value="">Use Default ({{ $floorplanDesign->font_size ?? 12 }}px)</option>
+                                                    <option value="8">8px (Small)</option>
+                                                    <option value="10">10px (Medium)</option>
+                                                    <option value="12">12px (Standard)</option>
+                                                    <option value="14">14px (Large)</option>
+                                                    <option value="16">16px (Extra Large)</option>
+                                                    <option value="18">18px (Title)</option>
+                                                    <option value="20">20px (Large Title)</option>
+                                                    <option value="24">24px (Heading)</option>
+                                                </select>
+                                                <small class="form-text text-muted small">Override default font size</small>
+                                            </div>
+                                            
+                                            <div class="mb-2">
+                                                <label class="form-label small mb-1 fw-semibold">Font Family</label>
+                                                <select class="form-select form-select-sm" id="itemFontFamily">
+                                                    <option value="">Use Default ({{ $floorplanDesign->font_family ?? 'Arial' }})</option>
+                                                    <option value="Arial">Arial</option>
+                                                    <option value="Helvetica">Helvetica</option>
+                                                    <option value="Times New Roman">Times New Roman</option>
+                                                    <option value="Georgia">Georgia</option>
+                                                    <option value="Verdana">Verdana</option>
+                                                    <option value="Courier New">Courier New</option>
+                                                    <option value="Impact">Impact</option>
+                                                </select>
+                                                <small class="form-text text-muted small">Override default font family</small>
+                                            </div>
+                                            
+                                            <div class="mb-2">
+                                                <label class="form-label small mb-1 fw-semibold">Border Width</label>
+                                                <input type="number" class="form-control form-control-sm" id="itemTextBorderWidth" min="1" max="10" placeholder="Leave empty for default">
+                                                <small class="form-text text-muted small">Override default border width</small>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="card-footer py-2 d-flex gap-1 bg-light border-top">
                                         <button type="button" class="btn btn-primary btn-sm py-1 px-2" id="updateItemProperties">
@@ -318,6 +538,7 @@
                                             <li><a class="dropdown-item shape-tool" href="#" data-shape="hexagon"><i class="bi bi-hexagon me-2"></i>Hexagon</a></li>
                                             <li><a class="dropdown-item shape-tool" href="#" data-shape="arrow"><i class="bi bi-arrow-right me-2"></i>Arrow</a></li>
                                             <li><a class="dropdown-item shape-tool" href="#" data-shape="line"><i class="bi bi-dash me-2"></i>Line</a></li>
+                                            <li><a class="dropdown-item" href="#" onclick="addText(); return false;"><i class="bi bi-type me-2"></i>Text</a></li>
                                         </ul>
                                     </div>
 
@@ -415,6 +636,7 @@
                             </div>
                             
                             <!-- Canvas Area -->
+                            <div class="canvas-overflow-container">
                             <div class="border border-2 border-dashed border-secondary rounded bg-light d-flex align-items-center justify-content-center position-relative" style="min-height: 500px;">
                                 <canvas id="floorplanCanvas" width="800" height="600" style="border: 1px solid #ccc; cursor: crosshair;"></canvas>
                                 
@@ -427,6 +649,7 @@
                                         <p class="mb-1">• Click "Add Area" to create zones</p>
                                         <p class="mb-1">• Use "Add Text" for labels</p>
                                         <p class="mb-0">• Upload images for logos or icons</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -439,18 +662,119 @@
 
         <style>
         /* Properties panel toggle styles */
-        .properties-collapsed .col-lg-4 {
+        .properties-collapsed .col-lg-3 {
             display: none !important;
         }
         
-        .properties-collapsed .col-lg-8 {
+        .properties-collapsed .col-lg-9 {
             flex: 0 0 100% !important;
             max-width: 100% !important;
         }
         
         /* Smooth transitions */
-        .col-lg-4, .col-lg-8 {
+        .col-lg-3, .col-lg-9 {
             transition: all 0.3s ease;
+        }
+        
+        /* Canvas container styling */
+        #canvasContainer {
+            transition: all 0.3s ease;
+            overflow: auto;
+        }
+        
+        #canvasContainer.full-width {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+        
+        /* Ensure canvas takes full width when properties are hidden */
+        .properties-collapsed #canvasContainer {
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
+        }
+        
+        /* Smooth canvas expansion */
+        .properties-collapsed .canvas-overflow-container {
+            max-width: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        /* Properties panel toggle styling */
+        #propertiesPanel {
+            transition: all 0.3s ease;
+        }
+        
+        #propertiesPanel.hidden {
+            display: none !important;
+        }
+        
+        /* Responsive canvas handling */
+        .canvas-wrapper {
+            position: relative;
+            overflow: auto;
+            max-width: 100%;
+        }
+        
+        .canvas-scroll-container {
+            overflow: auto;
+            max-height: 80vh;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+        }
+        
+        /* Canvas sizing and scrolling */
+        #floorplanCanvas {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .canvas-overflow-container {
+            overflow: auto;
+            max-height: calc(100vh - 150px);
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            padding: 10px;
+        }
+        
+        /* Properties panel scrolling */
+        #propertiesPanel .card-body .overflow-y-auto {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f1f5f9;
+        }
+        
+        #propertiesPanel .card-body .overflow-y-auto::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #propertiesPanel .card-body .overflow-y-auto::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+        
+        #propertiesPanel .card-body .overflow-y-auto::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        #propertiesPanel .card-body .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Fixed bottom section styling */
+        #propertiesPanel .border-top {
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0 !important;
+        }
+        
+        /* Ensure proper spacing in the fixed section */
+        #propertiesPanel .border-top .btn {
+            margin-bottom: 0;
+        }
+        
+        /* Compact button styling for inline layout */
+        #propertiesPanel .border-top .btn {
+            font-size: 0.875rem;
+            padding: 0.375rem 0.75rem;
         }
     </style>
 
@@ -502,6 +826,19 @@
                 drawGrid();
             }
             
+            // Apply properties to canvas
+            function applyPropertiesToCanvas() {
+                // Apply background color
+                ctx.fillStyle = document.getElementById('bgColor').value;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Redraw grid with new settings
+                drawGrid();
+                
+                // Redraw all shapes with new properties
+                redrawCanvas();
+            }
+            
             // Toggle canvas instructions visibility
             function toggleCanvasInstructions() {
                 if (shapes.length > 0) {
@@ -550,7 +887,12 @@
                         startingLabelNumber: document.getElementById('startingLabelNumber').value,
                         defaultLabelPosition: document.getElementById('defaultLabelPosition').value,
                         defaultPrice: document.getElementById('defaultPrice').value,
-                        enableAutoLabeling: document.getElementById('enableAutoLabeling').checked
+                        enableAutoLabeling: document.getElementById('enableAutoLabeling').checked,
+                        defaultBoothWidthMeters: document.getElementById('defaultBoothWidthMeters').value,
+                        defaultBoothHeightMeters: document.getElementById('defaultBoothHeightMeters').value,
+                        defaultLabelFontSize: document.getElementById('defaultLabelFontSize').value,
+                        defaultLabelBackgroundColor: document.getElementById('defaultLabelBackgroundColor').value,
+                        defaultLabelColor: document.getElementById('defaultLabelColor').value
                     }
                 });
                 hasUnsavedChanges = false;
@@ -820,10 +1162,11 @@
             
             // Draw individual shape
             function drawShape(shape) {
-                ctx.strokeStyle = shape.strokeColor || '#374151';
-                ctx.fillStyle = shape.fillColor || '#e5e7eb';
-                ctx.lineWidth = shape.borderWidth || 2;
-                ctx.font = `${shape.fontSize || 12}px ${shape.fontFamily || 'Arial'}`;
+                // Use effective properties (item-specific or fallback to floorplan defaults)
+                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
+                ctx.lineWidth = shape.borderWidth || parseInt(document.getElementById('borderWidth').value);
+                ctx.font = `${shape.fontSize || parseInt(document.getElementById('fontSize').value)}px ${shape.fontFamily || document.getElementById('fontFamily').value}`;
                 
                 // Calculate center for rotation
                 let centerX, centerY;
@@ -907,19 +1250,34 @@
                             ctx.translate(-textCenterX, -textCenterY);
                         }
                         
-                        // Set text properties
-                        ctx.fillStyle = shape.textColor || '#111827';
-                        ctx.font = `${shape.fontSize || 16}px ${shape.fontFamily || 'Arial'}`;
+                        // Draw background rectangle if fill color is specified
+                        if (shape.fillColor) {
+                            ctx.fillStyle = shape.fillColor;
+                            ctx.fillRect(shape.x, shape.y, shape.width || 120, shape.height || 30);
+                        }
+                        
+                        // Draw stroke/border if stroke color is specified
+                        if (shape.strokeColor) {
+                            ctx.strokeStyle = shape.strokeColor;
+                            ctx.lineWidth = shape.borderWidth || parseInt(document.getElementById('borderWidth').value);
+                            ctx.strokeRect(shape.x, shape.y, shape.width || 120, shape.height || 30);
+                        }
+                        
+                        // Set text properties using effective values (item override or floorplan default)
+                        ctx.fillStyle = shape.textColor || document.getElementById('textColor').value;
+                        ctx.font = `${shape.fontSize || parseInt(document.getElementById('fontSize').value)}px ${shape.fontFamily || document.getElementById('fontFamily').value}`;
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
                         
                         // Draw text at center of the shape
                         ctx.fillText(shape.text, textCenterX, textCenterY);
                         
-                        // Draw text boundary rectangle for visual feedback
-                        ctx.strokeStyle = selectedShape === shape ? '#007bff' : 'rgba(0,0,0,0.1)';
-                        ctx.lineWidth = 1;
+                        // Draw selection highlight if this is the selected shape
+                        if (selectedShape === shape) {
+                            ctx.strokeStyle = '#007bff';
+                            ctx.lineWidth = 2;
                         ctx.strokeRect(shape.x, shape.y, shape.width || 120, shape.height || 30);
+                        }
                         
                         // Restore canvas context if rotation was applied
                         if (shape.rotation && shape.rotation !== 0) {
@@ -1134,10 +1492,10 @@
                 }
                 
                 // Table top
-                ctx.fillStyle = '#8B4513';
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
                 ctx.fillRect(shape.x, shape.y, width, height);
-                ctx.strokeStyle = '#654321';
-                ctx.lineWidth = 2;
+                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
+                ctx.lineWidth = shape.borderWidth || parseInt(document.getElementById('borderWidth').value);
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 
                 // Table legs (4 corners)
@@ -1161,8 +1519,8 @@
                 ctx.fillRect(shape.x + width - 7, shape.y + height - 7, legSize, legSize);
                 ctx.fillRect(shape.x + width - 7, shape.y + height + 2, legSize, legHeight);
                 
-                // Table edge highlight (to give 3D effect)
-                ctx.fillStyle = '#A0522D';
+                // Table edge highlight (to give 3D effect) - use effective fill color
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
                 ctx.fillRect(shape.x, shape.y, width, 3);
                 ctx.fillRect(shape.x, shape.y, 3, height);
                 
@@ -1198,15 +1556,17 @@
                 }
                 
                 // Backrest (upper part)
-                ctx.fillStyle = '#654321';
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
                 ctx.fillRect(shape.x, shape.y, width, height * 0.4);
-                ctx.strokeStyle = '#4A4A4A';
-                ctx.lineWidth = 1;
+                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
+                ctx.lineWidth = shape.borderWidth || parseInt(document.getElementById('borderWidth').value);
                 ctx.strokeRect(shape.x, shape.y, width, height * 0.4);
                 
                 // Seat (lower part)
-                ctx.fillStyle = '#8B4513';
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
                 ctx.fillRect(shape.x, shape.y + height * 0.4, width, height * 0.6);
+                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
+                ctx.lineWidth = shape.borderWidth || parseInt(document.getElementById('borderWidth').value);
                 ctx.strokeRect(shape.x, shape.y + height * 0.4, width, height * 0.6);
                 
                 // Chair legs (4 legs)
@@ -1254,14 +1614,14 @@
                 }
                 
                 // Main desk surface
-                ctx.fillStyle = '#8B4513';
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
                 ctx.fillRect(shape.x, shape.y, width, height);
-                ctx.strokeStyle = '#654321';
-                ctx.lineWidth = 2;
+                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
+                ctx.lineWidth = shape.borderWidth || parseInt(document.getElementById('borderWidth').value);
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 
-                // Desk edge highlight (3D effect)
-                ctx.fillStyle = '#A0522D';
+                // Desk edge highlight (3D effect) - use effective fill color
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
                 ctx.fillRect(shape.x, shape.y, width, 3);
                 ctx.fillRect(shape.x, shape.y, 3, height);
                 
@@ -1273,8 +1633,8 @@
                 const monitorY = shape.y + height * 0.1;
                 ctx.fillRect(monitorX, monitorY, monitorWidth, monitorHeight);
                 
-                // Monitor screen (blue glow)
-                ctx.fillStyle = '#1E90FF';
+                // Monitor screen (blue glow) - use effective text color
+                ctx.fillStyle = shape.textColor || document.getElementById('textColor').value;
                 ctx.fillRect(monitorX + 2, monitorY + 2, monitorWidth - 4, monitorHeight - 4);
                 
                 // Monitor stand
@@ -1366,17 +1726,19 @@
                 }
                 
                 // Main booth floor/base
-                ctx.fillStyle = '#F5F5DC'; // Beige floor
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
                 ctx.fillRect(shape.x, shape.y, width, height);
-                ctx.strokeStyle = '#8B4513';
-                ctx.lineWidth = 2;
+                // Use effective stroke color (item-specific or fallback to floorplan default)
+                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
+                ctx.lineWidth = shape.borderWidth || parseInt(document.getElementById('borderWidth').value);
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 
                 // Back wall panels
-                ctx.fillStyle = '#E6E6FA'; // Light lavender panels
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value; // Light lavender panels
                 const backPanelHeight = height * 0.8;
                 ctx.fillRect(shape.x + 5, shape.y + 5, width - 10, backPanelHeight);
-                ctx.strokeStyle = '#9370DB';
+                // Use effective stroke color for panels
+                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
                 ctx.lineWidth = 1;
                 ctx.strokeRect(shape.x + 5, shape.y + 5, width - 10, backPanelHeight);
                 
@@ -1385,6 +1747,7 @@
                 ctx.fillStyle = '#D8BFD8'; // Thistle color
                 // Left side panel
                 ctx.fillRect(shape.x, shape.y + height * 0.3, sidePanelWidth, height * 0.5);
+                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
                 ctx.strokeRect(shape.x, shape.y + height * 0.3, sidePanelWidth, height * 0.5);
                 // Right side panel
                 ctx.fillRect(shape.x + width - sidePanelWidth, shape.y + height * 0.3, sidePanelWidth, height * 0.5);
@@ -1397,7 +1760,8 @@
                 const counterX = shape.x + (width - counterWidth) / 2;
                 const counterY = shape.y + height - counterHeight - 5;
                 ctx.fillRect(counterX, counterY, counterWidth, counterHeight);
-                ctx.strokeStyle = '#654321';
+                // Use effective stroke color for counter
+                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
                 ctx.strokeRect(counterX, counterY, counterWidth, counterHeight);
                 
                 // Counter legs
@@ -1406,36 +1770,26 @@
                 ctx.fillRect(counterX + 5, counterY + counterHeight, legWidth, 8);
                 ctx.fillRect(counterX + counterWidth - 8, counterY + counterHeight, legWidth, 8);
                 
-                // Display screens/monitors on back wall
-                ctx.fillStyle = '#000'; // Black screens
-                const screenWidth = width * 0.25;
-                const screenHeight = height * 0.2;
-                // Left screen
-                ctx.fillRect(shape.x + width * 0.15, shape.y + height * 0.2, screenWidth, screenHeight);
-                // Right screen  
-                ctx.fillRect(shape.x + width * 0.6, shape.y + height * 0.2, screenWidth, screenHeight);
-                
-                // Screen content (blue glow)
-                ctx.fillStyle = '#1E90FF';
-                ctx.fillRect(shape.x + width * 0.15 + 2, shape.y + height * 0.2 + 2, screenWidth - 4, screenHeight - 4);
-                ctx.fillRect(shape.x + width * 0.6 + 2, shape.y + height * 0.2 + 2, screenWidth - 4, screenHeight - 4);
                 
                 // Booth branding/logo area (center of back wall)
-                ctx.fillStyle = '#FFD700'; // Gold background for logo
-                const logoWidth = width * 0.3;
-                const logoHeight = height * 0.15;
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
+                const logoWidth = width * 0.5;
+                const logoHeight = height * 0.18;
                 const logoX = shape.x + (width - logoWidth) / 2;
-                const logoY = shape.y + height * 0.05;
+                const logoY = shape.y + height * 0.1;
                 ctx.fillRect(logoX, logoY, logoWidth, logoHeight);
-                ctx.strokeStyle = '#FF8C00';
+
+                
+                // Use effective stroke color for logo area
+                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
                 ctx.lineWidth = 2;
                 ctx.strokeRect(logoX, logoY, logoWidth, logoHeight);
                 
-                // Company name placeholder
-                ctx.fillStyle = '#000';
-                ctx.font = '8px Arial';
+                // Company name placeholder - use effective properties
+                ctx.fillStyle = shape.textColor || document.getElementById('textColor').value;
+                ctx.font = `8px ${shape.fontFamily || document.getElementById('fontFamily').value}`;
                 ctx.textAlign = 'center';
-                ctx.fillText('EXPO', logoX + logoWidth/2, logoY + logoHeight/2 + 3);
+                ctx.fillText('BOOTH', logoX + logoWidth/2, logoY + logoHeight/2 + 3);
                 ctx.textAlign = 'start';
                 
                 // Promotional materials/brochures on counter
@@ -1444,7 +1798,8 @@
                     const brochureX = counterX + 10 + i * 15;
                     const brochureY = counterY - 8;
                     ctx.fillRect(brochureX, brochureY, 8, 6);
-                    ctx.strokeStyle = '#CCC';
+                    // Use effective stroke color for brochures
+                    ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
                     ctx.lineWidth = 0.5;
                     ctx.strokeRect(brochureX, brochureY, 8, 6);
                 }
@@ -1486,29 +1841,32 @@
                 }
                 
                 // Counter base/cabinet
-                ctx.fillStyle = '#8B4513'; // Dark brown wood
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
                 ctx.fillRect(shape.x, shape.y, width, height);
-                ctx.strokeStyle = '#654321';
-                ctx.lineWidth = 2;
+                // Use effective stroke color and border width
+                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
+                ctx.lineWidth = shape.borderWidth || parseInt(document.getElementById('borderWidth').value);
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 
                 // Counter top surface (lighter wood)
-                ctx.fillStyle = '#D2B48C'; // Tan wood top
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
                 const topHeight = height * 0.2;
                 ctx.fillRect(shape.x, shape.y, width, topHeight);
-                ctx.strokeStyle = '#A0522D';
+                // Use effective stroke color for top surface
+                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
                 ctx.lineWidth = 1;
                 ctx.strokeRect(shape.x, shape.y, width, topHeight);
                 
-                // Counter edge highlight (3D effect)
-                ctx.fillStyle = '#F5DEB3'; // Wheat color highlight
+                // Counter edge highlight (3D effect) - use effective fill color
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
                 ctx.fillRect(shape.x, shape.y, width, 2);
                 ctx.fillRect(shape.x, shape.y, 2, topHeight);
                 
                 // Cabinet doors/panels
                 const panelWidth = width / 3;
-                ctx.fillStyle = '#654321';
-                ctx.strokeStyle = '#4A4A4A';
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
+                // Use effective stroke color for panels
+                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
                 ctx.lineWidth = 1;
                 
                 for (let i = 0; i < 3; i++) {
@@ -1635,14 +1993,14 @@
                 }
                 
                 // Stage platform/floor (raised surface)
-                ctx.fillStyle = '#8B0000'; // Dark red stage floor
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
                 ctx.fillRect(shape.x, shape.y, width, height);
-                ctx.strokeStyle = '#654321'; // Brown border
-                ctx.lineWidth = 3;
+                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
+                ctx.lineWidth = shape.borderWidth || parseInt(document.getElementById('borderWidth').value);
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 
-                // Stage edge highlight (3D effect)
-                ctx.fillStyle = '#A0522D'; // Saddle brown highlight
+                // Stage edge highlight (3D effect) - use effective fill color
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
                 ctx.fillRect(shape.x, shape.y, width, 4);
                 ctx.fillRect(shape.x, shape.y, 4, height);
                 
@@ -1766,10 +2124,10 @@
                 }
                 
                 // Screen bezel/frame (outer black frame)
-                ctx.fillStyle = '#2F2F2F'; // Dark gray bezel
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
                 ctx.fillRect(shape.x, shape.y, width, height);
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 3;
+                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
+                ctx.lineWidth = shape.borderWidth || parseInt(document.getElementById('borderWidth').value);
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 
                 // Screen display area (inner screen)
@@ -1779,8 +2137,8 @@
                 const screenX = shape.x + screenPadding;
                 const screenY = shape.y + screenPadding;
                 
-                // Active screen (blue glow when on)
-                ctx.fillStyle = '#1E90FF'; // Dodger blue screen
+                // Active screen (blue glow when on) - use effective text color
+                ctx.fillStyle = shape.textColor || document.getElementById('textColor').value;
                 ctx.fillRect(screenX, screenY, screenWidth, screenHeight);
                 
                 // Screen reflection/glass effect
@@ -2055,10 +2413,10 @@
                 ctx.fillRect(poleX - (baseWidth - poleWidth)/2, poleY + poleHeight - baseHeight, baseWidth, baseHeight);
                 
                 // Banner fabric/material
-                ctx.fillStyle = '#FF6347'; // Tomato red banner
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
                 ctx.fillRect(shape.x, shape.y, width, height);
-                ctx.strokeStyle = '#DC143C'; // Crimson border
-                ctx.lineWidth = 2;
+                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
+                ctx.lineWidth = shape.borderWidth || parseInt(document.getElementById('borderWidth').value);
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 
                 // Banner grommets/eyelets (attachment points)
@@ -2079,25 +2437,25 @@
                 ctx.arc(shape.x + width - 5, shape.y + height - 5, grommetRadius, 0, 2 * Math.PI);
                 ctx.fill();
                 
-                // Banner header/title area
-                ctx.fillStyle = '#B22222'; // Fire brick header
+                // Banner header/title area - use effective fill color
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
                 const headerHeight = height * 0.2;
                 ctx.fillRect(shape.x, shape.y, width, headerHeight);
                 
-                // Banner title text
-                ctx.fillStyle = '#FFF'; // White text
-                ctx.font = 'bold 8px Arial';
+                // Banner title text - use effective text properties
+                ctx.fillStyle = shape.textColor || document.getElementById('textColor').value;
+                ctx.font = `bold 8px ${shape.fontFamily || document.getElementById('fontFamily').value}`;
                 ctx.textAlign = 'center';
                 ctx.fillText('EXHIBITION', shape.x + width/2, shape.y + headerHeight/2 + 3);
                 ctx.textAlign = 'start';
                 
-                // Banner main content area
-                ctx.fillStyle = '#FFF'; // White content background
+                // Banner main content area - use effective properties
+                ctx.fillStyle = shape.textColor || document.getElementById('textColor').value;
                 const contentHeight = height * 0.5;
                 const contentY = shape.y + headerHeight + 5;
                 ctx.fillRect(shape.x + 5, contentY, width - 10, contentHeight);
-                ctx.strokeStyle = '#DDD';
-                ctx.lineWidth = 1;
+                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
+                ctx.lineWidth = shape.borderWidth || parseInt(document.getElementById('borderWidth').value);
                 ctx.strokeRect(shape.x + 5, contentY, width - 10, contentHeight);
                 
                 // Content placeholder (logo/image area)
@@ -2107,22 +2465,22 @@
                 const logoY = contentY + 10;
                 ctx.fillRect(logoX, logoY, logoSize, logoSize * 0.6);
                 
-                // Logo placeholder text
-                ctx.fillStyle = '#888';
-                ctx.font = '6px Arial';
+                // Logo placeholder text - use effective text properties
+                ctx.fillStyle = shape.textColor || document.getElementById('textColor').value;
+                ctx.font = `6px ${shape.fontFamily || document.getElementById('fontFamily').value}`;
                 ctx.textAlign = 'center';
                 ctx.fillText('LOGO', logoX + logoSize/2, logoY + logoSize * 0.3 + 2);
                 ctx.textAlign = 'start';
                 
-                // Banner footer/contact info
-                ctx.fillStyle = '#8B0000'; // Dark red footer
+                // Banner footer/contact info - use effective fill color
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
                 const footerHeight = height * 0.15;
                 const footerY = shape.y + height - footerHeight;
                 ctx.fillRect(shape.x, footerY, width, footerHeight);
                 
-                // Footer text
-                ctx.fillStyle = '#FFF';
-                ctx.font = '5px Arial';
+                // Footer text - use effective text properties
+                ctx.fillStyle = shape.textColor || document.getElementById('textColor').value;
+                ctx.font = `5px ${shape.fontFamily || document.getElementById('fontFamily').value}`;
                 ctx.textAlign = 'center';
                 ctx.fillText('2024', shape.x + width/2, footerY + footerHeight/2 + 2);
                 ctx.textAlign = 'start';
@@ -2189,10 +2547,10 @@
                 }
                 
                 // Main kiosk body (metallic silver)
-                ctx.fillStyle = '#C0C0C0'; // Silver body
+                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
                 ctx.fillRect(shape.x, shape.y, width, height);
-                ctx.strokeStyle = '#808080';
-                ctx.lineWidth = 2;
+                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
+                ctx.lineWidth = shape.borderWidth || parseInt(document.getElementById('borderWidth').value);
                 ctx.strokeRect(shape.x, shape.y, width, height);
                 
                 // Kiosk base (wider for stability)
@@ -2212,8 +2570,8 @@
                 const screenY = shape.y + height * 0.1;
                 ctx.fillRect(screenX, screenY, screenWidth, screenHeight);
                 
-                // Active screen content
-                ctx.fillStyle = '#1E90FF'; // Blue screen background
+                // Active screen content - use effective text color
+                ctx.fillStyle = shape.textColor || document.getElementById('textColor').value;
                 const contentWidth = screenWidth * 0.9;
                 const contentHeight = screenHeight * 0.9;
                 const contentX = screenX + (screenWidth - contentWidth) / 2;
@@ -4108,9 +4466,18 @@
                     type: subtype || type,
                     x: 50 + Math.random() * 100,
                     y: 50 + Math.random() * 100,
-                    fillColor: document.getElementById('fillColor').value,
-                    strokeColor: document.getElementById('strokeColor').value,
-                    borderWidth: parseInt(document.getElementById('borderWidth').value),
+                    // Visual properties - set to null so they inherit from floorplan defaults
+                    fillColor: null,
+                    strokeColor: null,
+                    borderWidth: null,
+                    fontFamily: null,
+                    fontSize: null,
+                    textColor: null,
+                    // Label properties - set to null so they inherit from floorplan defaults
+                    labelFontSize: null,
+                    labelBackgroundColor: null,
+                    labelColor: null,
+                    labelPosition: null,
                     rotation: 0, // Add rotation property
                     id: Date.now(),
                     // Booking properties
@@ -4179,6 +4546,9 @@
                         shape.bookable = true;
                         shape.maxCapacity = defaultBoothCapacity;
                         shape.price = defaultPrice;
+                        // Initialize booth size properties to null for inheritance
+                        shape.boothWidthMeters = null;
+                        shape.boothHeightMeters = null;
                         if (enableAutoLabeling) {
                             boothCounter++;
                             shape.label = labelPrefix + (startingLabelNumber + boothCounter - 1);
@@ -4278,6 +4648,11 @@
                         shape.height = 30;
                         shape.bookable = false; // Outdoor elements are not bookable
                         break;
+                    case 'text':
+                        shape.width = 120;
+                        shape.height = 30;
+                        shape.bookable = false; // Text is not bookable
+                        break;
                     default:
                         shape.size = shape.size || 30;
                         break;
@@ -4300,9 +4675,14 @@
                         width: 120, // Default width for text
                         height: 30,  // Default height for text
                         text: text,
-                        textColor: document.getElementById('textColor').value,
-                        fontSize: parseInt(document.getElementById('fontSize').value),
-                        fontFamily: document.getElementById('fontFamily').value,
+                        // Text properties - set to null so they inherit from floorplan defaults
+                        textColor: null,
+                        fontSize: null,
+                        fontFamily: null,
+                        // Visual properties - set to null so they inherit from floorplan defaults
+                        fillColor: null,
+                        strokeColor: null,
+                        borderWidth: null,
                         rotation: 0, // Add rotation property
                         id: Date.now()
                     };
@@ -4885,7 +5265,7 @@
             // Property change listeners
             document.getElementById('bgColor').addEventListener('change', function() {
                 document.getElementById('bgColorText').value = this.value;
-                redrawCanvas();
+                applyPropertiesToCanvas();
                 trackChanges();
             });
             
@@ -4964,6 +5344,364 @@
                 trackChanges();
             });
             
+            // New properties event listeners
+            document.getElementById('defaultBoothWidthMeters').addEventListener('change', function() {
+                // Update booth size display if a booth item is selected
+                if (selectedShape && selectedShape.type === 'booth') {
+                    const boothSizeText = document.getElementById('boothSizeText');
+                    const defaultHeight = document.getElementById('defaultBoothHeightMeters').value || '2.0';
+                    boothSizeText.textContent = `${this.value}m × ${defaultHeight}m`;
+                }
+                trackChanges();
+            });
+            
+            document.getElementById('defaultBoothHeightMeters').addEventListener('change', function() {
+                // Update booth size display if a booth item is selected
+                if (selectedShape && selectedShape.type === 'booth') {
+                    const boothSizeText = document.getElementById('boothSizeText');
+                    const defaultWidth = document.getElementById('defaultBoothWidthMeters').value || '3.0';
+                    boothSizeText.textContent = `${defaultWidth}m × ${this.value}m`;
+                }
+                trackChanges();
+            });
+            
+            document.getElementById('defaultLabelFontSize').addEventListener('change', function() {
+                redrawCanvas();
+                trackChanges();
+            });
+            
+            document.getElementById('defaultLabelBackgroundColor').addEventListener('change', function() {
+                document.getElementById('defaultLabelBackgroundColorText').value = this.value;
+                redrawCanvas();
+                trackChanges();
+            });
+            
+            document.getElementById('defaultLabelColor').addEventListener('change', function() {
+                document.getElementById('defaultLabelColorText').value = this.value;
+                redrawCanvas();
+                trackChanges();
+            });
+            
+            // Text input event listeners for new color fields
+            document.getElementById('defaultLabelBackgroundColorText').addEventListener('input', function() {
+                if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                    document.getElementById('defaultLabelBackgroundColor').value = this.value;
+                    redrawCanvas();
+                    trackChanges();
+                }
+            });
+            
+            document.getElementById('defaultLabelColorText').addEventListener('input', function() {
+                if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                    document.getElementById('defaultLabelColor').value = this.value;
+                    redrawCanvas();
+                    trackChanges();
+                }
+            });
+            
+
+            
+            // Item visual properties event listeners
+            document.getElementById('itemFillColor').addEventListener('change', function() {
+                document.getElementById('itemFillColorText').value = this.value;
+                if (selectedShape) {
+                    selectedShape.fillColor = this.value;
+                    redrawCanvas();
+                    trackChanges();
+                }
+            });
+            
+            document.getElementById('itemStrokeColor').addEventListener('change', function() {
+                document.getElementById('itemStrokeColorText').value = this.value;
+                if (selectedShape) {
+                    selectedShape.strokeColor = this.value;
+                    redrawCanvas();
+                    trackChanges();
+                }
+            });
+            
+            document.getElementById('itemBorderWidth').addEventListener('change', function() {
+                if (selectedShape) {
+                    selectedShape.borderWidth = this.value ? parseInt(this.value) : null;
+                    redrawCanvas();
+                    trackChanges();
+                }
+            });
+            
+            // Item label properties event listeners
+            document.getElementById('itemLabelFontSize').addEventListener('change', function() {
+                if (selectedShape) {
+                    selectedShape.labelFontSize = this.value ? parseInt(this.value) : null;
+                    redrawCanvas();
+                    trackChanges();
+                }
+            });
+            
+            document.getElementById('itemLabelBackgroundColor').addEventListener('change', function() {
+                document.getElementById('itemLabelBackgroundColorText').value = this.value;
+                if (selectedShape) {
+                    selectedShape.labelBackgroundColor = this.value;
+                    redrawCanvas();
+                    trackChanges();
+                }
+            });
+            
+            document.getElementById('itemLabelColor').addEventListener('change', function() {
+                document.getElementById('itemLabelColorText').value = this.value;
+                if (selectedShape) {
+                    selectedShape.labelColor = this.value;
+                    redrawCanvas();
+                    trackChanges();
+                }
+            });
+            
+            // Text input event listeners for item color fields
+            document.getElementById('itemFillColorText').addEventListener('input', function() {
+                if (this.value === '') {
+                    // Empty value means inherit from floorplan default
+                    if (selectedShape) {
+                        selectedShape.fillColor = null;
+                        redrawCanvas();
+                        trackChanges();
+                    }
+                } else if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                    document.getElementById('itemFillColor').value = this.value;
+                    if (selectedShape) {
+                        selectedShape.fillColor = this.value;
+                        redrawCanvas();
+                        trackChanges();
+                    }
+                }
+            });
+            
+            document.getElementById('itemStrokeColorText').addEventListener('input', function() {
+                if (this.value === '') {
+                    // Empty value means inherit from floorplan default
+                    if (selectedShape) {
+                        selectedShape.strokeColor = null;
+                        redrawCanvas();
+                        trackChanges();
+                    }
+                } else if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                    document.getElementById('itemStrokeColor').value = this.value;
+                    if (selectedShape) {
+                        selectedShape.strokeColor = this.value;
+                        redrawCanvas();
+                        trackChanges();
+                    }
+                }
+            });
+            
+            document.getElementById('itemLabelBackgroundColorText').addEventListener('input', function() {
+                if (this.value === '') {
+                    // Empty value means inherit from floorplan default
+                    if (selectedShape) {
+                        selectedShape.labelBackgroundColor = null;
+                        redrawCanvas();
+                        trackChanges();
+                    }
+                } else if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                    document.getElementById('itemLabelBackgroundColor').value = this.value;
+                    if (selectedShape) {
+                        selectedShape.labelBackgroundColor = this.value;
+                        redrawCanvas();
+                        trackChanges();
+                    }
+                }
+            });
+            
+            document.getElementById('itemLabelColorText').addEventListener('input', function() {
+                if (this.value === '') {
+                    // Empty value means inherit from floorplan default
+                    if (selectedShape) {
+                        selectedShape.labelColor = null;
+                        redrawCanvas();
+                        trackChanges();
+                    }
+                } else if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                    document.getElementById('itemLabelColor').value = this.value;
+                    if (selectedShape) {
+                        selectedShape.labelColor = this.value;
+                        redrawCanvas();
+                        trackChanges();
+                    }
+                }
+            });
+            
+            // Text property event listeners
+            document.getElementById('itemTextColor').addEventListener('change', function() {
+                document.getElementById('itemTextColorText').value = this.value;
+                if (selectedShape && selectedShape.type === 'text') {
+                    selectedShape.textColor = this.value;
+                    redrawCanvas();
+                    trackChanges();
+                }
+            });
+            
+            document.getElementById('itemTextColorText').addEventListener('input', function() {
+                if (this.value === '') {
+                    // Empty value means inherit from floorplan default
+                    if (selectedShape && selectedShape.type === 'text') {
+                        selectedShape.textColor = null;
+                        redrawCanvas();
+                        trackChanges();
+                    }
+                } else if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                    document.getElementById('itemTextColor').value = this.value;
+                    if (selectedShape && selectedShape.type === 'text') {
+                        selectedShape.textColor = this.value;
+                        redrawCanvas();
+                        trackChanges();
+                    }
+                }
+            });
+            
+            document.getElementById('itemFontSize').addEventListener('change', function() {
+                if (selectedShape && selectedShape.type === 'text') {
+                    selectedShape.fontSize = this.value ? parseInt(this.value) : null;
+                    redrawCanvas();
+                    trackChanges();
+                }
+            });
+            
+            document.getElementById('itemFontFamily').addEventListener('change', function() {
+                if (selectedShape && selectedShape.type === 'text') {
+                    selectedShape.fontFamily = this.value || null;
+                    redrawCanvas();
+                    trackChanges();
+                }
+            });
+            
+
+            
+            document.getElementById('itemTextBorderWidth').addEventListener('change', function() {
+                if (selectedShape && selectedShape.type === 'text') {
+                    selectedShape.borderWidth = this.value ? parseInt(this.value) : null;
+                    redrawCanvas();
+                    trackChanges();
+                }
+            });
+            
+            // Fill color event listeners for text items
+            document.getElementById('itemFillColor').addEventListener('change', function() {
+                document.getElementById('itemFillColorText').value = this.value;
+                if (selectedShape && selectedShape.type === 'text') {
+                    selectedShape.fillColor = this.value;
+                    redrawCanvas();
+                    trackChanges();
+                }
+            });
+            
+            document.getElementById('itemFillColorText').addEventListener('input', function() {
+                if (this.value === '') {
+                    // Empty value means inherit from floorplan default
+                    if (selectedShape && selectedShape.type === 'text') {
+                        selectedShape.fillColor = null;
+                        redrawCanvas();
+                        trackChanges();
+                    }
+                } else if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                    document.getElementById('itemFillColor').value = this.value;
+                    if (selectedShape && selectedShape.type === 'text') {
+                        selectedShape.fillColor = this.value;
+                        redrawCanvas();
+                        trackChanges();
+                    }
+                }
+            });
+            
+            // Stroke color event listeners for text items
+            document.getElementById('itemStrokeColor').addEventListener('change', function() {
+                document.getElementById('itemStrokeColorText').value = this.value;
+                if (selectedShape && selectedShape.type === 'text') {
+                    selectedShape.strokeColor = this.value;
+                    redrawCanvas();
+                    trackChanges();
+                }
+            });
+            
+            document.getElementById('itemStrokeColorText').addEventListener('input', function() {
+                if (this.value === '') {
+                    // Empty value means inherit from floorplan default
+                    if (selectedShape && selectedShape.type === 'text') {
+                        selectedShape.strokeColor = null;
+                        redrawCanvas();
+                        trackChanges();
+                    }
+                } else if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                    document.getElementById('itemStrokeColor').value = this.value;
+                    if (selectedShape && selectedShape.type === 'text') {
+                        selectedShape.strokeColor = this.value;
+                        redrawCanvas();
+                        trackChanges();
+                    }
+                }
+            });
+            
+            // Booth size event listeners
+            document.getElementById('itemBoothWidthMeters').addEventListener('change', function() {
+                if (selectedShape && selectedShape.type === 'booth') {
+                    if (this.value === '') {
+                        selectedShape.boothWidthMeters = null; // Inherit from floorplan default
+                    } else {
+                        selectedShape.boothWidthMeters = parseFloat(this.value);
+                    }
+                    trackChanges();
+                }
+            });
+            
+            document.getElementById('itemBoothHeightMeters').addEventListener('change', function() {
+                if (selectedShape && selectedShape.type === 'booth') {
+                    if (this.value === '') {
+                        selectedShape.boothHeightMeters = null; // Inherit from floorplan default
+                    } else {
+                        selectedShape.boothHeightMeters = parseFloat(this.value);
+                    }
+                    trackChanges();
+                }
+            });
+            
+            // Text input event listeners for existing color fields
+            document.getElementById('bgColorText').addEventListener('input', function() {
+                if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                    document.getElementById('bgColor').value = this.value;
+                    applyPropertiesToCanvas();
+                    trackChanges();
+                }
+            });
+            
+            document.getElementById('fillColorText').addEventListener('input', function() {
+                if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                    document.getElementById('fillColor').value = this.value;
+                    redrawCanvas();
+                    trackChanges();
+                }
+            });
+            
+            document.getElementById('strokeColorText').addEventListener('input', function() {
+                if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                    document.getElementById('strokeColor').value = this.value;
+                    redrawCanvas();
+                    trackChanges();
+                }
+            });
+            
+            document.getElementById('textColorText').addEventListener('input', function() {
+                if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                    document.getElementById('textColor').value = this.value;
+                    redrawCanvas();
+                    trackChanges();
+                }
+            });
+            
+            document.getElementById('gridColorText').addEventListener('input', function() {
+                if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                    document.getElementById('gridColor').value = this.value;
+                    redrawCanvas();
+                    trackChanges();
+                }
+            });
+            
             document.getElementById('fillColor').addEventListener('change', function() {
                 document.getElementById('fillColorText').value = this.value;
             });
@@ -5039,6 +5777,23 @@
                     selectedShape.itemName = document.getElementById('itemName').value;
                     selectedShape.label = document.getElementById('itemLabel').value;
                     
+                    // Handle booth size properties for booth items
+                    if (selectedShape.type === 'booth') {
+                        const boothWidthValue = document.getElementById('itemBoothWidthMeters').value;
+                        if (boothWidthValue === '') {
+                            selectedShape.boothWidthMeters = null; // Inherit from floorplan default
+                        } else {
+                            selectedShape.boothWidthMeters = parseFloat(boothWidthValue);
+                        }
+                        
+                        const boothHeightValue = document.getElementById('itemBoothHeightMeters').value;
+                        if (boothHeightValue === '') {
+                            selectedShape.boothHeightMeters = null; // Inherit from floorplan default
+                        } else {
+                            selectedShape.boothHeightMeters = parseFloat(boothHeightValue);
+                        }
+                    }
+                    
                     // Handle label position (empty string means use default)
                     const labelPositionValue = document.getElementById('itemLabelPosition').value;
                     if (labelPositionValue === '') {
@@ -5056,6 +5811,103 @@
                         selectedShape.price = null; // Use default price
                     } else {
                         selectedShape.price = parseFloat(priceValue);
+                    }
+                    
+                    // Handle visual properties (empty string means inherit from floorplan defaults)
+                    const fillColorValue = document.getElementById('itemFillColorText').value;
+                    if (fillColorValue === '') {
+                        selectedShape.fillColor = null; // Inherit from floorplan default
+                    } else {
+                        selectedShape.fillColor = fillColorValue;
+                    }
+                    
+                    const strokeColorValue = document.getElementById('itemStrokeColorText').value;
+                    if (strokeColorValue === '') {
+                        selectedShape.strokeColor = null; // Inherit from floorplan default
+                    } else {
+                        selectedShape.strokeColor = strokeColorValue;
+                    }
+                    
+                    const borderWidthValue = document.getElementById('itemBorderWidth').value;
+                    if (borderWidthValue === '') {
+                        selectedShape.borderWidth = null; // Inherit from floorplan default
+                    } else {
+                        selectedShape.borderWidth = parseInt(borderWidthValue);
+                    }
+                    
+                    // Handle label styling properties (empty string means inherit from floorplan defaults)
+                    const labelFontSizeValue = document.getElementById('itemLabelFontSize').value;
+                    if (labelFontSizeValue === '') {
+                        selectedShape.labelFontSize = null; // Inherit from floorplan default
+                    } else {
+                        selectedShape.labelFontSize = parseInt(labelFontSizeValue);
+                    }
+                    
+                    const labelBackgroundColorValue = document.getElementById('itemLabelBackgroundColorText').value;
+                    if (labelBackgroundColorValue === '') {
+                        selectedShape.labelBackgroundColor = null; // Inherit from floorplan default
+                    } else {
+                        selectedShape.labelBackgroundColor = labelBackgroundColorValue;
+                    }
+                    
+                    const labelColorValue = document.getElementById('itemLabelColorText').value;
+                    if (labelColorValue === '') {
+                        selectedShape.labelColor = null; // Inherit from floorplan default
+                    } else {
+                        selectedShape.labelColor = labelColorValue;
+                    }
+                    
+                    // Handle text properties for text items
+                    if (selectedShape.type === 'text') {
+                        const textContentValue = document.getElementById('itemTextContent').value;
+                        if (textContentValue !== '') {
+                            selectedShape.text = textContentValue;
+                        }
+                        
+                        const textColorValue = document.getElementById('itemTextColorText').value;
+                        if (textColorValue === '') {
+                            selectedShape.textColor = null; // Inherit from floorplan default
+                        } else {
+                            selectedShape.textColor = textColorValue;
+                        }
+                        
+                        const fontSizeValue = document.getElementById('itemFontSize').value;
+                        if (fontSizeValue === '') {
+                            selectedShape.fontSize = null; // Inherit from floorplan default
+                        } else {
+                            selectedShape.fontSize = parseInt(fontSizeValue);
+                        }
+                        
+                        const fontFamilyValue = document.getElementById('itemFontFamily').value;
+                        if (fontFamilyValue === '') {
+                            selectedShape.fontFamily = null; // Inherit from floorplan default
+                        } else {
+                            selectedShape.fontFamily = fontFamilyValue;
+                        }
+                        
+                        // Handle text fill color property
+                        const textFillColorValue = document.getElementById('itemFillColorText').value;
+                        if (textFillColorValue === '') {
+                            selectedShape.fillColor = null; // Inherit from floorplan default
+                        } else {
+                            selectedShape.fillColor = textFillColorValue;
+                        }
+                        
+                        // Handle text stroke color property
+                        const textStrokeColorValue = document.getElementById('itemStrokeColorText').value;
+                        if (textStrokeColorValue === '') {
+                            selectedShape.strokeColor = null; // Inherit from floorplan default
+                        } else {
+                            selectedShape.strokeColor = textStrokeColorValue;
+                        }
+                        
+                        // Handle text border width property
+                        const borderWidthValue = document.getElementById('itemTextBorderWidth').value;
+                        if (borderWidthValue === '') {
+                            selectedShape.borderWidth = null; // Inherit from floorplan default
+                        } else {
+                            selectedShape.borderWidth = parseInt(borderWidthValue);
+                        }
                     }
                     
                     redrawCanvas();
@@ -5084,6 +5936,35 @@
                     delete selectedShape.labelPosition;
                     selectedShape.price = defaultPrice;
                     
+                    // Reset visual properties to inherit from floorplan defaults
+                    selectedShape.fillColor = null;
+                    selectedShape.strokeColor = null;
+                    selectedShape.borderWidth = null;
+                    selectedShape.fontFamily = null;
+                    selectedShape.fontSize = null;
+                    selectedShape.textColor = null;
+                    
+                    // Reset label styling properties to inherit from floorplan defaults
+                    selectedShape.labelFontSize = null;
+                    selectedShape.labelBackgroundColor = null;
+                    selectedShape.labelColor = null;
+                    
+                    // Reset text properties to inherit from floorplan defaults
+                    if (selectedShape.type === 'text') {
+                        selectedShape.textColor = null;
+                        selectedShape.fontSize = null;
+                        selectedShape.fontFamily = null;
+                        selectedShape.fillColor = null;
+                        selectedShape.strokeColor = null;
+                        selectedShape.borderWidth = null;
+                    }
+                    
+                    // Reset booth size properties to inherit from floorplan defaults
+                    if (selectedShape.type === 'booth') {
+                        selectedShape.boothWidthMeters = null;
+                        selectedShape.boothHeightMeters = null;
+                    }
+                    
                     populateItemPropertiesPanel(selectedShape);
                     redrawCanvas();
                     trackChanges();
@@ -5092,8 +5973,98 @@
             
             // Function to populate item properties panel
             function populateItemPropertiesPanel(shape) {
+                // Show/hide and populate item name and label fields based on item type
+                const itemNameField = document.getElementById('itemName').closest('.mb-2');
+                const itemLabelField = document.getElementById('itemLabel').closest('.mb-2');
+                
+                if (shape.type === 'text') {
+                    // Text items don't need item name or custom label
+                    itemNameField.style.display = 'none';
+                    itemLabelField.style.display = 'none';
+                } else {
+                    // Other items can have names and labels
+                    itemNameField.style.display = 'block';
+                    itemLabelField.style.display = 'block';
                 document.getElementById('itemName').value = shape.itemName || '';
                 document.getElementById('itemLabel').value = shape.label || '';
+                }
+                
+                // Show/hide booth size display for booth items
+                const boothSizeDisplay = document.getElementById('boothSizeDisplay');
+                if (shape.type === 'booth') {
+                    boothSizeDisplay.style.display = 'block';
+                    // Populate booth size fields with item-specific values or floorplan defaults
+                    const itemWidth = shape.boothWidthMeters || document.getElementById('defaultBoothWidthMeters').value || '3.0';
+                    const itemHeight = shape.boothHeightMeters || document.getElementById('defaultBoothHeightMeters').value || '2.0';
+                    document.getElementById('itemBoothWidthMeters').value = itemWidth;
+                    document.getElementById('itemBoothHeightMeters').value = itemHeight;
+                } else {
+                    boothSizeDisplay.style.display = 'none';
+                }
+                
+                // Show/hide text customization group for text items
+                const textCustomizationGroup = document.getElementById('textCustomizationGroup');
+                if (shape.type === 'text') {
+                    textCustomizationGroup.style.display = 'block';
+                    // Populate text-specific fields
+                    document.getElementById('itemTextContent').value = shape.text || '';
+                    document.getElementById('itemTextColor').value = shape.textColor || document.getElementById('textColor').value;
+                    document.getElementById('itemTextColorText').value = shape.textColor || '';
+                    document.getElementById('itemFontSize').value = shape.fontSize || '';
+                    document.getElementById('itemFontFamily').value = shape.fontFamily || '';
+                    
+                    // Populate text fill color fields
+                    document.getElementById('itemFillColor').value = shape.fillColor || document.getElementById('fillColor').value;
+                    document.getElementById('itemFillColorText').value = shape.fillColor || '';
+                    
+                    // Populate text stroke color fields
+                    document.getElementById('itemStrokeColor').value = shape.strokeColor || document.getElementById('strokeColor').value;
+                    document.getElementById('itemStrokeColorText').value = shape.strokeColor || '';
+                    
+                    // Populate text border width field
+                    document.getElementById('itemTextBorderWidth').value = shape.borderWidth || '';
+                } else {
+                    textCustomizationGroup.style.display = 'none';
+                }
+                
+                // Show/hide label customization group based on item type
+                const labelCustomizationGroup = document.getElementById('labelCustomizationGroup');
+                if (labelCustomizationGroup) {
+                    if (shape.type === 'text') {
+                        // Text items don't need label properties
+                        labelCustomizationGroup.style.display = 'none';
+                    } else {
+                        // Show label properties for non-text items
+                        labelCustomizationGroup.style.display = 'block';
+                    }
+                }
+                
+                // Show/hide booking properties based on item type
+                const bookingProperties = document.getElementById('capacityGroup');
+                const priceProperties = document.getElementById('priceGroup');
+                const bookableCheckbox = document.getElementById('itemBookable');
+                
+                // Define which item types are bookable
+                const bookableTypes = ['booth', 'table', 'desk', 'chair', 'counter', 'stage', 'screen', 'kiosk'];
+                const nonBookableTypes = ['text', 'line', 'arrow', 'person', 'group', 'entrance', 'exit', 'elevator', 'stairs', 'restroom', 'security', 'firstaid', 'fire', 'power', 'tree', 'road', 'building', 'parking', 'fountain', 'garden'];
+                
+                if (nonBookableTypes.includes(shape.type)) {
+                    // Non-bookable items
+                    bookingProperties.style.display = 'none';
+                    priceProperties.style.display = 'none';
+                    bookableCheckbox.checked = false;
+                    bookableCheckbox.disabled = true;
+                } else if (bookableTypes.includes(shape.type)) {
+                    // Bookable items
+                    bookableCheckbox.disabled = false;
+                    bookingProperties.style.display = shape.bookable ? 'block' : 'none';
+                    priceProperties.style.display = shape.bookable ? 'block' : 'none';
+                } else {
+                    // Other items (shapes like rectangle, circle, etc.)
+                    bookableCheckbox.disabled = false;
+                    bookingProperties.style.display = shape.bookable ? 'block' : 'none';
+                    priceProperties.style.display = shape.bookable ? 'block' : 'none';
+                }
                 
                 // Set label position (empty string if using default)
                 const labelPositionSelect = document.getElementById('itemLabelPosition');
@@ -5111,6 +6082,52 @@
                     document.getElementById('itemPrice').value = shape.price;
                 } else {
                     document.getElementById('itemPrice').value = '';
+                }
+                
+                // Set visual properties override values
+                if (shape.fillColor) {
+                    document.getElementById('itemFillColor').value = shape.fillColor;
+                    document.getElementById('itemFillColorText').value = shape.fillColor;
+                } else {
+                    document.getElementById('itemFillColor').value = document.getElementById('fillColor').value;
+                    document.getElementById('itemFillColorText').value = '';
+                }
+                
+                if (shape.strokeColor) {
+                    document.getElementById('itemStrokeColor').value = shape.strokeColor;
+                    document.getElementById('itemStrokeColorText').value = shape.strokeColor;
+                } else {
+                    document.getElementById('itemStrokeColor').value = document.getElementById('strokeColor').value;
+                    document.getElementById('itemStrokeColorText').value = '';
+                }
+                
+                if (shape.borderWidth) {
+                    document.getElementById('itemBorderWidth').value = shape.borderWidth;
+                } else {
+                    document.getElementById('itemBorderWidth').value = '';
+                }
+                
+                // Set label properties override values
+                if (shape.labelFontSize) {
+                    document.getElementById('itemLabelFontSize').value = shape.labelFontSize;
+                } else {
+                    document.getElementById('itemLabelFontSize').value = '';
+                }
+                
+                if (shape.labelBackgroundColor) {
+                    document.getElementById('itemLabelBackgroundColor').value = shape.labelBackgroundColor;
+                    document.getElementById('itemLabelBackgroundColorText').value = shape.labelBackgroundColor;
+                } else {
+                    document.getElementById('itemLabelBackgroundColor').value = document.getElementById('defaultLabelBackgroundColor').value;
+                    document.getElementById('itemLabelBackgroundColorText').value = '';
+                }
+                
+                if (shape.labelColor) {
+                    document.getElementById('itemLabelColor').value = shape.labelColor;
+                    document.getElementById('itemLabelColorText').value = shape.labelColor;
+                } else {
+                    document.getElementById('itemLabelColor').value = document.getElementById('defaultLabelColor').value;
+                    document.getElementById('itemLabelColorText').value = '';
                 }
                 
                 // Show/hide capacity and price groups based on bookable status
@@ -5182,16 +6199,21 @@
                     const textX = Math.round(boxX + boxW / 2);
                     const textY = Math.round(boxY + boxH / 2);
 
+                    // Get effective label properties (item-specific or fallback to defaults)
+                    const effectiveFontSize = shape.labelFontSize || parseInt(document.getElementById('defaultLabelFontSize').value);
+                    const effectiveBgColor = shape.labelBackgroundColor || document.getElementById('defaultLabelBackgroundColor').value;
+                    const effectiveTextColor = shape.labelColor || document.getElementById('defaultLabelColor').value;
+
                     // Draw label background and border
-                    ctx.fillStyle = 'rgba(0, 123, 255, 0.9)';
+                    ctx.fillStyle = effectiveBgColor;
                     ctx.fillRect(boxX, boxY, boxW, boxH);
                     ctx.strokeStyle = '#007bff';
                     ctx.lineWidth = 1;
                     ctx.strokeRect(boxX, boxY, boxW, boxH);
 
                     // Draw text with improved rendering
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = 'bold 10px Arial'; // Re-set font for consistency
+                    ctx.fillStyle = effectiveTextColor;
+                    ctx.font = `bold ${effectiveFontSize}px Arial`; // Use effective font size
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillText(shape.label, textX, textY);
@@ -5277,6 +6299,12 @@
                     default_label_position: document.getElementById('defaultLabelPosition').value,
                     default_price: parseFloat(document.getElementById('defaultPrice').value),
                     enable_auto_labeling: document.getElementById('enableAutoLabeling').checked,
+                    default_booth_width_meters: parseFloat(document.getElementById('defaultBoothWidthMeters').value),
+                    default_booth_height_meters: parseFloat(document.getElementById('defaultBoothHeightMeters').value),
+                    default_label_font_size: parseInt(document.getElementById('defaultLabelFontSize').value),
+                    default_label_background_color: document.getElementById('defaultLabelBackgroundColor').value,
+                    default_label_color: document.getElementById('defaultLabelColor').value,
+
                     items: shapes.map(shape => ({
                         item_id: shape.id.toString(),
                         type: shape.type,
@@ -5299,20 +6327,50 @@
                         item_name: shape.itemName || null,
                         price: shape.price || null,
                         label_position: shape.labelPosition || null,
-                        text_content: shape.text || null
+                        text_content: shape.text || null,
+                        label_font_size: shape.labelFontSize || null,
+                        label_background_color: shape.labelBackgroundColor || null,
+                        label_color: shape.labelColor || null,
+                        booth_width_meters: shape.boothWidthMeters || null,
+                        booth_height_meters: shape.boothHeightMeters || null
                     }))
                 };
+                
+                // Debug: Log the data being sent
+                console.log('Sending floorplan data:', floorplanData);
+                
+                // Check CSRF token
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                if (!csrfToken) {
+                    showNotification('error', 'CSRF token not found. Please refresh the page.');
+                    return;
+                }
+                console.log('CSRF Token:', csrfToken);
                 
                 // Send to backend
                 fetch(`{{ route('events.floorplan.save', $event) }}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        'X-CSRF-TOKEN': csrfToken
                     },
                     body: JSON.stringify(floorplanData)
                 })
-                .then(response => response.json())
+                .then(response => {
+                    // Check if response is ok
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    // Check content type to ensure it's JSON
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        return response.text().then(text => {
+                            console.error('Non-JSON response:', text);
+                            throw new Error('Server returned non-JSON response. Check server logs for details.');
+                        });
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
                         // Show success message
@@ -5323,12 +6381,12 @@
                         updateSaveButtonVisibility();
                     } else {
                         // Show error message
-                        showNotification('error', data.message);
+                        showNotification('error', data.message || 'Unknown error occurred');
                     }
                 })
                 .catch(error => {
                     console.error('Error saving floorplan:', error);
-                    showNotification('error', 'An error occurred while saving the floorplan.');
+                    showNotification('error', `Error saving floorplan: ${error.message}`);
                 })
                 .finally(() => {
                     // Restore button state on both buttons
@@ -5367,6 +6425,25 @@
                         document.getElementById('defaultLabelPosition').value = floorplan.default_label_position || 'top';
                         document.getElementById('defaultPrice').value = floorplan.default_price || 100;
                         document.getElementById('enableAutoLabeling').checked = floorplan.enable_auto_labeling !== false;
+                        document.getElementById('defaultBoothWidthMeters').value = floorplan.default_booth_width_meters || 3.0;
+                        document.getElementById('defaultBoothHeightMeters').value = floorplan.default_booth_height_meters || 2.0;
+                        document.getElementById('defaultLabelFontSize').value = floorplan.default_label_font_size || 12;
+                        document.getElementById('defaultLabelBackgroundColor').value = floorplan.default_label_background_color || '#ffffff';
+                        document.getElementById('defaultLabelColor').value = floorplan.default_label_color || '#000000';
+
+                        
+                        // Apply properties to canvas immediately
+                        applyPropertiesToCanvas();
+                        
+                        // Update booth size display if a booth item is currently selected
+                        if (selectedShape && selectedShape.type === 'booth') {
+                            const boothSizeDisplay = document.getElementById('boothSizeDisplay');
+                            const boothSizeText = document.getElementById('boothSizeText');
+                            boothSizeDisplay.style.display = 'block';
+                            const defaultWidth = floorplan.default_booth_width_meters || 3.0;
+                            const defaultHeight = floorplan.default_booth_height_meters || 2.0;
+                            boothSizeText.textContent = `${defaultWidth}m × ${defaultHeight}m`;
+                        }
                         
                         // Resize canvas if needed
                         if (floorplan.canvas_width && floorplan.canvas_height) {
@@ -5397,7 +6474,12 @@
                                 itemName: item.item_name,
                                 price: item.price ? parseFloat(item.price) : null,
                                 labelPosition: item.label_position,
-                                text: item.text_content
+                                text: item.text_content,
+                                labelFontSize: item.label_font_size ? parseInt(item.label_font_size) : null,
+                                labelBackgroundColor: item.label_background_color || null,
+                                labelColor: item.label_color || null,
+                                boothWidthMeters: item.booth_width_meters ? parseFloat(item.booth_width_meters) : null,
+                                boothHeightMeters: item.booth_height_meters ? parseFloat(item.booth_height_meters) : null
                             }));
                             
                             redrawCanvas();

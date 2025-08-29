@@ -35,6 +35,11 @@ class FloorplanItem extends Model
         'price',
         'label_position',
         'text_content',
+        'label_font_size',
+        'label_background_color',
+        'label_color',
+        'booth_width_meters',
+        'booth_height_meters',
     ];
 
     protected $casts = [
@@ -95,5 +100,77 @@ class FloorplanItem extends Model
     public function getEffectiveLabelPositionAttribute()
     {
         return $this->label_position ?? $this->floorplanDesign->default_label_position;
+    }
+
+    /**
+     * Get the effective label font size (custom or default from floorplan design)
+     */
+    public function getEffectiveLabelFontSizeAttribute()
+    {
+        return $this->label_font_size ?? $this->floorplanDesign->default_label_font_size;
+    }
+
+    /**
+     * Get the effective label background color (custom or default from floorplan design)
+     */
+    public function getEffectiveLabelBackgroundColorAttribute()
+    {
+        return $this->label_background_color ?? $this->floorplanDesign->default_label_background_color;
+    }
+
+    /**
+     * Get the effective label color (custom or default from floorplan design)
+     */
+    public function getEffectiveLabelColorAttribute()
+    {
+        return $this->label_color ?? $this->floorplanDesign->default_label_color;
+    }
+
+    /**
+     * Get the effective stroke color (custom or default from floorplan design)
+     */
+    public function getEffectiveStrokeColorAttribute()
+    {
+        return $this->stroke_color ?? $this->floorplanDesign->stroke_color;
+    }
+
+    /**
+     * Get the effective fill color (custom or default from floorplan design)
+     */
+    public function getEffectiveFillColorAttribute()
+    {
+        return $this->fill_color ?? $this->floorplanDesign->fill_color;
+    }
+
+    /**
+     * Get the effective border width (custom or default from floorplan design)
+     */
+    public function getEffectiveBorderWidthAttribute()
+    {
+        return $this->border_width ?? $this->floorplanDesign->border_width;
+    }
+
+    /**
+     * Get the effective font family (custom or default from floorplan design)
+     */
+    public function getEffectiveFontFamilyAttribute()
+    {
+        return $this->font_family ?? $this->floorplanDesign->font_family;
+    }
+
+    /**
+     * Get the effective font size (custom or default from floorplan design)
+     */
+    public function getEffectiveFontSizeAttribute()
+    {
+        return $this->font_size ?? $this->floorplanDesign->font_size;
+    }
+
+    /**
+     * Get the effective text color (custom or default from floorplan design)
+     */
+    public function getEffectiveTextColorAttribute()
+    {
+        return $this->text_color ?? $this->floorplanDesign->text_color;
     }
 }

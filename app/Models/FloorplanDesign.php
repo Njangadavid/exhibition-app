@@ -34,6 +34,12 @@ class FloorplanDesign extends Model
         'default_label_position',
         'default_price',
         'enable_auto_labeling',
+        'default_booth_width_meters',
+        'default_booth_height_meters',
+        'default_label_font_size',
+        'default_label_background_color',
+        'default_label_color',
+
     ];
 
     protected $casts = [
@@ -41,6 +47,9 @@ class FloorplanDesign extends Model
         'snap_to_grid' => 'boolean',
         'enable_auto_labeling' => 'boolean',
         'default_price' => 'decimal:2',
+        'default_booth_width_meters' => 'decimal:2',
+        'default_booth_height_meters' => 'decimal:2',
+        'default_label_font_size' => 'integer',
     ];
 
     /**

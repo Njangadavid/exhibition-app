@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 
@@ -186,6 +187,8 @@ class Event extends Model
     {
         return $this->hasMany(Booking::class);
     }
+
+
 
     /**
      * Get the email templates for the event

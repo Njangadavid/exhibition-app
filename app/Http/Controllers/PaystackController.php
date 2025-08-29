@@ -386,7 +386,7 @@ class PaystackController extends Controller
             // Generate receipt from Paystack
             $receipt = $this->paystackService->generateReceipt(
                 $payment->gateway_transaction_id,
-                $booking->owner_details['email'] ?? null
+                $booking->boothOwner->form_responses['email'] ?? null
             );
 
             if ($receipt->status && isset($receipt->data)) {
