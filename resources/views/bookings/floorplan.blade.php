@@ -18,6 +18,121 @@
             --booked-color: #dc2626;
             --booked-stroke: #dc2626;
         }
+        
+        /* Enhanced Right Panel Styles */
+        #itemInfoPanel {
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Enhanced Card Styles */
+        #itemInfoPanel .card {
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border: none;
+            overflow: hidden;
+        }
+        
+        /* Enhanced Header Gradient */
+        #itemInfoPanel .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        
+        /* Enhanced Info Grid */
+        #itemInfoPanel .bg-light {
+            transition: all 0.2s ease;
+        }
+        
+        #itemInfoPanel .bg-light:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Compact Capacity & Price Cards */
+        #itemInfoPanel .row .col-6 .bg-light {
+            min-height: 45px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #itemInfoPanel .row .col-6 .bg-light .small {
+            line-height: 1.2;
+        }
+        
+        /* Compact Dimension Cards */
+        #itemInfoPanel #boothSizeInfo .row .col-6 .bg-white {
+            min-height: 35px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #itemInfoPanel #boothSizeInfo .bg-white {
+            transition: all 0.2s ease;
+        }
+        
+        #itemInfoPanel #boothSizeInfo .bg-white:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Enhanced Company Info */
+        #itemInfoPanel .bg-gradient-light {
+            transition: all 0.3s ease;
+        }
+        
+        #itemInfoPanel .bg-gradient-light:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Enhanced Action Button */
+        #itemInfoPanel #bookNowBtn {
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+        }
+        
+        #itemInfoPanel #bookNowBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        /* Responsive adjustments for right panel */
+        @media (max-width: 768px) {
+            #itemInfoPanel {
+                width: 100vw !important;
+                right: -100vw !important;
+            }
+            
+            #itemInfoPanel.show {
+                right: 0 !important;
+            }
+        }
+        
+        /* Compact popup adjustments */
+        #itemInfoPanel .card-body {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        #itemInfoPanel .card-body::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        #itemInfoPanel .card-body::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 2px;
+        }
+        
+        #itemInfoPanel .card-body::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 2px;
+        }
     </style>
 @endpush
 
@@ -109,94 +224,122 @@
 
                                 
                                 <!-- Compact Item Info Popup (shows when bookable item is clicked) -->
-                                <div id="itemInfoPanel" class="position-fixed" style="display: none; z-index: 1000;">
-                                    <div class="card shadow-lg border-0" style="width: 280px;">
-                                        <!-- Header with close button -->
-                                        <div class="card-header bg-primary text-white py-2 px-3 d-flex justify-content-between align-items-center">
-                                            <h6 class="mb-0 small fw-bold">
-                                                <i class="bi bi-shop me-1"></i>
-                                                <span id="itemTypeLabel">Booth Details</span>
-                                            </h6>
-                                            <button type="button" class="btn-close btn-close-white" id="closeItemInfo"></button>
+                                <!-- Enhanced Booth Details Right Panel -->
+                                <div id="itemInfoPanel" class="position-fixed" style="display: none; z-index: 1000; right: -350px; top: 0; height: 100vh; transition: right 0.3s ease;">
+                                    <!-- Backdrop -->
+                                    <div class="position-absolute w-100 h-100" style="background: rgba(0, 0, 0, 0.3); left: -100vw; top: 0;"></div>
+                                    
+                                    <div class="card shadow-lg border-0 rounded-0 h-100" style="width: 350px; border-radius: 0 !important;">
+                                        <!-- Enhanced Header with gradient -->
+                                        <div class="card-header text-white py-3 px-4 d-flex justify-content-between align-items-center" 
+                                             style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 0 !important;">
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-2" id="headerIcon">
+                                                    <i class="bi bi-shop fs-5"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0 fw-bold" id="itemTypeLabel">Booth Details</h6>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="btn-close btn-close-white opacity-75" id="closeItemInfo" 
+                                                    style="filter: brightness(0) invert(1);"></button>
                                         </div>
                                         
-                                        <!-- Content -->
+                                        <!-- Enhanced Content -->
                                         <div class="card-body p-3">
-                                            <!-- Item Name -->
+                                            <!-- Item Name & Status Section -->
                                             <div class="mb-3">
-                                                <h6 class="fw-bold text-dark mb-1" id="itemName">Booth A1</h6>
-                                                <div class="d-flex align-items-center gap-2">
-                                                    <span class="badge bg-success" id="itemStatus">Available</span>
-                                                    <small class="text-muted" id="statusText">Ready to book</small>
+                                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                                    <h6 class="fw-bold text-dark mb-0" id="itemName">Booth A1</h6>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <span class="badge rounded-pill px-2 py-1 small" id="itemStatus">Available</span>
+                                                    </div>
                                                 </div>
+                                                <p class="text-muted mb-0 small" id="statusText">Ready to book this space</p>
                                             </div>
                                             
-                                            <!-- Quick Info Grid -->
-                                            <div class="row g-2 mb-3">
+                                            <!-- Enhanced Quick Info Grid -->
+                                            <div class="row g-1 mb-2">
                                                 <div class="col-6">
-                                                    <div class="text-center p-2 bg-light rounded">
-                                                        <div class="text-primary fw-bold" id="itemMaxCapacity">0</div>
-                                                        <small class="text-muted">Capacity</small>
+                                                    <div class="text-center p-1 bg-light rounded border border-1 border-primary border-opacity-10">
+                                                        <div class="text-primary fw-bold small mb-0" id="itemMaxCapacity">5</div>
+                                                        <small class="text-muted" style="font-size: 0.7rem;">
+                                                            <i class="bi bi-people me-1"></i>Capacity
+                                                        </small>
                                                     </div>
                                                 </div>
                                                 <div class="col-6">
-                                                    <div class="text-center p-2 bg-light rounded">
-                                                        <div class="text-success fw-bold" id="itemPrice">$100</div>
-                                                        <small class="text-muted">Price</small>
+                                                    <div class="text-center p-1 bg-light rounded border border-1 border-success border-opacity-10">
+                                                        <div class="text-success fw-bold small mb-0" id="itemPrice">$100</div>
+                                                        <small class="text-muted" style="font-size: 0.7rem;">
+                                                            <i class="bi bi-currency-dollar me-1"></i>Price
+                                                        </small>
                                                     </div>
                                                 </div>
                                             </div>
                                             
-                                            <!-- Booth Size (Physical Dimensions) -->
+                                            <!-- Enhanced Booth Size Information -->
                                             <div id="boothSizeInfo" class="mb-3" style="display: none;">
-                                                <div class="p-2 bg-light rounded border-start border-3 border-info">
-                                                    <div class="d-flex align-items-center mb-2">
-                                                        <i class="bi bi-rulers text-info me-2"></i>
-                                                        <small class="fw-bold text-dark">Physical Dimensions</small>
+                                                <div class="p-1 bg-light rounded border border-1 border-info border-opacity-20">
+                                                    <div class="d-flex align-items-center mb-1">
+                                                        <i class="bi bi-rulers text-info me-2 small"></i>
+                                                        <small class="fw-bold text-dark">Dimensions</small>
+                                                        <small class="text-muted" style="font-size: 0.7rem;">&nbsp;&nbsp;Physical size</small>
+
                                                     </div>
-                                                    <div class="row g-2">
+                                                    
+                                                    <div class="row g-1">
                                                         <div class="col-6 text-center">
-                                                            <div class="text-info fw-bold" id="boothWidthMeters">3.0m</div>
-                                                            <small class="text-muted">Width</small>
+                                                            <div class="bg-white rounded p-1 border">
+                                                                <div class="text-info fw-bold" style="font-size: 0.7rem;" id="boothWidthMeters">3.0m</div>
+                                                                <small class="text-muted" style="font-size: 0.65rem;">W</small>
+                                                            </div>
                                                         </div>
                                                         <div class="col-6 text-center">
-                                                            <div class="text-info fw-bold" id="boothHeightMeters">2.0m</div>
-                                                            <small class="text-muted">Length</small>
+                                                            <div class="bg-white rounded p-1 border">
+                                                                <div class="text-info fw-bold" style="font-size: 0.7rem;" id="boothHeightMeters">2.0m</div>
+                                                                <small class="text-muted" style="font-size: 0.65rem;">L</small>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                             
-                                            <!-- Company Information (for reserved/booked booths) -->
+                                            <!-- Enhanced Company Information -->
                                             <div id="companyInfo" class="mb-3" style="display: none;">
-                                                <div class="p-2 bg-light rounded border-start border-3 border-warning">
+                                                <div class="p-2 bg-light rounded border border-2 border-warning border-opacity-20">
                                                     <div class="d-flex align-items-center mb-2">
-                                                        <i class="bi bi-building text-warning me-2"></i>
+                                                        <i class="bi bi-building text-warning me-2 small"></i>
                                                         <small class="fw-bold text-dark">Occupied by</small>
                                                     </div>
                                                     <div id="companyDetails">
-                                                        <!-- Company Logo -->
+                                                        <!-- Compact Company Logo -->
                                                         <div class="text-center mb-2" id="companyLogoContainer">
-                                                            <div class="d-inline-flex align-items-center justify-content-center bg-white rounded border" style="width: 60px; height: 60px;">
-                                                                <i class="bi bi-building text-muted" style="font-size: 1.5rem;" id="companyLogoIcon"></i>
-                                                                <img id="companyLogo" class="d-none" style="width: 50px; height: 50px; object-fit: contain; border-radius: 4px;">
+                                                            <div class="d-inline-flex align-items-center justify-content-center bg-white rounded border shadow-sm" 
+                                                                 style="width: 50px; height: 50px;">
+                                                                <i class="bi bi-building text-muted opacity-50" style="font-size: 1.2rem;" id="companyLogoIcon"></i>
+                                                                <img id="companyLogo" class="d-none rounded" style="width: 45px; height: 45px; object-fit: cover;">
                                                             </div>
                                                         </div>
-                                                        <div class="d-flex align-items-center mb-1">
-                                                            <i class="bi bi-briefcase text-muted me-2" style="font-size: 0.75rem;"></i>
-                                                            <span id="companyName" class="fw-medium text-dark" style="font-size: 0.85rem;">-</span>
-                                                        </div>
-                                                        <div class="d-flex align-items-center">
-                                                            <i class="bi bi-person text-muted me-2" style="font-size: 0.75rem;"></i>
-                                                            <span id="companyContact" class="text-muted" style="font-size: 0.8rem;">-</span>
+                                                        <!-- Company Details -->
+                                                        <div class="text-center">
+                                                            <div class="fw-bold text-dark small mb-1" id="companyName">Company Name</div>
+                                                            <div class="d-flex align-items-center justify-content-center mb-1">
+                                                                <i class="bi bi-person text-muted me-1 small"></i>
+                                                                <span class="text-muted small" id="companyContact">Contact Person</span>
+                                                            </div>
+                                                            <div class="d-flex align-items-center justify-content-center">
+                                                                <i class="bi bi-envelope text-muted me-1 small"></i>
+                                                                <span class="text-muted small" id="companyEmail">email@company.com</span>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                             
-                                            <!-- Action Button -->
-                                            <div id="bookNowGroup">
-                                                <a href="#" id="bookNowBtn" class="btn btn-primary w-100 fw-bold text-decoration-none">
+                                            <!-- Enhanced Action Button -->
+                                            <div id="bookNowGroup" class="mt-3">
+                                                <a href="#" id="bookNowBtn" class="btn w-100 fw-bold text-decoration-none py-2 rounded shadow-sm">
                                                     <i class="bi bi-calendar-check me-2"></i>
                                                     Book This Space
                                                 </a>
@@ -346,6 +489,8 @@
         height: auto;
         display: block;
         margin: 0 auto;
+        /* Ensure canvas scales proportionally without stretching */
+        object-fit: contain;
     }
     
     /* Ensure canvas container is responsive */
@@ -385,12 +530,12 @@
                     const canvasHeight = 600;
                 @endif
                 
-                                 canvas.width = canvasWidth;
-                 canvas.height = canvasHeight;
-                 
-                 // Set canvas style dimensions
-                 canvas.style.width = canvasWidth + 'px';
-                 canvas.style.height = canvasHeight + 'px';
+                // Set canvas resolution (internal dimensions)
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+                
+                // Don't set style dimensions - let CSS handle responsive scaling
+                // This prevents stretching and maintains aspect ratio
                  
                  // Improve text rendering quality
                  const ctx = canvas.getContext('2d');
@@ -1095,17 +1240,20 @@
                     companyInfo.style.display = 'none';
                 }
                 
-                // Position popup intelligently
-                positionPopup(event, panel);
-                
-                // Show panel
+                // Show panel with smooth slide-in animation
                 panel.style.display = 'block';
+                
+                // Trigger slide-in animation after a brief delay
+                setTimeout(() => {
+                    panel.style.right = '0px';
+                }, 10);
             }
             
             // Show company information for reserved/booked booths
             function showCompanyInfo(shape) {
                 const companyName = document.getElementById('companyName');
                 const companyContact = document.getElementById('companyContact');
+                const companyEmail = document.getElementById('companyEmail');
                 const companyLogo = document.getElementById('companyLogo');
                 const companyLogoIcon = document.getElementById('companyLogoIcon');
                 
@@ -1117,6 +1265,7 @@
                 if (shape.owner_details) {
                     companyName.textContent = shape.owner_details.company_name || 'Company not specified';
                     companyContact.textContent = shape.owner_details.name || 'Contact not specified';
+                    companyEmail.textContent = shape.owner_details.email || 'Email not specified';
                     
                     // Handle company logo - use the same approach as owner form
                     const logoPath = shape.owner_details.company_logo;
@@ -1142,6 +1291,7 @@
                 } else {
                     companyName.textContent = 'Company not specified';
                     companyContact.textContent = 'Contact not specified';
+                    companyEmail.textContent = 'Email not specified';
                     companyLogo.classList.add('d-none');
                     companyLogoIcon.classList.remove('d-none');
                     console.log('No owner details found');
@@ -1156,9 +1306,9 @@
                 const clickX = event.clientX;
                 const clickY = event.clientY;
                 
-                // Get panel dimensions (updated for enhanced popup)
-                const panelWidth = 280;
-                const panelHeight = 320; // Increased height for enhanced content
+                // Get panel dimensions (updated for compact popup)
+                const panelWidth = 320;
+                const panelHeight = 280; // Reduced height for compact content
                 
                 // On mobile devices (small screens), center the popup
                 if (window.innerWidth < 768) {
@@ -1206,9 +1356,17 @@
                 panel.style.top = top + 'px';
             }
             
-            // Hide item info panel
+            // Hide item info panel with smooth slide-out animation
             function hideItemInfo() {
-                document.getElementById('itemInfoPanel').style.display = 'none';
+                const panel = document.getElementById('itemInfoPanel');
+                
+                // Slide out to the right
+                panel.style.right = '-350px';
+                
+                // Wait for animation to complete before hiding
+                setTimeout(() => {
+                    panel.style.display = 'none';
+                }, 300);
             }
             
             // Close item info panel
@@ -1216,12 +1374,14 @@
                 hideItemInfo();
             });
             
-            // Hide popup when clicking outside
+            // Hide popup when clicking backdrop or outside
             document.addEventListener('click', function(e) {
                 const panel = document.getElementById('itemInfoPanel');
                 const canvas = document.getElementById('floorplanCanvas');
+                const backdrop = panel.querySelector('.position-absolute');
                 
-                if (!panel.contains(e.target) && !canvas.contains(e.target)) {
+                // Close if clicking backdrop or outside panel
+                if ((backdrop && backdrop.contains(e.target)) || (!panel.contains(e.target) && !canvas.contains(e.target))) {
                     hideItemInfo();
                 }
             });
@@ -4377,3 +4537,4 @@
         }
     </script>
 @endpush
+

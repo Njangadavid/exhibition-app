@@ -1,4 +1,4 @@
-<x-event-layout>
+<x-event-layout :event="$event">
 
     <div class="py-4">
         <div class="container-fluid">
@@ -726,6 +726,8 @@
         #floorplanCanvas {
             max-width: 100%;
             height: auto;
+            /* Note: Only set max-width and height: auto for responsive scaling */
+            /* Never set fixed width/height in CSS to prevent stretching */
         }
         
         .canvas-overflow-container {
