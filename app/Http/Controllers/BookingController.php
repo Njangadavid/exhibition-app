@@ -1306,7 +1306,11 @@ class BookingController extends Controller
             ->where('access_token_expires_at', '>', now())
             ->firstOrFail();
         
-        $existingBooking = $boothOwner->booking()->with(['floorplanItem', 'boothMembers'])->first();
+        $existingBooking = $boothOwner->booking;
+        
+        if ($existingBooking) {
+            $existingBooking->load(['floorplanItem', 'boothMembers']);
+        }
         
         if (!$existingBooking) {
             abort(404, 'No booking found for this access token. Please start over.');
