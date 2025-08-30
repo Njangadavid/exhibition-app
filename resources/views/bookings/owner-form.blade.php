@@ -190,8 +190,8 @@
 @endpush
 
 @php
-$showProgress = true;
-$currentStep = 2;
+    $showProgress = true;
+    $currentStep = 2;
 @endphp
 
 @section('content')
@@ -200,65 +200,65 @@ $currentStep = 2;
         <div class="row justify-content-center">
             <div class="col-lg-8">
 
-                <!-- Selected Item Info -->
-                <div class="card mb-4">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">
-                            <i class="bi bi-shop me-2"></i>
-                            Selected Space: {{ $item->label ?? $item->item_name ?? 'Booth' }}
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-center mb-2">
-                                    <i class="bi bi-people text-primary me-2"></i>
-                                    <span class="fw-medium">Capacity:</span>
-                                    <span class="ms-2">{{ $item->max_capacity ?? 'N/A' }} people</span>
+                    <!-- Selected Item Info -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-shop me-2"></i>
+                                Selected Space: {{ $item->label ?? $item->item_name ?? 'Booth' }}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="bi bi-people text-primary me-2"></i>
+                                        <span class="fw-medium">Capacity:</span>
+                                        <span class="ms-2">{{ $item->max_capacity ?? 'N/A' }} people</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-center mb-2">
-                                    <i class="bi bi-currency-dollar text-success me-2"></i>
-                                    <span class="fw-medium">Price:</span>
-                                    <span class="ms-2">${{ $item->price ?? 'N/A' }}</span>
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="bi bi-currency-dollar text-success me-2"></i>
+                                        <span class="fw-medium">Price:</span>
+                                        <span class="ms-2">${{ $item->price ?? 'N/A' }}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Owner Registration Form -->
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="bi bi-person-circle me-2"></i>
-                            @if($isEditing)
-                            Edit Owner Information
-                            @else
-                            Owner Information
-                            @endif
-                        </h5>
-                        <small class="text-muted">
-                            @if($isEditing)
-                            Update your contact and company details
-                            @else
-                            Please provide your contact and company details
-                            @endif
-                        </small>
-                    </div>
-                    <div class="card-body">
-                        @if($isEditing && $boothOwner)
-                        <div class="alert alert-info mb-4">
-                            <i class="bi bi-info-circle me-2"></i>
-                            <strong>Welcome back!</strong> We found your existing booking for this space.
-                            You can update any of your details below. Your current information has been pre-filled for your convenience.
+                    <!-- Owner Registration Form -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-person-circle me-2"></i>
+                                @if($isEditing)
+                                    Edit Owner Information
+                                @else
+                                    Owner Information
+                                @endif
+                            </h5>
+                            <small class="text-muted">
+                                @if($isEditing)
+                                    Update your contact and company details
+                                @else
+                                    Please provide your contact and company details
+                                @endif
+                            </small>
                         </div>
-                        @endif
-
-                        <form action="{{ $isEditing ? route('bookings.process-owner-token', ['eventSlug' => $event->slug, 'accessToken' => $boothOwner->access_token]) : route('bookings.process-owner', ['eventSlug' => $event->slug, 'itemId' => $item->id]) }}" method="POST" enctype="multipart/form-data">
-                            @csrf
-
+                        <div class="card-body">
+                            @if($isEditing && $boothOwner)
+                                <div class="alert alert-info mb-4">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    <strong>Welcome back!</strong> We found your existing booking for this space. 
+                                    You can update any of your details below. Your current information has been pre-filled for your convenience.
+                                </div>
+                            @endif
+                            
+                            <form action="{{ $isEditing ? route('bookings.process-owner-token', ['eventSlug' => $event->slug, 'accessToken' => $boothOwner->access_token]) : route('bookings.process-owner', ['eventSlug' => $event->slug, 'itemId' => $item->id]) }}" method="POST" enctype="multipart/form-data">
+                                @csrf
+                                
                             <!-- Personal Information -->
                             <div class="card mb-4">
                                 <div class="card-header bg-primary text-white py-2">
@@ -268,7 +268,7 @@ $currentStep = 2;
                                 </div>
                                 <div class="card-body py-3">
                                     <div class="row g-3">
-                                        <div class="col-md-6">
+                                    <div class="col-md-6">
                                             <div class="mb-2">
                                                 <label for="owner_name" class="form-label small mb-1">Full Name <span class="text-danger">*</span></label>
                                                 <input type="text" class="form-control form-control-sm @error('name') is-invalid @enderror"
@@ -276,10 +276,10 @@ $currentStep = 2;
                                                     value="{{ old('name', $boothOwner->form_responses['name'] ?? '') }}" required>
                                                 @error('name')
                                                 <div class="invalid-feedback">{{ $message }}</div>
-                                                @enderror
-                                            </div>
+                                            @enderror
                                         </div>
-                                        <div class="col-md-6">
+                                    </div>
+                                    <div class="col-md-6">
                                             <div class="mb-2">
                                                 <label for="owner_email" class="form-label small mb-1">Email Address <span class="text-danger">*</span></label>
                                                 <input type="email" class="form-control form-control-sm @error('email') is-invalid @enderror"
@@ -287,9 +287,9 @@ $currentStep = 2;
                                                     value="{{ old('email', $boothOwner->form_responses['email'] ?? '') }}" required>
                                                 @error('email')
                                                 <div class="invalid-feedback">{{ $message }}</div>
-                                                @enderror
-                                            </div>
+                                            @enderror
                                         </div>
+                                    </div>
                                         <div class="col-md-6">
                                             <div class="mb-2">
                                                 <label for="owner_phone" class="form-label small mb-1">Phone Number <span class="text-danger">*</span></label>
@@ -297,28 +297,28 @@ $currentStep = 2;
                                                     <input type="tel" class="form-control form-control-sm @error('phone') is-invalid @enderror"
                                                         id="owner_phone" name="phone"
                                                         value="{{ old('phone', $boothOwner->form_responses['phone'] ?? '') }}" required>
-                                                </div>
+                                </div>
                                                 <input type="hidden" id="owner_phone_country" name="phone_country" value="{{ old('phone_country', $boothOwner->form_responses['phone_country'] ?? '') }}">
                                                 <div class="form-text small">Select country and enter phone number</div>
                                                 @error('phone')
                                                 <div class="invalid-feedback">{{ $message }}</div>
-                                                @enderror
-                                            </div>
+                                            @enderror
                                         </div>
-                                        <div class="col-md-6">
+                                    </div>
+                                    <div class="col-md-6">
                                             <div class="mb-2">
                                                 <label for="company_name" class="form-label small mb-1">Company Name <span class="text-danger">*</span></label>
                                                 <input type="text" class="form-control form-control-sm @error('company_name') is-invalid @enderror"
-                                                    id="company_name" name="company_name"
-                                                    value="{{ old('company_name', $boothOwner->form_responses['company_name'] ?? '') }}" required>
-                                                @error('company_name')
+                                                   id="company_name" name="company_name" 
+                                                   value="{{ old('company_name', $boothOwner->form_responses['company_name'] ?? '') }}" required>
+                                            @error('company_name')
                                                 <div class="invalid-feedback">{{ $message }}</div>
-                                                @enderror
+                                            @enderror
                                             </div>
+                                        </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
                             <!-- Company Details -->
                             <div class="card mb-4">
@@ -337,23 +337,23 @@ $currentStep = 2;
                                                 <textarea class="form-control form-control-sm @error('company_address') is-invalid @enderror"
                                                     id="company_address" name="company_address" rows="2"
                                                     placeholder="Enter your company address">{{ old('company_address', $boothOwner->form_responses['company_address'] ?? '') }}</textarea>
-                                                @error('company_address')
+                                            @error('company_address')
                                                 <div class="invalid-feedback">{{ $message }}</div>
-                                                @enderror
-                                            </div>
+                                            @enderror
                                         </div>
+                                    </div>
                                         <div class="col-md-4">
                                             <div class="mb-2">
                                                 <label for="company_website" class="form-label small mb-1">
                                                     <i class="bi bi-globe me-1"></i>Company Website
                                                 </label>
                                                 <input type="url" class="form-control form-control-sm @error('company_website') is-invalid @enderror"
-                                                    id="company_website" name="company_website"
-                                                    value="{{ old('company_website',$boothOwner->form_responses['company_website'] ?? '') }}"
-                                                    placeholder="https://example.com">
-                                                @error('company_website')
+                                                   id="company_website" name="company_website" 
+                                                   value="{{ old('company_website',$boothOwner->form_responses['company_website'] ?? '') }}" 
+                                                   placeholder="https://example.com">
+                                            @error('company_website')
                                                 <div class="invalid-feedback">{{ $message }}</div>
-                                                @enderror
+                                            @enderror
                                             </div>
                                         </div>
                                         <div class="col-md-4">
@@ -375,9 +375,9 @@ $currentStep = 2;
                                                 @enderror
                                             </div>
                                         </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
                             <!-- Logo & Branding -->
                             <div class="card mb-4">
@@ -399,26 +399,26 @@ $currentStep = 2;
                                                     <span class="text-danger">*</span>
                                                     @endif
                                                 </label>
-                                                @if($boothOwner && isset($boothOwner->form_responses['company_logo']) && $boothOwner->form_responses['company_logo'])
+                                            @if($boothOwner && isset($boothOwner->form_responses['company_logo']) && $boothOwner->form_responses['company_logo'])
                                                 <div class="mb-2">
                                                     <small class="text-muted">Current logo:</small>
-                                                    <img src="{{ Storage::url($boothOwner->form_responses['company_logo']) }}"
-                                                        alt="Current Company Logo" class="ms-2" style="max-height: 40px; max-width: 100px;">
+                                                    <img src="{{ Storage::url($boothOwner->form_responses['company_logo']) }}" 
+                                                         alt="Current Company Logo" class="ms-2" style="max-height: 40px; max-width: 100px;">
                                                 </div>
-                                                @endif
+                                            @endif
                                                 <input type="file" class="form-control form-control-sm @error('company_logo') is-invalid @enderror"
                                                     id="company_logo" name="company_logo" accept="image/*"
                                                     data-has-existing="{{ $boothOwner && isset($boothOwner->form_responses['company_logo']) && $boothOwner->form_responses['company_logo'] ? 'true' : 'false' }}">
                                                 <div class="form-text small">
-                                                    @if($boothOwner && isset($boothOwner->form_responses['company_logo']))
+                                                @if($boothOwner && isset($boothOwner->form_responses['company_logo']))
                                                     Upload new logo to replace current
-                                                    @else
+                                                @else
                                                     PNG, JPG, SVG - Max 2MB
-                                                    @endif
-                                                </div>
-                                                @error('company_logo')
+                                                @endif
+                                            </div>
+                                            @error('company_logo')
                                                 <div class="invalid-feedback">{{ $message }}</div>
-                                                @enderror
+                                            @enderror
                                             </div>
                                         </div>
                                         <div class="col-md-6">
@@ -452,11 +452,11 @@ $currentStep = 2;
                                                 @enderror
                                             </div>
                                         </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <!-- Social Media Handles -->
+                                <!-- Social Media Handles -->
                             <div class="card mb-4">
                                 <div class="card-header bg-light py-2">
                                     <h6 class="mb-0">
@@ -466,68 +466,68 @@ $currentStep = 2;
                                 </div>
                                 <div class="card-body py-3">
                                     <div class="row g-3">
-                                        <div class="col-md-6">
+                                    <div class="col-md-6">
                                             <div class="mb-2">
                                                 <label for="social_facebook" class="form-label small mb-1">
                                                     <i class="bi bi-facebook text-primary me-1"></i>Facebook
-                                                </label>
+                                            </label>
                                                 <input type="url" class="form-control form-control-sm @error('social_facebook') is-invalid @enderror"
-                                                    id="social_facebook" name="social_facebook"
-                                                    value="{{ old('social_facebook', $boothOwner->form_responses['social_facebook'] ?? '') }}"
-                                                    placeholder="https://facebook.com/yourcompany">
-                                                @error('social_facebook')
+                                                   id="social_facebook" name="social_facebook" 
+                                                   value="{{ old('social_facebook', $boothOwner->form_responses['social_facebook'] ?? '') }}" 
+                                                   placeholder="https://facebook.com/yourcompany">
+                                            @error('social_facebook')
                                                 <div class="invalid-feedback">{{ $message }}</div>
-                                                @enderror
-                                            </div>
+                                            @enderror
                                         </div>
-                                        <div class="col-md-6">
+                                    </div>
+                                    <div class="col-md-6">
                                             <div class="mb-2">
                                                 <label for="social_twitter" class="form-label small mb-1">
                                                     <i class="bi bi-twitter text-info me-1"></i>Twitter/X
-                                                </label>
+                                            </label>
                                                 <input type="url" class="form-control form-control-sm @error('social_twitter') is-invalid @enderror"
-                                                    id="social_twitter" name="social_twitter"
-                                                    value="{{ old('social_twitter', $boothOwner->form_responses['social_twitter'] ?? '') }}"
-                                                    placeholder="https://twitter.com/yourcompany">
-                                                @error('social_twitter')
+                                                   id="social_twitter" name="social_twitter" 
+                                                   value="{{ old('social_twitter', $boothOwner->form_responses['social_twitter'] ?? '') }}" 
+                                                   placeholder="https://twitter.com/yourcompany">
+                                            @error('social_twitter')
                                                 <div class="invalid-feedback">{{ $message }}</div>
-                                                @enderror
-                                            </div>
+                                            @enderror
                                         </div>
-                                        <div class="col-md-6">
+                                    </div>
+                                    <div class="col-md-6">
                                             <div class="mb-2">
                                                 <label for="social_linkedin" class="form-label small mb-1">
                                                     <i class="bi bi-linkedin text-primary me-1"></i>LinkedIn
-                                                </label>
+                                            </label>
                                                 <input type="url" class="form-control form-control-sm @error('social_linkedin') is-invalid @enderror"
-                                                    id="social_linkedin" name="social_linkedin"
-                                                    value="{{ old('social_linkedin', $boothOwner->form_responses['social_linkedin'] ?? '') }}"
-                                                    placeholder="https://linkedin.com/company/yourcompany">
-                                                @error('social_linkedin')
+                                                   id="social_linkedin" name="social_linkedin" 
+                                                   value="{{ old('social_linkedin', $boothOwner->form_responses['social_linkedin'] ?? '') }}" 
+                                                   placeholder="https://linkedin.com/company/yourcompany">
+                                            @error('social_linkedin')
                                                 <div class="invalid-feedback">{{ $message }}</div>
-                                                @enderror
-                                            </div>
+                                            @enderror
                                         </div>
-                                        <div class="col-md-6">
+                                    </div>
+                                    <div class="col-md-6">
                                             <div class="mb-2">
                                                 <label for="social_instagram" class="form-label small mb-1">
                                                     <i class="bi bi-instagram text-danger me-1"></i>Instagram
-                                                </label>
+                                            </label>
                                                 <input type="url" class="form-control form-control-sm @error('social_instagram') is-invalid @enderror"
-                                                    id="social_instagram" name="social_instagram"
-                                                    value="{{ old('social_instagram', $boothOwner->form_responses['social_instagram'] ?? '') }}"
-                                                    placeholder="https://instagram.com/yourcompany">
-                                                @error('social_instagram')
+                                                   id="social_instagram" name="social_instagram" 
+                                                   value="{{ old('social_instagram', $boothOwner->form_responses['social_instagram'] ?? '') }}" 
+                                                   placeholder="https://instagram.com/yourcompany">
+                                            @error('social_instagram')
                                                 <div class="invalid-feedback">{{ $message }}</div>
-                                                @enderror
+                                            @enderror
                                             </div>
+                                        </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <!-- Email Preference (only show when editing) -->
-                            @if($isEditing)
+                                <!-- Email Preference (only show when editing) -->
+                                @if($isEditing)
                             <div class="card mb-4">
                                 <div class="card-body py-3">
                                     <div class="form-check">
@@ -537,27 +537,27 @@ $currentStep = 2;
                                             Send confirmation email with updated details
                                         </label>
                                     </div>
+                                    </div>
                                 </div>
-                            </div>
-                            @endif
+                                @endif
 
-                            <div class="d-flex justify-content-between align-items-center">
-                                <a href="{{ $isEditing ? route('events.public.floorplan-token', ['event' => $event->slug, 'accessToken' => $boothOwner->access_token]) : route('events.public.floorplan', $event->slug) }}" class="btn btn-outline-secondary">
-                                    <i class="bi bi-arrow-left me-2"></i>
-                                    Back to Floorplan
-                                </a>
-                                <button type="submit" class="btn btn-primary">
-                                    @if($isEditing)
-                                    Update & Continue
-                                    @else
-                                    Submit & Continue
-                                    @endif
-                                    <i class="bi bi-arrow-right ms-2"></i>
-                                </button>
-                            </div>
-                        </form>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <a href="{{ $isEditing ? route('events.public.floorplan-token', ['event' => $event->slug, 'accessToken' => $boothOwner->access_token]) : route('events.public.floorplan', $event->slug) }}" class="btn btn-outline-secondary">
+                                        <i class="bi bi-arrow-left me-2"></i>
+                                        Back to Floorplan
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        @if($isEditing)
+                                            Update & Continue
+                                        @else
+                                            Submit & Continue
+                                        @endif
+                                        <i class="bi bi-arrow-right ms-2"></i>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
             </div>
         </div>
     </div>

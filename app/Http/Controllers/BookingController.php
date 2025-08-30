@@ -142,7 +142,7 @@ class BookingController extends Controller
         }
         
         $logoValidation = $hasExistingLogos ? 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048' : 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048';
-        
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
@@ -1099,7 +1099,7 @@ class BookingController extends Controller
                            !empty($booking->boothOwner->form_responses['booth_branding_logo']);
         
         $logoValidation = $hasExistingLogos ? 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048' : 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048';
-        
+
         // Validate the request
         $request->validate([
             'name' => 'required|string|max:255',

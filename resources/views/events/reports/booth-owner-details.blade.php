@@ -188,52 +188,66 @@
                     <div class="card border-0 shadow-sm mb-4">
                         <div class="card-header bg-white py-3">
                             <h5 class="mb-0">
-                                <i class="bi bi-credit-card me-2"></i>
+                                <i class="bi bi-people me-2"></i>
                                 Booth Exhibitors ({{ $boothOwner->boothMembers->count() }}/{{ $boothOwner->booking->floorplanItem->max_capacity ?? 5 }})
-
                             </h5>
                         </div>
                         <div class="card-body">
-
-
-                            <div class="mt-3">
-                                 <div class="table-responsive">
-                                    <table id="boothMembersTable" class="table table-sm">
-                                        <thead class="table-light">
-                                            <tr>
-                                                @foreach($formFields as $field)
-                                                <th>{{ $field->label }}</th>
-                                                @endforeach
-                                                <th class="text-center" style="width: 120px;">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach($boothMembers as $member)
-                                            <tr data-member-id="{{ $member->id }}">
-                                                @foreach($formFields as $field) 
-                                                <td>{{ $member->form_responses[$field->field_id] ?? 'N/A' }}</td>
-                                                @endforeach
-                                                <td class="text-center">
-                                                    <div class="btn-group btn-group-sm" role="group">
-                                                        <button type="button" class="btn btn-outline-primary btn-sm" 
-                                                                onclick="editBoothMember({{ $member->id }}, {{ $member->id }})"
-                                                                title="Edit Member">
-                                                            <i class="bi bi-pencil"></i>
-                                                        </button>
-                                                        <button type="button" class="btn btn-outline-danger btn-sm" 
-                                                                onclick="deleteBoothMember({{ $member->id }})"
-                                                                title="Delete Member">
-                                                            <i class="bi bi-trash"></i>
-                                                        </button>
+                            @if($boothMembers->count() > 0)
+                                <div class="row g-3">
+                                    @foreach($boothMembers as $member)
+                                        @php
+                                            // Use the BoothMemberHelper to get field values
+                                            $memberName = \App\Helpers\BoothMemberHelper::getFieldValueByPurpose($member, 'member_name', 'Unknown Member');
+                                            $memberEmail = \App\Helpers\BoothMemberHelper::getFieldValueByPurpose($member, 'member_email', 'No email');
+                                        @endphp
+                                        
+                                        <div class="col-md-6 col-lg-4">
+                                            <div class="card border-success h-100 booth-member-card">
+                                                <div class="card-body p-3">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <h6 class="card-title mb-0 text-success">
+                                                            <i class="bi bi-person-check me-2"></i>{{ $memberName }}
+                                                        </h6>
+                                                        <div class="btn-group btn-group-sm" role="group">
+                                                            <button type="button" class="btn btn-outline-primary btn-sm" 
+                                                                    onclick="editBoothMember({{ $member->id }}, {{ $member->id }})"
+                                                                    title="Edit Member">
+                                                                <i class="bi bi-pencil"></i>
+                                                            </button>
+                                                            <button type="button" class="btn btn-outline-danger btn-sm" 
+                                                                    onclick="deleteBoothMember({{ $member->id }})"
+                                                                    title="Delete Member">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                </td>
-                                            </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
+                                                    
+                                                    <div class="mb-2">
+                                                        @if($memberEmail !== 'No email')
+                                                            <p class="card-text small text-muted mb-1">
+                                                                <i class="bi bi-envelope me-1"></i>{{ $memberEmail }}
+                                                            </p>
+                                                        @endif
+                                                         
+                                                    </div>
+                                                    
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <span class="badge bg-success">Member</span>
+                                                        <small class="text-muted">ID: {{ $member->id }}</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
                                 </div>
-                            </div>
-
+                            @else
+                                <div class="text-center py-4 empty-state">
+                                    <i class="bi bi-people text-muted" style="font-size: 3rem;"></i>
+                                    <p class="text-muted mt-2 mb-0">No booth members have been added yet.</p>
+                                    <small class="text-muted">Booth members will appear here once they register.</small>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -383,36 +397,40 @@
         </div>
     </div>
 
-    <!-- Edit Booth Member Modal -->
-    <div class="modal fade" id="editBoothMemberModal" tabindex="-1" aria-labelledby="editBoothMemberModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editBoothMemberModalLabel">
-                        <i class="bi bi-pencil me-2"></i>Edit Booth Member
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
+    <!-- Edit Booth Member Modal - Right Side Panel -->
+    <div id="editBoothMemberModal" class="edit-modal-overlay" style="display: none;">
+        <div class="edit-modal-panel">
+            <div class="edit-modal-header bg-primary text-white">
+                <h5 class="modal-title mb-0">
+                    <i class="bi bi-person-edit me-2"></i>Edit Booth Member
+                </h5>
+                <button type="button" class="btn-close btn-close-white" onclick="hideModal()" aria-label="Close"></button>
+            </div>
+            
+            <div class="edit-modal-body">
                 <form id="editBoothMemberForm" method="POST">
                     @csrf
                     @method('PUT')
-                    <div class="modal-body">
-                        <div id="editFormFields">
-                            <!-- Dynamic form fields will be loaded here -->
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-circle me-2"></i>Update Member
-                        </button>
+                    <div id="editFormFields">
+                        <!-- Dynamic form fields will be loaded here -->
                     </div>
                 </form>
+            </div>
+            
+            <div class="edit-modal-footer bg-light">
+                <button type="button" class="btn btn-outline-secondary" onclick="hideModal()">
+                    <i class="bi bi-x-circle me-2"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary" onclick="submitEditForm()">
+                    <i class="bi bi-check-circle me-2"></i>Save Changes
+                </button>
+                </div>
             </div>
         </div>
     </div>
 
     @push('scripts')
+    <script src="{{ asset('js/form-renderer.js') }}"></script>
     <script>
         // Send email to exhibitor
         function sendEmail(boothOwnerId) {
@@ -432,44 +450,24 @@
             alert('Edit functionality would be implemented here');
         }
 
-        // Modal functions using vanilla JavaScript
+        // Right Side Modal functions
         function showModal() {
             const modal = document.getElementById('editBoothMemberModal');
-            modal.style.display = 'block';
-            modal.classList.add('show');
-            document.body.classList.add('modal-open');
-            
-            // Add backdrop
-            const backdrop = document.createElement('div');
-            backdrop.className = 'modal-backdrop fade show';
-            backdrop.id = 'modalBackdrop';
-            document.body.appendChild(backdrop);
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
         }
 
         function hideModal() {
             const modal = document.getElementById('editBoothMemberModal');
             modal.style.display = 'none';
-            modal.classList.remove('show');
-            document.body.classList.remove('modal-open');
-            
-            // Remove backdrop
-            const backdrop = document.getElementById('modalBackdrop');
-            if (backdrop) {
-                backdrop.remove();
-            }
+            document.body.style.overflow = '';
         }
 
         // Close modal when clicking on backdrop or close button
         document.addEventListener('DOMContentLoaded', function() {
             const modal = document.getElementById('editBoothMemberModal');
-            const closeButtons = modal.querySelectorAll('[data-bs-dismiss="modal"], .btn-close');
             
-            // Close modal when clicking close buttons
-            closeButtons.forEach(button => {
-                button.addEventListener('click', hideModal);
-            });
-            
-            // Close modal when clicking outside
+            // Close modal when clicking outside the panel
             modal.addEventListener('click', function(e) {
                 if (e.target === modal) {
                     hideModal();
@@ -478,7 +476,7 @@
             
             // Close modal when pressing Escape key
             document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && modal.classList.contains('show')) {
+                if (e.key === 'Escape' && modal.style.display === 'flex') {
                     hideModal();
                 }
             });
@@ -505,219 +503,36 @@
 
         // Populate edit form with member data
         function populateEditForm(member, formFields) {
-            const formContainer = document.getElementById('editFormFields');
-            formContainer.innerHTML = '';
-
-            // Sort fields by sort_order
-            const sortedFields = formFields.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+            console.log('=== populateEditForm START ===');
+            console.log('member:', member);
+            console.log('formFields:', formFields);
             
-            // Group fields by section_id
-            const sections = {};
-            let generalFields = [];
+            // Use the FormRenderer utility
+            const formRenderer = new FormRenderer('editFormFields');
             
-            sortedFields.forEach(field => {
-                if (field.type === 'section') {
-                    // Initialize section if it doesn't exist
-                    if (!sections[field.section_id]) {
-                        sections[field.section_id] = {
-                            label: field.label,
-                            fields: []
-                        };
-                    }
-                } else if (field.section_id) {
-                    // Add field to its section
-                    if (!sections[field.section_id]) {
-                        sections[field.section_id] = {
-                            label: 'Unknown Section',
-                            fields: []
-                        };
-                    }
-                    sections[field.section_id].fields.push(field);
-                } else {
-                    // Field without section goes to general
-                    generalFields.push(field);
-                }
-            });
-
-            // Render general fields first (if any)
-            if (generalFields.length > 0) {
-                formContainer.innerHTML += '<div class="row">';
-                generalFields.forEach(field => {
-                    const fieldValue = member.form_responses[field.field_id] || '';
-                    const fieldHtml = generateFieldHtml(field, fieldValue);
-                    formContainer.innerHTML += fieldHtml;
-                });
-                formContainer.innerHTML += '</div>';
-            }
-
-            // Render each section
-            Object.keys(sections).forEach(sectionId => {
-                const section = sections[sectionId];
-                if (section.fields.length === 0) return;
-
-                formContainer.innerHTML += `
-                    <div class="mb-4">
-                        <h6 class="text-primary mb-3 border-bottom pb-2">
-                            <i class="bi bi-collection me-2"></i>${section.label}
-                        </h6>
-                        <div class="row">
-                `;
-
-                let currentRowWidth = 0;
-                section.fields.forEach(field => {
-                    // Use field.width or field.col_size for column sizing
-                    const fieldWidth = field.width || field.col_size || 6;
-                    
-                    // Check if we need to start a new row
-                    if (currentRowWidth + fieldWidth > 12) {
-                        formContainer.innerHTML += '</div><div class="row">';
-                        currentRowWidth = 0;
-                    }
-                    
-                    const fieldValue = member.form_responses[field.field_id] || '';
-                    const fieldHtml = generateFieldHtml(field, fieldValue);
-                    formContainer.innerHTML += fieldHtml;
-                    
-                    currentRowWidth += fieldWidth;
-                });
-
-                formContainer.innerHTML += '</div></div>';
-            });
-
+            // Prepare form data structure
+            const formData = {
+                fields: formFields.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
+                sections: formFields.filter(f => f.type === 'section')
+            };
+            
+            console.log('Prepared formData:', formData);
+            console.log('Sections found:', formData.sections);
+            console.log('Section fields details:', formData.sections.map(s => ({ id: s.id, section_id: s.section_id, label: s.label, type: s.type })));
+            
+            // Render the form
+            formRenderer.renderForm(formData, member.form_responses, 'editBoothMemberForm', '');
+            
             // Update form action
             document.getElementById('editBoothMemberForm').action = `/api/booth-members/${member.id}`;
+            
+            // Form submission is now handled by submitEditForm() function
+            console.log('Form rendered successfully');
+            
+            console.log('=== populateEditForm END ===');
         }
 
-        // Generate HTML for form fields
-        function generateFieldHtml(field, value) {
-            // Use field.width, field.col_size, or default for Bootstrap column class
-            let colClass;
-            if (field.width || field.col_size) {
-                const width = field.width || field.col_size;
-                // Ensure width doesn't exceed 12 (Bootstrap's grid system)
-                const safeWidth = Math.min(width, 12);
-                colClass = `col-md-${safeWidth}`;
-            } else {
-                colClass = 'col-md-6'; // Default to half width
-            }
-            
-            // Add required indicator and validation
-            const required = field.required ? 'required' : '';
-            const requiredClass = field.required ? 'required-field' : '';
-            const helpText = field.help_text ? `<div class="help-text small text-muted mt-1">${field.help_text}</div>` : '';
-            
-            switch (field.type) {
-                case 'text':
-                case 'email':
-                case 'tel':
-                    return `
-                        <div class="${colClass} mb-3">
-                            <label class="form-label ${requiredClass}">
-                                ${field.label}
-                                ${field.required ? '<span class="text-danger">*</span>' : ''}
-                            </label>
-                            <input type="${field.type}" class="form-control" name="form_responses[${field.field_id}]" 
-                                   value="${value}" ${required} placeholder="Enter ${field.label.toLowerCase()}">
-                            ${helpText}
-                        </div>
-                    `;
-                case 'textarea':
-                    return `
-                        <div class="${colClass} mb-3">
-                            <label class="form-label ${requiredClass}">
-                                ${field.label}
-                                ${field.required ? '<span class="text-danger">*</span>' : ''}
-                            </label>
-                            <textarea class="form-control" name="form_responses[${field.field_id}]" 
-                                      rows="3" ${required} placeholder="Enter ${field.label.toLowerCase()}">${value}</textarea>
-                            ${helpText}
-                        </div>
-                    `;
-                case 'select':
-                    const options = field.options ? JSON.parse(field.options) : [];
-                    let optionsHtml = '<option value="">Select...</option>';
-                    options.forEach(option => {
-                        const selected = option === value ? 'selected' : '';
-                        optionsHtml += `<option value="${option}" ${selected}>${option}</option>`;
-                    });
-                    return `
-                        <div class="${colClass} mb-3">
-                            <label class="form-label ${requiredClass}">
-                                ${field.label}
-                                ${field.required ? '<span class="text-danger">*</span>' : ''}
-                            </label>
-                            <select class="form-select" name="form_responses[${field.field_id}]" ${required}>
-                                ${optionsHtml}
-                            </select>
-                            ${helpText}
-                        </div>
-                    `;
-                case 'checkbox':
-                    if (field.options && Array.isArray(field.options)) {
-                        let checkboxHtml = '';
-                        field.options.forEach(option => {
-                            const checked = value && value.includes(option) ? 'checked' : '';
-                            checkboxHtml += `
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" 
-                                           name="form_responses[${field.field_id}][]" 
-                                           value="${option}" ${checked} ${required}>
-                                    <label class="form-check-label">${option}</label>
-                                </div>
-                            `;
-                        });
-                        return `
-                            <div class="${colClass} mb-3">
-                                <label class="form-label ${requiredClass}">
-                                    ${field.label}
-                                    ${field.required ? '<span class="text-danger">*</span>' : ''}
-                                </label>
-                                ${checkboxHtml}
-                                ${helpText}
-                            </div>
-                        `;
-                    }
-                    break;
-                case 'radio':
-                    if (field.options && Array.isArray(field.options)) {
-                        let radioHtml = '';
-                        field.options.forEach(option => {
-                            const checked = option === value ? 'checked' : '';
-                            radioHtml += `
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" 
-                                           name="form_responses[${field.field_id}]" 
-                                           value="${option}" ${checked} ${required}>
-                                    <label class="form-check-label">${option}</label>
-                                </div>
-                            `;
-                        });
-                        return `
-                            <div class="${colClass} mb-3">
-                                <label class="form-label ${requiredClass}">
-                                    ${field.label}
-                                    ${field.required ? '<span class="text-danger">*</span>' : ''}
-                                </label>
-                                ${radioHtml}
-                                ${helpText}
-                            </div>
-                        `;
-                    }
-                    break;
-                default:
-                    return `
-                        <div class="${colClass} mb-3">
-                            <label class="form-label ${requiredClass}">
-                                ${field.label}
-                                ${field.required ? '<span class="text-danger">*</span>' : ''}
-                            </label>
-                            <input type="text" class="form-control" name="form_responses[${field.field_id}]" 
-                                   value="${value}" ${required} placeholder="Enter ${field.label.toLowerCase()}">
-                            ${helpText}
-                        </div>
-                    `;
-            }
-        }
+        
 
         // Delete booth member
         function deleteBoothMember(memberId) {
@@ -764,32 +579,53 @@
             }
         }
 
-        // Handle form submission
-        document.getElementById('editBoothMemberForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+        // Manual form submission function
+        function submitEditForm() {
+            console.log('=== submitEditForm START ===');
+            const form = document.getElementById('editBoothMemberForm');
             
-            const formData = new FormData(this);
+            if (!form) {
+                console.error('Form not found!');
+                alert('Form not found. Please try again.');
+                return;
+            }
             
-            fetch(this.action, {
+            console.log('Form found, collecting data...');
+            const formData = new FormData(form);
+            
+            console.log('Form action:', form.action);
+            console.log('Form data entries:');
+            for (let [key, value] of formData.entries()) {
+                console.log(key, ':', value);
+            }
+            
+            console.log('Submitting form data...');
+            fetch(form.action, {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response received:', response);
+                return response.json();
+            })
             .then(data => {
+                console.log('API response data:', data);
                 if (data.success) {
                     hideModal();
                     alert('Member updated successfully');
                     // Reload the page to reflect changes
                     location.reload();
                 } else {
-                    alert('Error updating member: ' + data.message);
+                    alert('Error updating member: ' + (data.message || 'Unknown error'));
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('Error updating member');
+                console.error('Fetch error:', error);
+                alert('Error updating member: ' + error.message);
             });
-        });
+            
+            console.log('=== submitEditForm END ===');
+        }
     </script>
     @endpush
 
@@ -811,6 +647,138 @@
         .table th {
             font-weight: 600;
             color: #495057;
+        }
+
+        /* Booth Member Card Styling */
+        .booth-member-card {
+            transition: all 0.3s ease;
+            border: 1px solid #dee2e6;
+        }
+        
+        .booth-member-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-color: #28a745;
+        }
+        
+        .booth-member-card .card-title {
+            font-size: 0.95rem;
+            line-height: 1.2;
+        }
+        
+        .booth-member-card .card-text {
+            font-size: 0.8rem;
+            line-height: 1.3;
+        }
+        
+        .booth-member-card .btn-group .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+        
+        .booth-member-card .badge {
+            font-size: 0.7rem;
+            padding: 0.35em 0.65em;
+        }
+        
+        .booth-member-card .text-muted {
+            font-size: 0.7rem;
+        }
+        
+        /* Empty state styling */
+        .empty-state {
+            color: #6c757d;
+        }
+        
+        .empty-state i {
+            opacity: 0.5;
+        }
+        
+        /* Right Side Edit Modal Styling */
+        .edit-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1050;
+            display: flex;
+            justify-content: flex-end;
+            align-items: stretch;
+        }
+        
+        .edit-modal-panel {
+            width: 500px;
+            max-width: 90vw;
+            height: 100vh;
+            background: white;
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        .edit-modal-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .edit-modal-header .btn-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .edit-modal-header .btn-close:hover {
+            opacity: 0.8;
+        }
+        
+        .edit-modal-body {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+        
+        .edit-modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            flex-shrink: 0;
+            background: white;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+            }
+            to {
+                transform: translateX(0);
+            }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .edit-modal-panel {
+                width: 100vw;
+                max-width: 100vw;
+            }
         }
 
         @media print {
