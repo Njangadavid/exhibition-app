@@ -690,7 +690,7 @@ class BookingController extends Controller
         }
 
         // Load the boothOwner and boothMembers relationships so the view can access owner details and member count
-        $booking->load(['boothOwner', 'boothMembers']);
+        // $booking->load(['boothOwner', 'boothMembers']);
 
         // Verify access token is valid
         if (!$booking->isAccessTokenValid()) {
@@ -1236,16 +1236,13 @@ class BookingController extends Controller
         if ($floorplanDesign) {
             $floorplanDesign->load('items');
             
-            // Load booth owners for company information
-            $event->load('boothOwners');
-
             // Load booking information for each item to determine availability
             $items = $floorplanDesign->items;
             foreach ($items as $item) {
                 // Check if there's an active booking for this item
                 $activeBooking = $item->bookings()
                     ->whereIn('status', ['reserved', 'booked'])
-                    ->with('payments')
+                    ->with(['payments', 'boothOwner'])
                     ->latest()
                     ->first();
 
@@ -1296,25 +1293,25 @@ class BookingController extends Controller
      */
     public function publicFloorplanWithToken(Event $event, $accessToken)
     {
+      
         // Check if event is published or active
         if (!in_array($event->status, ['published', 'active'])) {
             abort(404, 'Event not found.');
         }
-
+        
         // Find booth owner by access token, then get the booking
         $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)
             ->where('access_token_expires_at', '>', now())
             ->firstOrFail();
-        
+           
         $existingBooking = $boothOwner->booking;
-        
-        if ($existingBooking) {
-            $existingBooking->load(['floorplanItem', 'boothMembers']);
-        }
         
         if (!$existingBooking) {
             abort(404, 'No booking found for this access token. Please start over.');
         }
+       
+        // Load the booking with its relationships
+        // $existingBooking->load(['floorplanItem', 'boothMembers']);
 
         // Load floorplan data with items if exists
         $floorplanDesign = $event->floorplanDesign;
@@ -1322,7 +1319,7 @@ class BookingController extends Controller
             $floorplanDesign->load('items');
             
             // Load booth owners for company information
-            $event->load('boothOwners');
+            // $event->load('boothOwners');
 
             // Load booking information for each item to determine availability
             $items = $floorplanDesign->items;
@@ -1330,7 +1327,7 @@ class BookingController extends Controller
                 // Check if there's an active booking for this item
                 $activeBooking = $item->bookings()
                     ->whereIn('status', ['reserved', 'booked'])
-                    ->with('payments')
+                    ->with(['payments', 'boothOwner'])
                     ->latest()
                     ->first();
 
