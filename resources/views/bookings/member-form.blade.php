@@ -1103,11 +1103,30 @@ function addMember() {
                 console.log('Member added:', formData);
                 console.log('Total members:', window.currentMembers.length);
                 
+                // Immediately update the member count and list for instant feedback
+                const currentCount = window.currentMembers.length;
+                const newCount = currentCount + 1;
+                document.getElementById('currentMemberCount').textContent = newCount;
+                
+                // Add the new member to the global array temporarily
+                const tempMember = {
+                    id: Date.now(), // Temporary ID for display
+                    form_responses: formData,
+                    form_fields: window.currentFormData.fields || []
+                };
+                window.currentMembers.push(tempMember);
+                
+                // Immediately display the updated member list
+                displayExistingMembers(window.currentMembers);
+                
                 // Clear the form
                 clearForm();
                 
                 // Hide the form automatically
-                hideFormAfterAction();
+                document.getElementById('memberFormContainer').style.display = 'none';
+                document.getElementById('toggleMemberForm').innerHTML = '<i class="bi bi-plus-circle me-2"></i>Add New Member';
+                document.getElementById('toggleMemberForm').classList.remove('btn-outline-secondary');
+                document.getElementById('toggleMemberForm').classList.add('btn-outline-primary');
                 
                 // Reload the page to show the new member with proper field_purpose data
                 setTimeout(() => {

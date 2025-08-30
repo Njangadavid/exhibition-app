@@ -173,4 +173,20 @@ class FloorplanItem extends Model
     {
         return $this->text_color ?? $this->floorplanDesign->text_color;
     }
+
+    /**
+     * Get the effective booth width in meters (custom or default from floorplan design)
+     */
+    public function getEffectiveBoothWidthMetersAttribute()
+    {
+        return $this->booth_width_meters ?? $this->floorplanDesign->default_booth_width_meters ?? 3;
+    }
+
+    /**
+     * Get the effective booth height in meters (custom or default from floorplan design)
+     */
+    public function getEffectiveBoothHeightMetersAttribute()
+    {
+        return $this->booth_height_meters ?? $this->floorplanDesign->default_booth_height_meters ?? 3;
+    }
 }

@@ -121,6 +121,12 @@
                                             Payment Setup
                                         </a>
                                     </li>
+                                    <li class="nav-item">
+                                        <a href="{{ route('events.reports.bookings', $event) }}" class="nav-link fw-medium px-3 py-3 {{ request()->routeIs('events.reports.*') ? 'active' : '' }}">
+                                            <i class="bi bi-bar-chart me-2"></i>
+                                            Reports
+                                        </a>
+                                    </li>
                                     
                                       
                                 </ul>

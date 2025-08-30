@@ -572,4 +572,157 @@ class EventController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Display bookings report for the event
+     */
+    public function bookingsReport(Event $event)
+    {
+        // Get all booth owners with their bookings for this event
+        $boothOwners = \App\Models\BoothOwner::whereHas('booking', function($query) use ($event) {
+            $query->where('event_id', $event->id);
+        })->with(['booking.floorplanItem.floorplanDesign', 'booking.payments', 'boothMembers'])
+        ->get();
+
+        // Get statistics
+        $stats = [
+            'total_booth_owners' => $boothOwners->count(),
+            'total_bookings' => $boothOwners->count(), // Since each booth owner has one booking
+            'paid_bookings' => $boothOwners->filter(function($boothOwner) {
+                return $boothOwner->booking && $boothOwner->booking->payments->where('status', 'completed')->count() > 0;
+            })->count(),
+            'pending_payments' => $boothOwners->filter(function($boothOwner) {
+                return $boothOwner->booking && $boothOwner->booking->payments->where('status', 'pending')->count() > 0;
+            })->count(),
+            'total_revenue' => $boothOwners->sum(function($boothOwner) {
+                if ($boothOwner->booking && $boothOwner->booking->payments->where('status', 'completed')->count() > 0) {
+                    return $boothOwner->booking->floorplanItem ? $boothOwner->booking->floorplanItem->price : 0;
+                }
+                return 0;
+            }),
+            'paid_revenue' => $boothOwners->sum(function($boothOwner) {
+                if ($boothOwner->booking && $boothOwner->booking->payments->where('status', 'completed')->count() > 0) {
+                    return $boothOwner->booking->floorplanItem ? $boothOwner->booking->floorplanItem->price : 0;
+                }
+                return 0;
+            }),
+            'total_potential_revenue' => $boothOwners->sum(function($boothOwner) {
+                return $boothOwner->booking && $boothOwner->booking->floorplanItem ? $boothOwner->booking->floorplanItem->price : 0;
+            })
+        ];
+
+        return view('events.reports.bookings', compact('event', 'boothOwners', 'stats'));
+    }
+
+    /**
+     * Display detailed view of a specific booth owner
+     */
+    public function boothOwnerDetails(Event $event, \App\Models\BoothOwner $boothOwner)
+    {
+        // Verify the booth owner belongs to this event
+        if ($boothOwner->booking->event_id !== $event->id) {
+            abort(404, 'Booth owner not found for this event');
+        }
+
+        // Load all relationships
+        $boothOwner->load([
+            'booking.floorplanItem.floorplanDesign',
+            'booking.payments',
+            'boothMembers'
+        ]);
+        $formBuilder = $event->formBuilders()->where('type', 'member_registration')->first();
+        // Get the member form fields to map field_id to field_purpose
+       $formFields = $formBuilder->fields()->where('type', '!=', 'section')->get();
+        $memberFormFields = \App\Models\FormField::where('form_builder_id', $boothOwner->booking->event->member_form_id ?? null)
+            ->get()
+            ->keyBy('field_id');
+//Booth members
+$boothMembers = $boothOwner->boothMembers;
+        // Get payment statistics
+        $payments = $boothOwner->booking->payments;
+        $totalPaid = $payments->where('status', 'completed')->sum('amount');
+        $pendingAmount = $payments->where('status', 'pending')->sum('amount');
+        $paymentStatus = $payments->where('status', 'completed')->count() > 0 ? 'paid' : 
+                        ($payments->where('status', 'pending')->count() > 0 ? 'pending' : 'unpaid');
+
+        return view('events.reports.booth-owner-details', compact(
+            'event', 
+            'boothOwner', 
+            'totalPaid', 
+            'pendingAmount', 
+            'paymentStatus',
+            'payments',
+            'memberFormFields',
+            'formFields',
+            'boothMembers'
+        ));
+    }
+
+    /**
+     * Get booth member data for editing
+     */
+    public function getBoothMemberForEdit(\App\Models\BoothMember $member)
+    {
+        try {
+            // Load the member with form responses
+            $member->load('boothOwner.booking.event');
+            
+            // Get the member form fields (including sections for proper layout)
+            $formBuilder = $member->boothOwner->booking->event->formBuilders()->where('type', 'member_registration')->first();
+            $formFields = $formBuilder ? $formBuilder->fields()->orderBy('sort_order')->get() : collect();
+            
+            return response()->json([
+                'success' => true,
+                'member' => $member,
+                'formFields' => $formFields
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading member data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update booth member
+     */
+    public function updateBoothMember(\App\Http\Requests\UpdateBoothMemberRequest $request, \App\Models\BoothMember $member)
+    {
+        try {
+            $member->update([
+                'form_responses' => $request->input('form_responses')
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Member updated successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating member: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete booth member
+     */
+    public function deleteBoothMember(\App\Models\BoothMember $member)
+    {
+        try {
+            $member->delete();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Member deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error deleting member: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

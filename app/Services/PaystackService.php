@@ -32,6 +32,65 @@ class PaystackService
     }
 
     /**
+     * Convert amount to smallest currency unit (cents, kobo, etc.)
+     * This method intelligently handles different currencies and their decimal places
+     */
+    protected function convertToSmallestUnit($amount, $currency = 'USD')
+    {
+        // Check if the amount is already in the smallest unit
+        // If amount is an integer and > 1000, it's likely already converted
+        if (is_numeric($amount) && $amount > 1000 && $amount % 100 == 0) {
+            Log::info('Amount appears to already be in smallest unit', [
+                'amount' => $amount,
+                'currency' => $currency
+            ]);
+            return $amount;
+        }
+
+        // Standard conversion for currencies with 2 decimal places
+        $currenciesWithTwoDecimals = ['USD', 'NGN', 'KES', 'EUR', 'GBP', 'CAD', 'AUD'];
+        
+        if (in_array(strtoupper($currency), $currenciesWithTwoDecimals)) {
+            $converted = $amount * 100;
+            Log::info('Converting amount to smallest unit', [
+                'original' => $amount,
+                'currency' => $currency,
+                'converted' => $converted
+            ]);
+            return $converted;
+        }
+
+        // For currencies with 0 decimal places (like JPY), no conversion needed
+        $currenciesWithZeroDecimals = ['JPY', 'KRW', 'VND'];
+        if (in_array(strtoupper($currency), $currenciesWithZeroDecimals)) {
+            Log::info('Currency has no decimal places, no conversion needed', [
+                'amount' => $amount,
+                'currency' => $currency
+            ]);
+            return $amount;
+        }
+
+        // For currencies with 3 decimal places (like BHD), multiply by 1000
+        $currenciesWithThreeDecimals = ['BHD', 'IQD', 'KWD', 'LYD', 'OMR', 'TND'];
+        if (in_array(strtoupper($currency), $currenciesWithThreeDecimals)) {
+            $converted = $amount * 1000;
+            Log::info('Converting amount to smallest unit (3 decimal places)', [
+                'original' => $amount,
+                'currency' => $currency,
+                'converted' => $converted
+            ]);
+            return $converted;
+        }
+
+        // Default: assume 2 decimal places
+        Log::info('Using default conversion (2 decimal places)', [
+            'amount' => $amount,
+            'currency' => $currency
+        ]);
+        return $amount * 100;
+    }
+
+    /**
      * Initialize a transaction
      */
     public function initializeTransaction($data)
@@ -41,9 +100,13 @@ class PaystackService
                 throw new \Exception('Paystack not configured');
             }
 
+            // Convert amount to smallest currency unit
+            $convertedAmount = $this->convertToSmallestUnit($data['amount'], $data['currency'] ?? 'USD');
+
             // Log the data being sent to Paystack
             Log::info('Sending data to Paystack', [
-                'amount' => $data['amount'],
+                'original_amount' => $data['amount'],
+                'converted_amount' => $convertedAmount,
                 'email' => $data['email'],
                 'reference' => $data['reference'],
                 'callback_url' => $data['callback_url'],
@@ -53,7 +116,7 @@ class PaystackService
             ]);
 
             $transaction = $this->paystack->transaction->initialize([
-                'amount' => $data['amount'], // Convert to cents (smallest currency unit)
+                'amount' => $convertedAmount, // Convert to smallest currency unit
                 'email' => $data['email'],
                 'reference' => $data['reference'],
                 'callback_url' => $data['callback_url'],
@@ -118,7 +181,7 @@ class PaystackService
             }
 
             $charge = $this->paystack->transaction->charge([
-                'amount' => $data['amount'] * 100,
+                'amount' => $this->convertToSmallestUnit($data['amount'], $data['currency'] ?? 'NGN'), // Convert to smallest currency unit
                 'email' => $data['email'],
                 'authorization_code' => $data['authorization_code'],
                 'reference' => $data['reference'],

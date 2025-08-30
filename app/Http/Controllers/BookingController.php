@@ -122,17 +122,38 @@ class BookingController extends Controller
             'event_slug' => $eventSlug,
             'item_id' => $itemId,
             'session_booking_id' => session('current_booking_id'),
-            'request_data' => $request->only(['owner_name', 'owner_email', 'company_name'])
+            'request_data' => $request->only(['name', 'email', 'company_name'])
         ]);
 
+        // Check if we have existing logos from session or need new ones
+        $currentBookingId = session('current_booking_id');
+        $hasExistingLogos = false;
+        
+        if ($currentBookingId) {
+            $existingBooking = Booking::where('id', $currentBookingId)
+                ->where('floorplan_item_id', $itemId)
+                ->where('event_id', $eventSlug)
+                ->first();
+                
+            if ($existingBooking && $existingBooking->boothOwner) {
+                $hasExistingLogos = !empty($existingBooking->boothOwner->form_responses['company_logo']) && 
+                                   !empty($existingBooking->boothOwner->form_responses['booth_branding_logo']);
+            }
+        }
+        
+        $logoValidation = $hasExistingLogos ? 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048' : 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048';
+        
         $request->validate([
-            'owner_name' => 'required|string|max:255',
-            'owner_email' => 'required|email|max:255',
-            'owner_phone' => 'required|string|max:20',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'phone' => 'required|string|max:30',
+            'phone_country' => 'nullable|string|size:2',
             'company_name' => 'required|string|max:255',
             'company_address' => 'nullable|string|max:500',
             'company_website' => 'nullable|url|max:255',
-            'company_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'country' => 'required|string|size:2',
+            'company_logo' => $logoValidation,
+            'booth_branding_logo' => $logoValidation,
             'social_facebook' => 'nullable|url|max:255',
             'social_twitter' => 'nullable|url|max:255',
             'social_linkedin' => 'nullable|url|max:255',
@@ -222,11 +243,20 @@ class BookingController extends Controller
 
             // Handle logo upload if provided
             $logoPath = null;
+            $boothBrandingPath = null;
+            
             if ($request->hasFile('company_logo')) {
                 $logoPath = $request->file('company_logo')->store('company-logos', 'public');
-            } elseif ($existingBooking && isset($existingBooking->owner_details['company_logo'])) {
+            } elseif ($existingBooking && $existingBooking->boothOwner && isset($existingBooking->boothOwner->form_responses['company_logo'])) {
                 // Keep existing logo if no new one uploaded
-                $logoPath = $existingBooking->owner_details['company_logo'];
+                $logoPath = $existingBooking->boothOwner->form_responses['company_logo'];
+            }
+            
+            if ($request->hasFile('booth_branding_logo')) {
+                $boothBrandingPath = $request->file('booth_branding_logo')->store('booth-branding', 'public');
+            } elseif ($existingBooking && $existingBooking->boothOwner && isset($existingBooking->boothOwner->form_responses['booth_branding_logo'])) {
+                // Keep existing branding logo if no new one uploaded
+                $boothBrandingPath = $existingBooking->boothOwner->form_responses['booth_branding_logo'];
             }
 
             if ($existingBooking) {
@@ -238,13 +268,16 @@ class BookingController extends Controller
                 // Update existing booking
                 $existingBooking->boothOwner->update([
                     'form_responses' => [
-                        'name' => $request->owner_name,
-                        'email' => $request->owner_email,
-                        'phone' => $request->owner_phone,
+                        'name' => $request->name,
+                        'email' => $request->email,
+                        'phone' => $request->phone,
+                        'phone_country' => $request->phone_country,
                         'company_name' => $request->company_name,
                         'company_address' => $request->company_address,
                         'company_website' => $request->company_website,
+                        'country' => $request->country,
                         'company_logo' => $logoPath,
+                        'booth_branding_logo' => $boothBrandingPath,
                         'social_facebook' => $request->social_facebook,
                         'social_twitter' => $request->social_twitter,
                         'social_linkedin' => $request->social_linkedin,
@@ -267,13 +300,16 @@ class BookingController extends Controller
                 $boothOwner = \App\Models\BoothOwner::create([
                     'qr_code' => \App\Models\BoothOwner::generateQrCode(),
                     'form_responses' => [
-                        'name' => $request->owner_name,
-                        'email' => $request->owner_email,
-                        'phone' => $request->owner_phone,
+                        'name' => $request->name,
+                        'email' => $request->email,
+                        'phone' => $request->phone,
+                        'phone_country' => $request->phone_country,
                         'company_name' => $request->company_name,
                         'company_address' => $request->company_address,
                         'company_website' => $request->company_website,
+                        'country' => $request->country,
                         'company_logo' => $logoPath,
+                        'booth_branding_logo' => $boothBrandingPath,
                         'social_facebook' => $request->social_facebook,
                         'social_twitter' => $request->social_twitter,
                         'social_linkedin' => $request->social_linkedin,
@@ -441,15 +477,9 @@ class BookingController extends Controller
 
             // Ensure we have a booth owner
             if (!$booking->boothOwner) {
-                // Create booth owner from existing owner_details
-                $ownerDetails = $booking->owner_details ?? [];
-                $boothOwner = \App\Models\BoothOwner::create([
-                    'qr_code' => \App\Models\BoothOwner::generateQrCode(),
-                    'form_responses' => $ownerDetails,
-                    'access_token' => \App\Models\BoothOwner::generateAccessToken(),
-                    'access_token_expires_at' => now()->addYear(),
-                ]);
-                $booking->update(['booth_owner_id' => $boothOwner->id]);
+                // This should not happen in the new structure, but handle gracefully
+                Log::warning('No booth owner found for booking', ['booking_id' => $booking->id]);
+                return redirect()->back()->with('error', 'Invalid booking state. Please start over.');
             }
 
             // Create booth member
@@ -527,13 +557,12 @@ class BookingController extends Controller
 
             // Ensure we have a booth owner
             if (!$booking->boothOwner) {
-                // Create booth owner from existing owner_details
-                $ownerDetails = $booking->owner_details ?? [];
-                $boothOwner = \App\Models\BoothOwner::create([
-                    'qr_code' => \App\Models\BoothOwner::generateQrCode(),
-                    'form_responses' => $ownerDetails
-                ]);
-                $booking->update(['booth_owner_id' => $boothOwner->id]);
+                // This should not happen in the new structure, but handle gracefully
+                Log::warning('No booth owner found for booking', ['booking_id' => $booking->id]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid booking state. Please start over.'
+                ], 400);
             }
 
             // Check if resend email was requested
@@ -775,7 +804,7 @@ class BookingController extends Controller
                     'booking_id' => $booking->id,
                     'event_id' => $event->id,
                     'space_label' => $booking->floorplanItem->label,
-                    'owner_name' => $booking->owner_details['name'],
+                    'owner_name' => $booking->boothOwner->form_responses['name'] ?? 'Unknown',
                 ],
             ];
 
@@ -1065,15 +1094,24 @@ class BookingController extends Controller
                 ->with('error', 'Access token has expired or is invalid.');
         }
 
+        // Check if we have existing logos
+        $hasExistingLogos = !empty($booking->boothOwner->form_responses['company_logo']) && 
+                           !empty($booking->boothOwner->form_responses['booth_branding_logo']);
+        
+        $logoValidation = $hasExistingLogos ? 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048' : 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048';
+        
         // Validate the request
         $request->validate([
-            'owner_name' => 'required|string|max:255',
-            'owner_email' => 'required|email|max:255',
-            'owner_phone' => 'required|string|max:20',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'phone' => 'required|string|max:30',
+            'phone_country' => 'nullable|string|size:2',
             'company_name' => 'required|string|max:255',
             'company_address' => 'nullable|string|max:500',
             'company_website' => 'nullable|url|max:255',
-            'company_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'country' => 'required|string|size:2',
+            'company_logo' => $logoValidation,
+            'booth_branding_logo' => $logoValidation,
             'social_facebook' => 'nullable|url|max:255',
             'social_twitter' => 'nullable|url|max:255',
             'social_linkedin' => 'nullable|url|max:255',
@@ -1083,25 +1121,37 @@ class BookingController extends Controller
         try {
             DB::beginTransaction();
 
-            // Handle logo upload
+            // Handle logo uploads
             $logoPath = null;
+            $boothBrandingPath = null;
+            
             if ($request->hasFile('company_logo')) {
                 $logoPath = $request->file('company_logo')->store('company-logos', 'public');
             } else {
                 // Keep existing logo if no new one uploaded
-                $logoPath = $booking->owner_details['company_logo'] ?? null;
+                $logoPath = $booking->boothOwner->form_responses['company_logo'] ?? null;
+            }
+            
+            if ($request->hasFile('booth_branding_logo')) {
+                $boothBrandingPath = $request->file('booth_branding_logo')->store('booth-branding', 'public');
+            } else {
+                // Keep existing branding logo if no new one uploaded
+                $boothBrandingPath = $booking->boothOwner->form_responses['booth_branding_logo'] ?? null;
             }
 
-            // Update existing booking
-            $booking->update([
-                'owner_details' => [
-                    'name' => $request->owner_name,
-                    'email' => $request->owner_email,
-                    'phone' => $request->owner_phone,
+            // Update existing booth owner
+            $booking->boothOwner->update([
+                'form_responses' => [
+                    'name' => $request->name,
+                    'email' => $request->email,
+                    'phone' => $request->phone,
+                    'phone_country' => $request->phone_country,
                     'company_name' => $request->company_name,
                     'company_address' => $request->company_address,
                     'company_website' => $request->company_website,
+                    'country' => $request->country,
                     'company_logo' => $logoPath,
+                    'booth_branding_logo' => $boothBrandingPath,
                     'social_facebook' => $request->social_facebook,
                     'social_twitter' => $request->social_twitter,
                     'social_linkedin' => $request->social_linkedin,

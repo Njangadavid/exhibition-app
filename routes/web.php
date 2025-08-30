@@ -76,6 +76,15 @@ Route::middleware('auth')->group(function () {
     Route::post('/events/{event}/email-templates/{emailTemplate}/clone', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'clone'])->name('events.email-templates.clone');
     Route::post('/events/{event}/email-templates/{emailTemplate}/test', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'test'])->name('events.email-templates.test');
     Route::patch('/events/{event}/email-templates/{emailTemplate}/toggle-status', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'toggleStatus'])->name('events.email-templates.toggle-status');
+    
+    // Reports routes
+    Route::get('/events/{event}/reports/bookings', [EventController::class, 'bookingsReport'])->name('events.reports.bookings');
+    Route::get('/events/{event}/reports/booth-owner/{boothOwner}', [EventController::class, 'boothOwnerDetails'])->name('events.reports.booth-owner-details');
+    
+    // Booth Member API routes
+    Route::get('/api/booth-members/{member}/edit', [EventController::class, 'getBoothMemberForEdit'])->name('api.booth-members.edit');
+    Route::put('/api/booth-members/{member}', [EventController::class, 'updateBoothMember'])->name('api.booth-members.update');
+    Route::delete('/api/booth-members/{member}', [EventController::class, 'deleteBoothMember'])->name('api.booth-members.delete');
 });
 
 // Paystack routes
