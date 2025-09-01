@@ -28,7 +28,7 @@
                         <div class="card-header bg-white py-3">
                             <h5 class="mb-0">
                                 <i class="bi bi-info-circle me-2"></i>
-                                Basic Information
+                                Booth Owner Information
                             </h5>
                         </div>
                         <div class="card-body">
@@ -153,32 +153,41 @@
 
                             @if($payments->count() > 0)
                             <div class="mt-3">
-                                <h6 class="mb-3">Payment History</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-sm">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>Reference</th>
-                                                <th>Amount</th>
-                                                <th>Status</th>
-                                                <th>Date</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach($payments as $payment)
-                                            <tr>
-                                                <td>{{ $payment->payment_reference ?? 'N/A' }}</td>
-                                                <td>${{ number_format($payment->amount, 2) }}</td>
-                                                <td>
-                                                    <span class="badge bg-{{ $payment->status === 'completed' ? 'success' : ($payment->status === 'pending' ? 'warning' : 'secondary') }} bg-opacity-10 text-{{ $payment->status === 'completed' ? 'success' : ($payment->status === 'pending' ? 'warning' : 'secondary') }} border border-{{ $payment->status === 'completed' ? 'success' : ($payment->status === 'pending' ? 'warning' : 'secondary') }}">
-                                                        {{ ucfirst($payment->status) }}
-                                                    </span>
-                                                </td>
-                                                <td>{{ $payment->created_at->format('M d, Y') }}</td>
-                                            </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
+                                <div class="d-flex align-items-center mb-3 payment-history-header" style="cursor: pointer;" 
+                                     data-bs-toggle="collapse" 
+                                     data-bs-target="#paymentHistoryCollapse" 
+                                     aria-expanded="false" 
+                                     aria-controls="paymentHistoryCollapse">
+                                    <h6 class="mb-0 me-2">Payment History</h6>
+                                    <i class="bi bi-chevron-down" id="paymentHistoryIcon"></i>
+                                </div>
+                                <div class="collapse" id="paymentHistoryCollapse">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Reference</th>
+                                                    <th>Amount</th>
+                                                    <th>Status</th>
+                                                    <th>Date</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($payments as $payment)
+                                                <tr>
+                                                    <td>{{ $payment->payment_reference ?? 'N/A' }}</td>
+                                                    <td>${{ number_format($payment->amount, 2) }}</td>
+                                                    <td>
+                                                        <span class="badge bg-{{ $payment->status === 'completed' ? 'success' : ($payment->status === 'pending' ? 'warning' : 'secondary') }} bg-opacity-10 text-{{ $payment->status === 'completed' ? 'success' : ($payment->status === 'pending' ? 'warning' : 'secondary') }} border border-{{ $payment->status === 'completed' ? 'success' : ($payment->status === 'pending' ? 'warning' : 'secondary') }}">
+                                                            {{ ucfirst($payment->status) }}
+                                                        </span>
+                                                    </td>
+                                                    <td>{{ $payment->created_at->format('M d, Y') }}</td>
+                                                </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                             @endif
@@ -187,10 +196,24 @@
 
                     <div class="card border-0 shadow-sm mb-4">
                         <div class="card-header bg-white py-3">
-                            <h5 class="mb-0">
-                                <i class="bi bi-people me-2"></i>
-                                Booth Exhibitors ({{ $boothOwner->boothMembers->count() }}/{{ $boothOwner->booking->floorplanItem->max_capacity ?? 5 }})
-                            </h5>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-people me-2"></i>
+                                    Booth Exhibitors ({{ $boothOwner->boothMembers->count() }}/{{ $boothOwner->booking->floorplanItem->max_capacity ?? 2 }})
+                                </h5>
+                                @php
+                                    $currentMemberCount = $boothOwner->boothMembers->count();
+                                    $maxCapacity = $boothOwner->booking->floorplanItem->max_capacity ?? 2;
+                                    $canAddMember = $currentMemberCount < $maxCapacity;
+                                @endphp
+                                <button type="button" 
+                                        class="btn btn-primary btn-sm {{ $canAddMember ? '' : 'disabled' }}" 
+                                        onclick="{{ $canAddMember ? 'addNewMember()' : 'void(0)' }}"
+                                        title="{{ $canAddMember ? 'Add New Member' : 'Maximum capacity reached' }}">
+                                    <i class="bi bi-person-plus me-2"></i>
+                                    Add Member
+                                </button>
+                            </div>
                         </div>
                         <div class="card-body">
                             @if($boothMembers->count() > 0)
@@ -202,7 +225,7 @@
                                             $memberEmail = \App\Helpers\BoothMemberHelper::getFieldValueByPurpose($member, 'member_email', 'No email');
                                         @endphp
                                         
-                                        <div class="col-md-6 col-lg-4">
+                                        <div class="col-md-6 col-lg-4" data-member-id="{{ $member->id }}">
                                             <div class="card border-success h-100 booth-member-card">
                                                 <div class="card-body p-3">
                                                     <div class="d-flex justify-content-between align-items-start mb-2">
@@ -371,7 +394,7 @@
                     @endif
 
                     <!-- Quick Actions Card -->
-                    <div class="card border-0 shadow-sm">
+                    <!-- <div class="card border-0 shadow-sm">
                         <div class="card-header bg-white py-3">
                             <h5 class="mb-0">
                                 <i class="bi bi-gear me-2"></i>
@@ -391,7 +414,7 @@
                                 </button>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
                 </div>
             </div>
         </div>
@@ -480,15 +503,80 @@
                     hideModal();
                 }
             });
+
+            // Payment History collapse functionality
+            const paymentHistoryCollapse = document.getElementById('paymentHistoryCollapse');
+            const paymentHistoryIcon = document.getElementById('paymentHistoryIcon');
+            
+            if (paymentHistoryCollapse && paymentHistoryIcon) {
+                paymentHistoryCollapse.addEventListener('show.bs.collapse', function() {
+                    paymentHistoryIcon.classList.remove('bi-chevron-down');
+                    paymentHistoryIcon.classList.add('bi-chevron-up');
+                });
+                
+                paymentHistoryCollapse.addEventListener('hide.bs.collapse', function() {
+                    paymentHistoryIcon.classList.remove('bi-chevron-up');
+                    paymentHistoryIcon.classList.add('bi-chevron-down');
+                });
+            }
         });
+
+
+
+                // Add new booth member
+        function addNewMember() {
+            // Get the booth owner ID from the current page
+            const boothOwnerId = {{ $boothOwner->id }};
+            
+            // Fetch form fields for new member using the correct endpoint
+            fetch(`/booth-members/new/${boothOwnerId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Create a new member object with empty form responses
+                        const newMember = {
+                            id: 'new',
+                            booth_owner_id: boothOwnerId,
+                            form_responses: {}
+                        };
+                        
+                        // Populate the form for new member (this will handle modal title and button text)
+                        populateEditForm(newMember, data.formFields);
+                        
+                        // Add a hidden input for booth_owner_id
+                        let hiddenInput = document.getElementById('booth_owner_id_input');
+                        if (!hiddenInput) {
+                            hiddenInput = document.createElement('input');
+                            hiddenInput.type = 'hidden';
+                            hiddenInput.id = 'booth_owner_id_input';
+                            hiddenInput.name = 'booth_owner_id';
+                            hiddenInput.value = boothOwnerId;
+                            document.getElementById('editBoothMemberForm').appendChild(hiddenInput);
+                        } else {
+                            hiddenInput.value = boothOwnerId;
+                        }
+                        
+                        // Show the modal
+                        showModal();
+                    } else {
+                        alert('Error loading form fields: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading form fields');
+                });
+        }
 
         // Edit booth member
         function editBoothMember(memberId, boothOwnerId) {
             // Fetch member data and form fields
-            fetch(`/api/booth-members/${memberId}/edit`)
+            fetch(`/booth-members/${memberId}/edit`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
+                        // Ensure the member has the correct ID for editing
+                        data.member.id = memberId;
                         populateEditForm(data.member, data.formFields);
                         showModal();
                     } else {
@@ -523,8 +611,20 @@
             // Render the form
             formRenderer.renderForm(formData, member.form_responses, 'editBoothMemberForm', '');
             
-            // Update form action
-            document.getElementById('editBoothMemberForm').action = `/api/booth-members/${member.id}`;
+            // Update form action and modal content based on whether this is a new member or editing existing
+            if (member.id === 'new') {
+                // New member - set action to create endpoint
+                document.getElementById('editBoothMemberForm').action = '/booth-members';
+                // Update modal title and button text
+                document.querySelector('.edit-modal-header h5').innerHTML = '<i class="bi bi-person-plus me-2"></i>Add New Member';
+                document.querySelector('.edit-modal-footer .btn-primary').textContent = 'Add Member';
+            } else {
+                // Existing member - set action to update endpoint
+                document.getElementById('editBoothMemberForm').action = `/booth-members/${member.id}`;
+                // Update modal title and button text
+                document.querySelector('.edit-modal-header h5').innerHTML = '<i class="bi bi-pencil me-2"></i>Edit Member';
+                document.querySelector('.edit-modal-footer .btn-primary').textContent = 'Save Changes';
+            }
             
             // Form submission is now handled by submitEditForm() function
             console.log('Form rendered successfully');
@@ -537,7 +637,7 @@
         // Delete booth member
         function deleteBoothMember(memberId) {
             if (confirm('Are you sure you want to delete this booth member? This action cannot be undone.')) {
-                fetch(`/api/booth-members/${memberId}`, {
+                fetch(`/booth-members/${memberId}`, {
                     method: 'DELETE',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -547,14 +647,9 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Remove the row from the table
-                        const row = document.querySelector(`tr[data-member-id="${memberId}"]`);
-                        if (row) {
-                            row.remove();
-                        }
-                        // Update member count
-                        updateMemberCount();
                         alert('Booth member deleted successfully');
+                        // Refresh the page to ensure all data is synchronized
+                        location.reload();
                     } else {
                         alert('Error deleting member: ' + data.message);
                     }
@@ -568,14 +663,29 @@
 
         // Update member count display
         function updateMemberCount() {
-            const table = document.querySelector('#boothMembersTable tbody');
-            const memberCount = table.querySelectorAll('tr').length;
+            // Count the remaining member cards
+            const memberCards = document.querySelectorAll('.booth-member-card');
+            const memberCount = memberCards.length;
             const maxCapacity = {{ $boothOwner->booking->floorplanItem->max_capacity ?? 5 }};
             
             // Update the header count
             const headerElement = document.querySelector('.card-header h5');
             if (headerElement) {
-                headerElement.innerHTML = `<i class="bi bi-credit-card me-2"></i>Booth Exhibitors (${memberCount}/${maxCapacity})`;
+                headerElement.innerHTML = `<i class="bi bi-people me-2">Booth Exhibitors (${memberCount}/${maxCapacity})`;
+            }
+            
+            // Update the Add Member button state
+            const addMemberBtn = document.querySelector('.btn-primary[onclick*="addNewMember"]');
+            if (addMemberBtn) {
+                if (memberCount >= maxCapacity) {
+                    addMemberBtn.classList.add('disabled');
+                    addMemberBtn.onclick = 'void(0)';
+                    addMemberBtn.title = 'Maximum capacity reached';
+                } else {
+                    addMemberBtn.classList.remove('disabled');
+                    addMemberBtn.onclick = 'addNewMember()';
+                    addMemberBtn.title = 'Add New Member';
+                }
             }
         }
 
@@ -591,37 +701,131 @@
             }
             
             console.log('Form found, collecting data...');
-            const formData = new FormData(form);
+            
+            // Manually collect form data to handle nested form_responses properly
+            const formElements = form.elements;
+            const processedNames = new Set(); // Track processed field names to avoid duplicates
+            const formData = {}; // Use plain object instead of FormData
             
             console.log('Form action:', form.action);
-            console.log('Form data entries:');
-            for (let [key, value] of formData.entries()) {
-                console.log(key, ':', value);
+            console.log('Form elements:', formElements);
+            
+            // Collect all form fields (avoiding duplicates)
+            for (let i = 0; i < formElements.length; i++) {
+                const element = formElements[i];
+                if (element.name && element.type !== 'submit' && element.type !== 'button' && !processedNames.has(element.name)) {
+                    processedNames.add(element.name);
+                    
+                    if (element.type === 'checkbox') {
+                        if (element.checked) {
+                            // Handle nested form_responses properly
+                            if (element.name.startsWith('form_responses[')) {
+                                const fieldName = element.name.match(/form_responses\[(.*?)\]/)[1];
+                                if (!formData.form_responses) formData.form_responses = {};
+                                if (!formData.form_responses[fieldName]) formData.form_responses[fieldName] = [];
+                                formData.form_responses[fieldName].push(element.value);
+                            } else {
+                                formData[element.name] = element.value;
+                            }
+                        }
+                    } else if (element.type === 'radio') {
+                        if (element.checked) {
+                            // Handle nested form_responses properly
+                            if (element.name.startsWith('form_responses[')) {
+                                const fieldName = element.name.match(/form_responses\[(.*?)\]/)[1];
+                                if (!formData.form_responses) formData.form_responses = {};
+                                formData.form_responses[fieldName] = element.value;
+                            } else {
+                                formData[element.name] = element.value;
+                            }
+                        }
+                    } else {
+                        // Handle nested form_responses properly
+                        if (element.name.startsWith('form_responses[')) {
+                            const fieldName = element.name.match(/form_responses\[(.*?)\]/)[1];
+                            if (!formData.form_responses) formData.form_responses = {};
+                            formData.form_responses[fieldName] = element.value;
+                        } else {
+                            formData[element.name] = element.value;
+                        }
+                    }
+                }
+            }
+            
+            console.log('Collected form data:', formData);
+            console.log('Form responses collected:', formData.form_responses);
+            
+            // Determine if this is a create or update operation
+            const isCreating = form.action.includes('/booth-members') && !form.action.includes('/booth-members/');
+            const method = isCreating ? 'POST' : 'PUT';
+            
+            console.log('Operation type:', isCreating ? 'CREATE' : 'UPDATE');
+            console.log('HTTP method:', method);
+            
+            // Get CSRF token and validate it exists
+            let csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            if (!csrfToken) {
+                console.error('CSRF token not found!');
+                alert('CSRF token not found. Please refresh the page and try again.');
+                return;
+            }
+            
+            console.log('CSRF token found:', csrfToken);
+            
+            // Add CSRF token for Laravel
+            formData._token = csrfToken;
+            
+            // Add method override for PUT requests
+            if (method === 'PUT') {
+                formData._method = 'PUT';
             }
             
             console.log('Submitting form data...');
             fetch(form.action, {
-                method: 'POST',
-                body: formData
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify(formData)
             })
             .then(response => {
                 console.log('Response received:', response);
+                
+                // Handle 419 CSRF token mismatch specifically
+                if (response.status === 419) {
+                    console.error('CSRF token mismatch (419)');
+                    alert('Your session has expired. Please refresh the page and try again.');
+                    hideModal();
+                    return Promise.reject(new Error('CSRF token mismatch'));
+                }
+                
+                // Handle other error statuses
+                if (!response.ok) {
+                    console.error('HTTP error:', response.status, response.statusText);
+                    return response.json().then(data => {
+                        throw new Error(`HTTP ${response.status}: ${data.message || response.statusText}`);
+                    });
+                }
+                
                 return response.json();
             })
             .then(data => {
                 console.log('API response data:', data);
                 if (data.success) {
                     hideModal();
-                    alert('Member updated successfully');
+                    const message = isCreating ? 'Member added successfully' : 'Member updated successfully';
+                    alert(message);
                     // Reload the page to reflect changes
                     location.reload();
                 } else {
-                    alert('Error updating member: ' + (data.message || 'Unknown error'));
+                    alert('Error ' + (isCreating ? 'adding' : 'updating') + ' member: ' + (data.message || 'Unknown error'));
                 }
             })
             .catch(error => {
                 console.error('Fetch error:', error);
-                alert('Error updating member: ' + error.message);
+                alert('Error ' + (isCreating ? 'adding' : 'updating') + ' member: ' + error.message);
             });
             
             console.log('=== submitEditForm END ===');
@@ -646,6 +850,35 @@
 
         .table th {
             font-weight: 600;
+            color: #495057;
+        }
+
+        /* Payment History Collapsible Styling */
+        .payment-history-header {
+            transition: all 0.2s ease;
+            border-radius: 6px;
+            padding: 8px 12px;
+        }
+        
+        .payment-history-header:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .payment-history-header:active {
+            background-color: #e9ecef;
+        }
+        
+        .payment-history-header h6 {
+            color: #495057;
+            font-weight: 600;
+        }
+        
+        .payment-history-header i {
+            transition: transform 0.2s ease;
+            color: #6c757d;
+        }
+        
+        .payment-history-header:hover i {
             color: #495057;
         }
 

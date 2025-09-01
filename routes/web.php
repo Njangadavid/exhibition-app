@@ -81,10 +81,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/events/{event}/reports/bookings', [EventController::class, 'bookingsReport'])->name('events.reports.bookings');
     Route::get('/events/{event}/reports/booth-owner/{boothOwner}', [EventController::class, 'boothOwnerDetails'])->name('events.reports.booth-owner-details');
     
-    // Booth Member API routes
-    Route::get('/api/booth-members/{member}/edit', [EventController::class, 'getBoothMemberForEdit'])->name('api.booth-members.edit');
-    Route::put('/api/booth-members/{member}', [EventController::class, 'updateBoothMember'])->name('api.booth-members.update');
-    Route::delete('/api/booth-members/{member}', [EventController::class, 'deleteBoothMember'])->name('api.booth-members.delete');
+    // Booth Member routes (for admin access) - using web routes instead of API routes
+    Route::put('/booth-members', [EventController::class, 'storeBoothMember'])->name('booth-members.store');
+    Route::get('/booth-members/{member}/edit', [EventController::class, 'getBoothMemberForEdit'])->name('booth-members.edit');
+    Route::get('/booth-members/new/{boothOwner}', [EventController::class, 'getFormFieldsForNewMember'])->name('booth-members.new');
+    Route::put('/booth-members/{member}', [EventController::class, 'updateBoothMember'])->name('booth-members.update');
+    Route::delete('/booth-members/{member}', [EventController::class, 'deleteBoothMember'])->name('booth-members.delete');
 });
 
 // Paystack routes

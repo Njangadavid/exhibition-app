@@ -659,6 +659,75 @@ $boothMembers = $boothOwner->boothMembers;
     }
 
     /**
+     * Get form fields for adding a new booth member
+     */
+    public function getFormFieldsForNewMember(\App\Models\BoothOwner $boothOwner)
+    {
+        try {
+            // Load the booth owner with event relationship
+            $boothOwner->load('booking.event');
+            
+            // Get the member form fields (including sections for proper layout)
+            $formBuilder = $boothOwner->booking->event->formBuilders()->where('type', 'member_registration')->first();
+            $formFields = $formBuilder ? $formBuilder->fields()->orderBy('sort_order')->get() : collect();
+            
+            return response()->json([
+                'success' => true,
+                'formFields' => $formFields
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading form fields: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Store a new booth member
+     */
+    public function storeBoothMember(Request $request)
+    {
+        try {
+            $request->validate([
+                'booth_owner_id' => 'required|exists:booth_owners,id',
+                'form_responses' => 'required|array'
+            ]);
+
+            // Check if booth has capacity
+            $boothOwner = \App\Models\BoothOwner::with('booking.floorplanItem')->findOrFail($request->booth_owner_id);
+            $currentMemberCount = $boothOwner->boothMembers()->count();
+            $maxCapacity = $boothOwner->booking->floorplanItem->max_capacity ?? 2;
+
+            if ($currentMemberCount >= $maxCapacity) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Booth has reached maximum capacity'
+                ], 400);
+            }
+
+            // Create the new booth member
+            $boothMember = \App\Models\BoothMember::create([
+                'booth_owner_id' => $request->booth_owner_id,
+                'qr_code' => \App\Models\BoothMember::generateQrCode(),
+                'form_responses' => $request->input('form_responses'),
+                'status' => 'active'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Member added successfully',
+                'member' => $boothMember
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error adding member: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Get booth member data for editing
      */
     public function getBoothMemberForEdit(\App\Models\BoothMember $member)
