@@ -623,6 +623,7 @@ class EventController extends Controller
         if ($boothOwner->booking->event_id !== $event->id) {
             // dd('Booth owner not found for this event');
         }
+        dd($boothOwner->booking);
 
         // Load all relationships
         $boothOwner->load([
