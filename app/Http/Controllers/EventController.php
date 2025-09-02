@@ -337,34 +337,10 @@ class EventController extends Controller
                     
                     // Note: Individual booking checks are now handled in the deletion loop below
                     
-                    // Delete items one by one to handle foreign key constraints properly
-                    $deletedCount = 0;
-                    foreach ($itemsToDelete as $itemId) {
-                        $item = $floorplanDesign->items()->where('item_id', $itemId)->first();
-                        if ($item) {
-                            // Check if item has bookings before deletion
-                            $hasBookings = $item->bookings()->exists();
-                            if ($hasBookings) {
-                                \Illuminate\Support\Facades\Log::warning('Cannot delete item with bookings', [
-                                    'item_id' => $itemId,
-                                    'item_name' => $item->item_name
-                                ]);
-                                continue; // Skip this item
-                            }
-                            
-                            // Delete the item
-                            $deleted = $item->delete();
-                            if ($deleted) {
-                                $deletedCount++;
-                                \Illuminate\Support\Facades\Log::info('Successfully deleted item', [
-                                    'item_id' => $itemId,
-                                    'item_name' => $item->item_name
-                                ]);
-                            }
-                        }
-                    }
+                    // Use bulk delete (no foreign key constraint issues after migration)
+                    $deletedCount = $floorplanDesign->items()->whereIn('item_id', $itemsToDelete)->delete();
                     
-                    \Illuminate\Support\Facades\Log::info('Deleted floorplan items', [
+                    \Illuminate\Support\Facades\Log::info('Bulk deleted floorplan items', [
                         'expected_deleted_count' => $itemsToDelete->count(),
                         'actual_deleted_count' => $deletedCount,
                         'deleted_item_ids' => $itemsToDelete->toArray()
