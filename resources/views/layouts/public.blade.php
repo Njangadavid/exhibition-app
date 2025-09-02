@@ -80,11 +80,13 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center">
                     <div class="me-3">
-                        <div class="bg-primary rounded d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                        <div class="d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
                             @if($event->logo)
                             <img src="{{ Storage::url($event->logo) }}" alt="{{ $event->name }}" class="rounded" style="width: 50px; height: 50px; object-fit: cover;">
                             @else
-                            <i class="bi bi-calendar-event text-white fs-4"></i>
+                            <div class="bg-primary rounded d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                <i class="bi bi-calendar-event text-white fs-4"></i>
+                            </div>
                             @endif
                         </div>
                     </div>

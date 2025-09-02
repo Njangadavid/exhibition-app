@@ -4700,11 +4700,23 @@
                 toggleCanvasInstructions();
             }
             
+            // Helper function to get accurate canvas coordinates
+            function getCanvasCoordinates(e) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                return {
+                    x: (e.clientX - rect.left) * scaleX,
+                    y: (e.clientY - rect.top) * scaleY
+                };
+            }
+            
             // Mouse events
             canvas.addEventListener('mousedown', function(e) {
-                const rect = canvas.getBoundingClientRect();
-                startX = e.clientX - rect.left;
-                startY = e.clientY - rect.top;
+                const coords = getCanvasCoordinates(e);
+                startX = coords.x;
+                startY = coords.y;
                 isDrawing = true;
                 
                 // First check if clicking on a resize handle of the currently selected shape
@@ -4785,9 +4797,9 @@
             });
             
             canvas.addEventListener('mousemove', function(e) {
-                const rect = canvas.getBoundingClientRect();
-                const currentX = e.clientX - rect.left;
-                const currentY = e.clientY - rect.top;
+                const coords = getCanvasCoordinates(e);
+                const currentX = coords.x;
+                const currentY = coords.y;
                 
                 if (!isDrawing) {
                     // Handle cursor changes when not drawing - prioritize resize handles
@@ -5003,11 +5015,11 @@
                 }
             });
             
-            canvas.addEventListener('mouseup', function() {
+            canvas.addEventListener('mouseup', function(e) {
                 if (isDrawing && currentTool === 'area' && !selectedShape) {
-                    const rect = canvas.getBoundingClientRect();
-                    const endX = event.clientX - rect.left;
-                    const endY = event.clientY - rect.top;
+                    const coords = getCanvasCoordinates(e);
+                    const endX = coords.x;
+                    const endY = coords.y;
                     
                     const shape = {
                         type: 'rectangle',
@@ -5051,9 +5063,9 @@
             
             // Double-click event listener to open properties panel
             canvas.addEventListener('dblclick', function(e) {
-                const rect = canvas.getBoundingClientRect();
-                const clickX = e.clientX - rect.left;
-                const clickY = e.clientY - rect.top;
+                const coords = getCanvasCoordinates(e);
+                const clickX = coords.x;
+                const clickY = coords.y;
                 
                 // Check if double-clicking on a shape
                 const clickedShape = getShapeAt(clickX, clickY);
