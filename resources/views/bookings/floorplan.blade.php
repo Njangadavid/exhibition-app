@@ -227,7 +227,7 @@
                                 <!-- Enhanced Booth Details Right Panel -->
                                 <div id="itemInfoPanel" class="position-fixed" style="display: none; z-index: 1000; right: -350px; top: 0; height: 100vh; transition: right 0.3s ease;">
                                     <!-- Backdrop -->
-                                    <div class="position-absolute w-100 h-100" style="background: rgba(0, 0, 0, 0.3); left: -100vw; top: 0;"></div>
+                                    <div class="position-absolute" style="background: rgba(0, 0, 0, 0.3); left: -100vw; top: 0; width: 100vw; height: 100vh;"></div>
                                     
                                     <div class="card shadow-lg border-0 rounded-0 h-100" style="width: 350px; border-radius: 0 !important;">
                                         <!-- Enhanced Header with gradient -->
@@ -687,21 +687,13 @@
                 
                 // Draw selection effect
                 if (selectedShape) {
-                    console.log('Drawing selection for:', selectedShape);
                     drawSelection(selectedShape);
-                } else {
-                    console.log('No selected shape to draw');
                 }
             }
             
             // Draw selection indicators
             function drawSelection(shape) {
-                if (!shape) {
-                    console.log('drawSelection: No shape provided');
-                    return;
-                }
-                
-                console.log('drawSelection called for shape:', shape);
+                if (!shape) return;
                 
                 const width = parseFloat(shape.width) || 40;
                 const height = parseFloat(shape.height) || 40;
@@ -1019,8 +1011,19 @@
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
                         
-                        // Draw text at center of the shape
-                        ctx.fillText(shape.text_content || shape.text || 'TEXT', centerTX, centerTY);
+                        // Draw multi-line text
+                        const textContent = shape.text_content || shape.text || 'TEXT';
+                        if (textContent) {
+                            const lines = textContent.split('\n');
+                            const lineHeight = (shape.font_size || window.floorplanDefaults?.font_size || 16) * 1.2;
+                            const totalHeight = lines.length * lineHeight;
+                            const startY = centerTY - (totalHeight - lineHeight) / 2;
+                            
+                            lines.forEach((line, index) => {
+                                const y = startY + (index * lineHeight);
+                                ctx.fillText(line, centerTX, y);
+                            });
+                        }
                         
                         // Draw text boundary rectangle for visual feedback - use inheritance
                         ctx.strokeStyle = shape.stroke_color || window.floorplanDefaults?.stroke_color || 'rgba(0,0,0,0.1)';
@@ -1186,9 +1189,9 @@
                 }
                 
                 if (clickedShape) {
-                    // Update selection
+                    // Update selection (keep selection when clicking on items)
                     selectedShape = clickedShape;
-                    console.log('Shape selected:', clickedShape);
+
                     
                     // Only show popup for bookable items
                     if (clickedShape.bookable) {
@@ -1200,10 +1203,12 @@
                     // Redraw canvas to show selection
                     redrawCanvas();
                 } else {
-                    // Clear selection if clicking on empty space
-                    selectedShape = null;
-                    hideItemInfo();
-                    redrawCanvas();
+                    // Only clear selection if clicking on empty space (not on another item)
+                    if (selectedShape) {
+                        selectedShape = null;
+                        hideItemInfo();
+                        redrawCanvas();
+                    }
                 }
             });
             
@@ -1501,7 +1506,7 @@
                 
                 // Clear selection when hiding info panel
                 selectedShape = null;
-                drawCanvas();
+                redrawCanvas();
                 
                 // Wait for animation to complete before hiding
                 setTimeout(() => {
@@ -4562,11 +4567,122 @@
 
         // Functions for change booth modal
         function showChangeBoothModal() {
-            const modal = new bootstrap.Modal(document.getElementById('changeBoothModal'));
+            const modalElement = document.getElementById('changeBoothModal');
+            const modal = new bootstrap.Modal(modalElement);
+            
+            // Override the hide method to ensure cleanup
+            const originalHide = modal.hide;
+            modal.hide = function() {
+                console.log('Modal hide method called');
+                originalHide.call(this);
+                setTimeout(cleanupModalBackdrop, 50);
+            };
+            
             modal.show();
             loadAvailableAlternatives();
         }
-
+        
+        // Handle modal backdrop cleanup
+        document.addEventListener('DOMContentLoaded', function() {
+            const changeBoothModal = document.getElementById('changeBoothModal');
+            if (changeBoothModal) {
+                // Listen for multiple modal events
+                changeBoothModal.addEventListener('hidden.bs.modal', function() {
+                    console.log('Modal hidden event triggered');
+                    cleanupModalBackdrop();
+                });
+                
+                changeBoothModal.addEventListener('hide.bs.modal', function() {
+                    console.log('Modal hide event triggered');
+                    cleanupModalBackdrop();
+                });
+                
+                // Also listen for click events on close buttons
+                const closeButtons = changeBoothModal.querySelectorAll('[data-bs-dismiss="modal"]');
+                closeButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        console.log('Close button clicked');
+                        setTimeout(cleanupModalBackdrop, 100); // Small delay to ensure modal starts closing
+                    });
+                });
+                
+                // Listen for escape key
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && changeBoothModal.classList.contains('show')) {
+                        console.log('Escape key pressed');
+                        setTimeout(cleanupModalBackdrop, 100);
+                    }
+                });
+            }
+        });
+        
+        // Manual cleanup function for modal backdrop issues
+        function cleanupModalBackdrop() {
+            // Remove any lingering backdrop elements
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => backdrop.remove());
+            
+            // Remove modal-open class from body
+            document.body.classList.remove('modal-open');
+            
+            // Reset body styles
+            document.body.style.paddingRight = '';
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            
+            // Remove any modal-related classes
+            document.body.classList.remove('modal-open');
+            
+            // Force remove any remaining modal classes
+            document.documentElement.classList.remove('modal-open');
+            
+            console.log('Modal backdrop cleanup completed');
+        }
+        
+        // Add global cleanup function for manual use
+        window.cleanupModalBackdrop = cleanupModalBackdrop;
+        
+        // Add cleanup on page unload
+        window.addEventListener('beforeunload', cleanupModalBackdrop);
+        
+        // Periodic cleanup check (every 2 seconds) to catch any missed backdrops
+        setInterval(function() {
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            const modalOpen = document.body.classList.contains('modal-open');
+            
+            // If there are backdrops but no modal is open, clean up
+            if (backdrops.length > 0 && !modalOpen) {
+                console.log('Found lingering backdrop without modal-open class, cleaning up...');
+                cleanupModalBackdrop();
+            }
+            
+            // If modal-open class exists but no modal is visible, clean up
+            if (modalOpen && !document.querySelector('.modal.show')) {
+                console.log('Found modal-open class without visible modal, cleaning up...');
+                cleanupModalBackdrop();
+            }
+        }, 2000);
+        
+        // Mutation observer to watch for modal changes
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const target = mutation.target;
+                    if (target === document.body && !target.classList.contains('modal-open')) {
+                        // Body lost modal-open class, clean up any remaining backdrops
+                        const backdrops = document.querySelectorAll('.modal-backdrop');
+                        if (backdrops.length > 0) {
+                            console.log('Body lost modal-open class, cleaning up backdrops...');
+                            cleanupModalBackdrop();
+                        }
+                    }
+                }
+            });
+        });
+        
+        // Start observing body class changes
+        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        
         function loadAvailableAlternatives() {
             const container = document.getElementById('availableAlternatives');
             

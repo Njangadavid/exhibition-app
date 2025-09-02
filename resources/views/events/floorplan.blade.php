@@ -438,8 +438,8 @@
                                             
                                             <div class="mb-2">
                                                 <label class="form-label small mb-1 fw-semibold">Text Content</label>
-                                                <input type="text" class="form-control form-control-sm" id="itemTextContent" placeholder="Enter text content">
-                                                <small class="form-text text-muted small">The text to display</small>
+                                                <textarea class="form-control form-control-sm" id="itemTextContent" placeholder="Enter text content" rows="3" style="resize: vertical;"></textarea>
+                                                <small class="form-text text-muted small">The text to display (supports multiple lines)</small>
                                             </div>
                                             
                                             <div class="mb-2">
@@ -1304,8 +1304,18 @@
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
                         
-                        // Draw text at center of the shape
-                        ctx.fillText(shape.text, textCenterX, textCenterY);
+                        // Draw multi-line text
+                        if (shape.text) {
+                            const lines = shape.text.split('\n');
+                            const lineHeight = (shape.fontSize || parseInt(document.getElementById('fontSize').value)) * 1.2;
+                            const totalHeight = lines.length * lineHeight;
+                            const startY = textCenterY - (totalHeight - lineHeight) / 2;
+                            
+                            lines.forEach((line, index) => {
+                                const y = startY + (index * lineHeight);
+                                ctx.fillText(line, textCenterX, y);
+                            });
+                        }
                         
                         // Draw selection highlight if this is the selected shape
                         if (selectedShape === shape) {
@@ -1462,20 +1472,40 @@
                     ctx.translate(-centerX, -centerY);
                 }
                 
-                // Arrow shaft
-                ctx.beginPath();
-                ctx.moveTo(shape.x, centerY);
-                ctx.lineTo(shape.x + width - height, centerY);
-                ctx.lineWidth = shape.borderWidth || 3;
-                ctx.stroke();
+                // Get effective colors
+                const fillColor = shape.fillColor || document.getElementById('fillColor').value;
+                const strokeColor = shape.strokeColor || document.getElementById('strokeColor').value;
+                const borderWidth = shape.borderWidth || parseInt(document.getElementById('borderWidth').value);
                 
-                // Arrow head
+                // Calculate arrow dimensions
+                const shaftLength = width * 0.7; // 70% of width for shaft
+                const headLength = width * 0.3; // 30% of width for head
+                const headWidth = height * 0.8; // 80% of height for head width
+                const shaftWidth = height * 0.3; // 30% of height for shaft thickness
+                
+                // Draw arrow shaft (rectangle)
+                ctx.fillStyle = fillColor;
+                ctx.fillRect(shape.x, centerY - shaftWidth/2, shaftLength, shaftWidth);
+                
+                // Draw shaft border
+                ctx.strokeStyle = strokeColor;
+                ctx.lineWidth = borderWidth;
+                ctx.strokeRect(shape.x, centerY - shaftWidth/2, shaftLength, shaftWidth);
+                
+                // Draw arrow head (triangle) - pointing to the right
                 ctx.beginPath();
-                ctx.moveTo(shape.x + width - height, centerY);
-                ctx.lineTo(shape.x + width - height - height/2, shape.y);
-                ctx.lineTo(shape.x + width - height - height/2, shape.y + height);
+                ctx.moveTo(shape.x + width, centerY); // Tip of arrow (rightmost point)
+                ctx.lineTo(shape.x + shaftLength, centerY - headWidth/2); // Top of head
+                ctx.lineTo(shape.x + shaftLength, centerY + headWidth/2); // Bottom of head
                 ctx.closePath();
+                
+                // Fill arrow head
+                ctx.fillStyle = fillColor;
                 ctx.fill();
+                
+                // Stroke arrow head
+                ctx.strokeStyle = strokeColor;
+                ctx.lineWidth = borderWidth;
                 ctx.stroke();
                 
                 // Restore canvas context if rotation was applied
