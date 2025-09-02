@@ -314,25 +314,18 @@ class EventController extends Controller
                 
                 \Illuminate\Support\Facades\Log::info('Processing floorplan items', [
                     'existing_count' => $existingItems->count(),
-                    'new_count' => count($validated['items']),
-                    'existing_item_ids' => $existingItems->keys()->toArray(),
-                    'new_item_ids' => $newItemIds,
-                    'sample_item_data' => $validated['items'][0] ?? 'No items'
+                    'new_count' => count($validated['items'])
                 ]);
                 
                 // Delete items that are no longer in the floorplan
                 $itemsToDelete = $existingItems->keys()->diff($newItemIds)->values();
                 \Illuminate\Support\Facades\Log::info('Delete analysis', [
-                    'items_to_delete_count' => $itemsToDelete->count(),
-                    'items_to_delete_ids' => $itemsToDelete->toArray(),
-                    'existing_keys' => $existingItems->keys()->toArray(),
-                    'new_keys' => $newItemIds
+                    'items_to_delete_count' => $itemsToDelete->count()
                 ]);
                 
                 if ($itemsToDelete->count() > 0) {
                     \Illuminate\Support\Facades\Log::info('Items to be deleted', [
-                        'item_ids_to_delete' => $itemsToDelete->toArray(),
-                        'floorplan_id' => $floorplanDesign->id
+                        'count' => $itemsToDelete->count()
                     ]);
                     
                     // Note: Individual booking checks are now handled in the deletion loop below
@@ -340,39 +333,12 @@ class EventController extends Controller
                     // Delete items one by one for better reliability
                     $deletedCount = 0;
                     foreach ($itemsToDelete as $itemId) {
-                        \Illuminate\Support\Facades\Log::info('Attempting to delete item', [
-                            'item_id' => $itemId,
-                            'floorplan_id' => $floorplanDesign->id
-                        ]);
-                        
-                        // Debug: Check what items actually exist in the database
-                        $allItems = $floorplanDesign->items()->get(['id', 'item_id', 'type', 'item_name']);
-                        \Illuminate\Support\Facades\Log::info('All items in database', [
-                            'items' => $allItems->toArray(),
-                            'searching_for' => $itemId,
-                            'searching_type' => gettype($itemId)
-                        ]);
-                        
                         $item = $floorplanDesign->items()->where('item_id', $itemId)->first();
                         if ($item) {
-                            \Illuminate\Support\Facades\Log::info('Found item to delete', [
-                                'item_id' => $itemId,
-                                'item_type' => $item->type,
-                                'item_name' => $item->item_name
-                            ]);
-                            
                             // Delete the item
                             $deleted = $item->delete();
                             if ($deleted) {
                                 $deletedCount++;
-                                \Illuminate\Support\Facades\Log::info('Successfully deleted item', [
-                                    'item_id' => $itemId,
-                                    'item_type' => $item->type
-                                ]);
-                            } else {
-                                \Illuminate\Support\Facades\Log::error('Failed to delete item', [
-                                    'item_id' => $itemId
-                                ]);
                             }
                         } else {
                             // Try alternative lookups in case of data type issues
@@ -383,60 +349,28 @@ class EventController extends Controller
                             $itemInt = $floorplanDesign->items()->where('item_id', $itemAsInt)->first();
                             
                             if ($itemString) {
-                                \Illuminate\Support\Facades\Log::info('Found item using string conversion', [
-                                    'original_id' => $itemId,
-                                    'string_id' => $itemAsString
-                                ]);
                                 $deleted = $itemString->delete();
                                 if ($deleted) {
                                     $deletedCount++;
                                 }
                             } elseif ($itemInt) {
-                                \Illuminate\Support\Facades\Log::info('Found item using int conversion', [
-                                    'original_id' => $itemId,
-                                    'int_id' => $itemAsInt
-                                ]);
                                 $deleted = $itemInt->delete();
                                 if ($deleted) {
                                     $deletedCount++;
                                 }
-                            } else {
-                                \Illuminate\Support\Facades\Log::warning('Item not found for deletion with any data type', [
-                                    'item_id' => $itemId,
-                                    'item_id_type' => gettype($itemId),
-                                    'tried_string' => $itemAsString,
-                                    'tried_int' => $itemAsInt
-                                ]);
                             }
                         }
                     }
                     
-                    \Illuminate\Support\Facades\Log::info('Individual deletion completed', [
-                        'expected_deleted_count' => $itemsToDelete->count(),
-                        'actual_deleted_count' => $deletedCount,
-                        'deleted_item_ids' => $itemsToDelete->toArray()
+                    \Illuminate\Support\Facades\Log::info('Deletion completed', [
+                        'deleted_count' => $deletedCount
                     ]);
                 } else {
-                    \Illuminate\Support\Facades\Log::info('No items to delete', [
-                        'existing_items' => $existingItems->keys()->toArray(),
-                        'new_items' => $newItemIds,
-                        'difference' => $existingItems->keys()->diff($newItemIds)->toArray()
-                    ]);
+                    \Illuminate\Support\Facades\Log::info('No items to delete');
                 }
                 
                 // Update or create items
                 foreach ($validated['items'] as $index => $itemData) {
-                    \Illuminate\Support\Facades\Log::info('Processing item', [
-                        'index' => $index,
-                        'item_id' => $itemData['item_id'],
-                        'type' => $itemData['type'],
-                        'fill_color' => $itemData['fill_color'],
-                        'stroke_color' => $itemData['stroke_color'],
-                        'border_width' => $itemData['border_width'],
-                        'label_font_size' => $itemData['label_font_size'] ?? 'null',
-                        'label_background_color' => $itemData['label_background_color'] ?? 'null',
-                        'label_color' => $itemData['label_color'] ?? 'null'
-                    ]);
                     
                     $itemData['floorplan_design_id'] = $floorplanDesign->id;
                     
@@ -444,21 +378,9 @@ class EventController extends Controller
                         // Update existing item to preserve ID and relationships
                         $existingItem = $existingItems->get($itemData['item_id']);
                         $existingItem->update($itemData);
-                        \Illuminate\Support\Facades\Log::info('Updated existing item', [
-                            'item_id' => $itemData['item_id'],
-                            'label_font_size' => $itemData['label_font_size'] ?? 'null',
-                            'label_background_color' => $itemData['label_background_color'] ?? 'null',
-                            'label_color' => $itemData['label_color'] ?? 'null'
-                        ]);
                     } else {
                         // Create new item
                         FloorplanItem::create($itemData);
-                        \Illuminate\Support\Facades\Log::info('Created new item', [
-                            'item_id' => $itemData['item_id'],
-                            'label_font_size' => $itemData['label_font_size'] ?? 'null',
-                            'label_background_color' => $itemData['label_background_color'] ?? 'null',
-                            'label_color' => $itemData['label_color'] ?? 'null'
-                        ]);
                     }
                 }
                 

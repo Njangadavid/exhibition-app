@@ -974,6 +974,17 @@
                     height = shape.size || 40;
                 }
                 
+                const centerX = shape.x + width / 2;
+                const centerY = shape.y + height / 2;
+                
+                // Apply rotation if shape has rotation
+                if (shape.rotation && shape.rotation !== 0) {
+                    ctx.save();
+                    ctx.translate(centerX, centerY);
+                    ctx.rotate(shape.rotation * Math.PI / 180);
+                    ctx.translate(-centerX, -centerY);
+                }
+                
                 ctx.fillStyle = '#007bff';
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = 2;
@@ -1005,7 +1016,12 @@
                     ctx.strokeRect(handle.x, handle.y, handleSize, handleSize);
                 });
                 
-                // Draw rotation handle (circle above the shape)
+                // Restore canvas context if rotation was applied
+                if (shape.rotation && shape.rotation !== 0) {
+                    ctx.restore();
+                }
+                
+                // Draw rotation handle (circle above the shape) - always in original orientation
                 const rotationHandleY = shape.y - handleSize * 2;
                 const rotationHandleX = shape.x + width/2 - handleSize/2;
                 
@@ -1136,9 +1152,26 @@
                     height = shape.size || 40;
                 }
                 
-                // Check if point is within shape bounds
-                return x >= shape.x && x <= shape.x + width &&
-                       y >= shape.y && y <= shape.y + height;
+                // If shape has rotation, transform the point to check against rotated bounds
+                if (shape.rotation && shape.rotation !== 0) {
+                    const centerX = shape.x + width / 2;
+                    const centerY = shape.y + height / 2;
+                    const angle = -shape.rotation * Math.PI / 180; // Negative because we're transforming the point back
+                    
+                    // Transform the point to the shape's local coordinate system
+                    const dx = x - centerX;
+                    const dy = y - centerY;
+                    const rotatedX = dx * Math.cos(angle) - dy * Math.sin(angle);
+                    const rotatedY = dx * Math.sin(angle) + dy * Math.cos(angle);
+                    
+                    // Check if the transformed point is within the unrotated bounds
+                    return rotatedX >= -width/2 && rotatedX <= width/2 &&
+                           rotatedY >= -height/2 && rotatedY <= height/2;
+                } else {
+                    // No rotation - use simple rectangular bounds check
+                    return x >= shape.x && x <= shape.x + width &&
+                           y >= shape.y && y <= shape.y + height;
+                }
             }
             
             // Redraw all shapes
@@ -5183,18 +5216,13 @@
             // Function to delete selected shape
             function deleteSelectedShape() {
                 if (selectedShape) {
-                    console.log('Deleting shape:', selectedShape.id, selectedShape.type);
                     // Find and remove the selected shape from the shapes array
                     const index = shapes.findIndex(shape => shape.id === selectedShape.id);
                     if (index > -1) {
                         shapes.splice(index, 1);
-                        console.log('Shape deleted from array. Remaining shapes:', shapes.length);
                         selectedShape = null; // Clear selection
                         redrawCanvas(); // Redraw without the deleted shape
                         trackChanges();
-                        console.log('Changes tracked, hasUnsavedChanges:', hasUnsavedChanges);
-                    } else {
-                        console.error('Shape not found in array for deletion');
                     }
                 }
             }
