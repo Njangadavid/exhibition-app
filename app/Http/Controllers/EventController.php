@@ -321,7 +321,7 @@ class EventController extends Controller
                 ]);
                 
                 // Delete items that are no longer in the floorplan
-                $itemsToDelete = $existingItems->keys()->diff($newItemIds);
+                $itemsToDelete = $existingItems->keys()->diff($newItemIds)->values();
                 \Illuminate\Support\Facades\Log::info('Delete analysis', [
                     'items_to_delete_count' => $itemsToDelete->count(),
                     'items_to_delete_ids' => $itemsToDelete->toArray(),
@@ -338,6 +338,11 @@ class EventController extends Controller
                     // Note: Individual booking checks are now handled in the deletion loop below
                     
                     // Use bulk delete (no foreign key constraint issues after migration)
+                    \Illuminate\Support\Facades\Log::info('Attempting bulk delete', [
+                        'query_items' => $itemsToDelete->toArray(),
+                        'floorplan_id' => $floorplanDesign->id
+                    ]);
+                    
                     $deletedCount = $floorplanDesign->items()->whereIn('item_id', $itemsToDelete)->delete();
                     
                     \Illuminate\Support\Facades\Log::info('Bulk deleted floorplan items', [
