@@ -1169,8 +1169,8 @@
                            rotatedY >= -height/2 && rotatedY <= height/2;
                 } else {
                     // No rotation - use simple rectangular bounds check
-                    return x >= shape.x && x <= shape.x + width &&
-                           y >= shape.y && y <= shape.y + height;
+                return x >= shape.x && x <= shape.x + width &&
+                       y >= shape.y && y <= shape.y + height;
                 }
             }
             
@@ -1301,7 +1301,27 @@
                         // Set text properties using effective values (item override or floorplan default)
                         ctx.fillStyle = shape.textColor || document.getElementById('textColor').value;
                         ctx.font = `${shape.fontSize || parseInt(document.getElementById('fontSize').value)}px ${shape.fontFamily || document.getElementById('fontFamily').value}`;
-                        ctx.textAlign = 'center';
+                        
+                        // Use label position for text alignment (left, right, center)
+                        const textAlignment = shape.labelPosition || defaultLabelPosition;
+                        let textAlign, textX;
+                        
+                        switch(textAlignment) {
+                            case 'left':
+                                ctx.textAlign = 'left';
+                                textX = shape.x + 5; // Small padding from left edge
+                                break;
+                            case 'right':
+                                ctx.textAlign = 'right';
+                                textX = shape.x + (shape.width || 120) - 5; // Small padding from right edge
+                                break;
+                            case 'center':
+                            default:
+                                ctx.textAlign = 'center';
+                                textX = textCenterX;
+                                break;
+                        }
+                        
                         ctx.textBaseline = 'middle';
                         
                         // Draw multi-line text
@@ -1313,7 +1333,7 @@
                             
                             lines.forEach((line, index) => {
                                 const y = startY + (index * lineHeight);
-                                ctx.fillText(line, textCenterX, y);
+                                ctx.fillText(line, textX, y);
                             });
                         }
                         
@@ -5230,10 +5250,10 @@
                     // Find and remove the selected shape from the shapes array
                     const index = shapes.findIndex(shape => shape.id === selectedShape.id);
                     if (index > -1) {
-                        shapes.splice(index, 1);
-                        selectedShape = null; // Clear selection
-                        redrawCanvas(); // Redraw without the deleted shape
-                        trackChanges();
+                                            shapes.splice(index, 1);
+                    selectedShape = null; // Clear selection
+                    redrawCanvas(); // Redraw without the deleted shape
+                    trackChanges();
                     }
                 }
             }

@@ -1008,7 +1008,27 @@
                         // Set text properties - use inheritance
                         ctx.fillStyle = shape.text_color || window.floorplanDefaults?.text_color || '#111827';
                         ctx.font = `${shape.font_size || window.floorplanDefaults?.font_size || 16}px ${shape.font_family || window.floorplanDefaults?.font_family || 'Arial'}`;
-                        ctx.textAlign = 'center';
+                        
+                        // Use label position for text alignment (left, right, center)
+                        const textAlignment = shape.label_position || window.floorplanDefaults?.default_label_position || 'center';
+                        let textAlign, textX;
+                        
+                        switch(textAlignment) {
+                            case 'left':
+                                ctx.textAlign = 'left';
+                                textX = shape.x + 5; // Small padding from left edge
+                                break;
+                            case 'right':
+                                ctx.textAlign = 'right';
+                                textX = shape.x + (shape.width || 120) - 5; // Small padding from right edge
+                                break;
+                            case 'center':
+                            default:
+                                ctx.textAlign = 'center';
+                                textX = centerTX;
+                                break;
+                        }
+                        
                         ctx.textBaseline = 'middle';
                         
                         // Draw multi-line text
@@ -1021,7 +1041,7 @@
                             
                             lines.forEach((line, index) => {
                                 const y = startY + (index * lineHeight);
-                                ctx.fillText(line, centerTX, y);
+                                ctx.fillText(line, textX, y);
                             });
                         }
                         
