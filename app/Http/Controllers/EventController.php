@@ -335,26 +335,35 @@ class EventController extends Controller
                         'floorplan_id' => $floorplanDesign->id
                     ]);
                     
-                    // Check if any of these items have bookings
-                    $itemsWithBookings = $floorplanDesign->items()
-                        ->whereIn('item_id', $itemsToDelete)
-                        ->whereHas('bookings')
-                        ->get();
+                    // Note: Individual booking checks are now handled in the deletion loop below
                     
-                    if ($itemsWithBookings->count() > 0) {
-                        \Illuminate\Support\Facades\Log::warning('Cannot delete items with existing bookings', [
-                            'items_with_bookings' => $itemsWithBookings->pluck('item_name', 'item_id')
-                        ]);
-                        
-                        DB::rollBack();
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Cannot delete floorplan items that have existing bookings. Please remove all bookings for these items first.',
-                            'items_with_bookings' => $itemsWithBookings->pluck('item_name', 'item_id')
-                        ], 422);
+                    // Delete items one by one to handle foreign key constraints properly
+                    $deletedCount = 0;
+                    foreach ($itemsToDelete as $itemId) {
+                        $item = $floorplanDesign->items()->where('item_id', $itemId)->first();
+                        if ($item) {
+                            // Check if item has bookings before deletion
+                            $hasBookings = $item->bookings()->exists();
+                            if ($hasBookings) {
+                                \Illuminate\Support\Facades\Log::warning('Cannot delete item with bookings', [
+                                    'item_id' => $itemId,
+                                    'item_name' => $item->item_name
+                                ]);
+                                continue; // Skip this item
+                            }
+                            
+                            // Delete the item
+                            $deleted = $item->delete();
+                            if ($deleted) {
+                                $deletedCount++;
+                                \Illuminate\Support\Facades\Log::info('Successfully deleted item', [
+                                    'item_id' => $itemId,
+                                    'item_name' => $item->item_name
+                                ]);
+                            }
+                        }
                     }
                     
-                    $deletedCount = $floorplanDesign->items()->whereIn('item_id', $itemsToDelete)->delete();
                     \Illuminate\Support\Facades\Log::info('Deleted floorplan items', [
                         'expected_deleted_count' => $itemsToDelete->count(),
                         'actual_deleted_count' => $deletedCount,
