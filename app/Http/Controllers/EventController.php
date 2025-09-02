@@ -345,6 +345,14 @@ class EventController extends Controller
                             'floorplan_id' => $floorplanDesign->id
                         ]);
                         
+                        // Debug: Check what items actually exist in the database
+                        $allItems = $floorplanDesign->items()->get(['id', 'item_id', 'type', 'item_name']);
+                        \Illuminate\Support\Facades\Log::info('All items in database', [
+                            'items' => $allItems->toArray(),
+                            'searching_for' => $itemId,
+                            'searching_type' => gettype($itemId)
+                        ]);
+                        
                         $item = $floorplanDesign->items()->where('item_id', $itemId)->first();
                         if ($item) {
                             \Illuminate\Support\Facades\Log::info('Found item to delete', [
@@ -367,9 +375,39 @@ class EventController extends Controller
                                 ]);
                             }
                         } else {
-                            \Illuminate\Support\Facades\Log::warning('Item not found for deletion', [
-                                'item_id' => $itemId
-                            ]);
+                            // Try alternative lookups in case of data type issues
+                            $itemAsString = (string) $itemId;
+                            $itemAsInt = (int) $itemId;
+                            
+                            $itemString = $floorplanDesign->items()->where('item_id', $itemAsString)->first();
+                            $itemInt = $floorplanDesign->items()->where('item_id', $itemAsInt)->first();
+                            
+                            if ($itemString) {
+                                \Illuminate\Support\Facades\Log::info('Found item using string conversion', [
+                                    'original_id' => $itemId,
+                                    'string_id' => $itemAsString
+                                ]);
+                                $deleted = $itemString->delete();
+                                if ($deleted) {
+                                    $deletedCount++;
+                                }
+                            } elseif ($itemInt) {
+                                \Illuminate\Support\Facades\Log::info('Found item using int conversion', [
+                                    'original_id' => $itemId,
+                                    'int_id' => $itemAsInt
+                                ]);
+                                $deleted = $itemInt->delete();
+                                if ($deleted) {
+                                    $deletedCount++;
+                                }
+                            } else {
+                                \Illuminate\Support\Facades\Log::warning('Item not found for deletion with any data type', [
+                                    'item_id' => $itemId,
+                                    'item_id_type' => gettype($itemId),
+                                    'tried_string' => $itemAsString,
+                                    'tried_int' => $itemAsInt
+                                ]);
+                            }
                         }
                     }
                     
