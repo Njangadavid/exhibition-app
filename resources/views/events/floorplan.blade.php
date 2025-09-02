@@ -1806,26 +1806,7 @@
                 ctx.fillRect(counterX + counterWidth - 8, counterY + counterHeight, legWidth, 8);
                 
                 
-                // Booth branding/logo area (center of back wall)
-                ctx.fillStyle = shape.fillColor || document.getElementById('fillColor').value;
-                const logoWidth = width * 0.5;
-                const logoHeight = height * 0.18;
-                const logoX = shape.x + (width - logoWidth) / 2;
-                const logoY = shape.y + height * 0.1;
-                ctx.fillRect(logoX, logoY, logoWidth, logoHeight);
-
-                
-                // Use effective stroke color for logo area
-                ctx.strokeStyle = shape.strokeColor || document.getElementById('strokeColor').value;
-                ctx.lineWidth = 2;
-                ctx.strokeRect(logoX, logoY, logoWidth, logoHeight);
-                
-                // Company name placeholder - use effective properties
-                ctx.fillStyle = shape.textColor || document.getElementById('textColor').value;
-                ctx.font = `8px ${shape.fontFamily || document.getElementById('fontFamily').value}`;
-                ctx.textAlign = 'center';
-                ctx.fillText('BOOTH', logoX + logoWidth/2, logoY + logoHeight/2 + 3);
-                ctx.textAlign = 'start';
+               
                 
                 // Promotional materials/brochures on counter
                 ctx.fillStyle = '#FFF';
@@ -6471,6 +6452,7 @@
                         document.getElementById('labelPrefix').value = floorplan.label_prefix || 'A';
                         document.getElementById('startingLabelNumber').value = floorplan.starting_label_number || 1;
                         document.getElementById('defaultLabelPosition').value = floorplan.default_label_position || 'top';
+                        defaultLabelPosition = floorplan.default_label_position || 'top';
                         document.getElementById('defaultPrice').value = floorplan.default_price || 100;
                         document.getElementById('enableAutoLabeling').checked = floorplan.enable_auto_labeling !== false;
                         document.getElementById('defaultBoothWidthMeters').value = floorplan.default_booth_width_meters || 3.0;

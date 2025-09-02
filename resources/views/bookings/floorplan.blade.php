@@ -1541,26 +1541,7 @@
                 
                 
                 // Booth branding/logo area (center of back wall)
-                ctx.fillStyle =  shape.fill_color || window.floorplanDefaults?.fill_color || '#FFD700'; // Gold background for logo
-                const logoWidth = width * 0.5;
-                const logoHeight = height * 0.18;
-                const logoX = shape.x + (width - logoWidth) / 2;
-                const logoY = shape.y + height * 0.1;
-                ctx.fillRect(logoX, logoY, logoWidth, logoHeight);
-                ctx.strokeStyle = shape.stroke_color || window.floorplanDefaults?.stroke_color || '#FF8C00';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(logoX, logoY, logoWidth, logoHeight);
                 
-                // Company name placeholder - use inheritance for font properties
-                ctx.fillStyle = shape.text_color || window.floorplanDefaults?.text_color || '#0000FF';
-                ctx.font = `${shape.font_size || window.floorplanDefaults?.font_size || 8}px ${shape.font_family || window.floorplanDefaults?.font_family || 'Arial'}`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                const textX = Math.round(logoX + logoWidth/2);
-                const textY = Math.round(logoY + logoHeight/2 + 3);
-                ctx.fillText('BOOTH', textX, textY);
-                ctx.textAlign = 'start';
-
                 
                 ctx.textBaseline = 'alphabetic';
                 
