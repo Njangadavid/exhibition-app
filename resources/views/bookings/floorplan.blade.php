@@ -107,10 +107,24 @@
             #itemInfoPanel {
                 width: 100vw !important;
                 right: -100vw !important;
+                left: 0 !important;
             }
             
             #itemInfoPanel.show {
                 right: 0 !important;
+                left: 0 !important;
+            }
+            
+            /* Ensure popup is visible on mobile when shown */
+            #itemInfoPanel[style*="right: 0px"] {
+                right: 0 !important;
+                left: 0 !important;
+            }
+            
+            /* Mobile popup card adjustments */
+            #itemInfoPanel .card {
+                width: 100% !important;
+                border-radius: 0 !important;
             }
         }
         
@@ -1406,6 +1420,7 @@
                 
                 // Show panel with smooth slide-in animation
                 panel.style.display = 'block';
+                panel.classList.add('show');
                 
                 // Trigger slide-in animation after a brief delay
                 setTimeout(() => {
@@ -1526,6 +1541,7 @@
                 
                 // Slide out to the right
                 panel.style.right = '-350px';
+                panel.classList.remove('show');
                 
                 // Clear selection when hiding info panel
                 selectedShape = null;
