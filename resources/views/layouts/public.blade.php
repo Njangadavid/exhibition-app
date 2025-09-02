@@ -78,28 +78,23 @@
     <header class="bg-white shadow-sm border-bottom">
         <div class="container-fluid py-3">
             <div class="d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                    <div class="me-3">
-                        <div class="d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                            @if($event->logo)
-                            <img src="{{ Storage::url($event->logo) }}" alt="{{ $event->name }}" class="rounded" style="width: 50px; height: 50px; object-fit: cover;">
-                            @else
-                            <div class="bg-primary rounded d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                                <i class="bi bi-calendar-event text-white fs-4"></i>
-                            </div>
-                            @endif
+                <div class="d-flex align-items-center" style="max-width: 100%;">
+                    <div class="me-3" style="max-width: 100%;">
+                        @if($event->logo)
+                        <img src="{{ Storage::url($event->logo) }}" alt="{{ $event->name }}" style="max-width: 100%; height: auto; max-height: 80px;">
+                        @else
+                        <div class="bg-primary d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                            <i class="bi bi-calendar-event text-white fs-4"></i>
                         </div>
-                    </div>
-                    <div class="ms-3">
-                        <h1 class="h4 mb-1 fw-bold text-primary">{{ $event->name }}</h1>
-                        <p class="mb-0 text-muted">
-                            <i class="bi bi-calendar3 me-1"></i>
-                            {{ $event->start_date->format('M d, Y') }} - {{ $event->end_date->format('M d, Y') }}
-                        </p>
+                        @endif
                     </div>
                 </div>
                 <div class="text-end">
-                    <span class="badge bg-success fs-6 px-3 py-2">Interactive Floorplan</span>
+                    <h1 class="h5 mb-1 fw-bold text-info">{{ $event->name }}</h1>
+                    <p class="mb-0 text-muted">
+                        <i class="bi bi-calendar3 me-1"></i>
+                        {{ $event->start_date->format('M d, Y') }} - {{ $event->end_date->format('M d, Y') }}
+                    </p>
                 </div>
             </div>
         </div>
