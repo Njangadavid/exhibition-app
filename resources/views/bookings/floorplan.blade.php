@@ -1248,7 +1248,10 @@
                 let newHoveredShape = null;
                 for (let i = shapes.length - 1; i >= 0; i--) {
                     if (isPointInShape(x, y, shapes[i])) {
-                        newHoveredShape = shapes[i];
+                        // Only highlight bookable items on hover
+                        if (shapes[i].bookable) {
+                            newHoveredShape = shapes[i];
+                        }
                         break;
                     }
                 }
@@ -1258,7 +1261,7 @@
                     hoveredShape = newHoveredShape;
                     redrawCanvas(); // Redraw to show/hide hover effect
                     
-                    // Update cursor style
+                    // Update cursor style - only show pointer for bookable items
                     canvas.style.cursor = hoveredShape ? 'pointer' : 'default';
                 }
             });
