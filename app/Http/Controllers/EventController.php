@@ -337,15 +337,43 @@ class EventController extends Controller
                     
                     // Note: Individual booking checks are now handled in the deletion loop below
                     
-                    // Use bulk delete (no foreign key constraint issues after migration)
-                    \Illuminate\Support\Facades\Log::info('Attempting bulk delete', [
-                        'query_items' => $itemsToDelete->toArray(),
-                        'floorplan_id' => $floorplanDesign->id
-                    ]);
+                    // Delete items one by one for better reliability
+                    $deletedCount = 0;
+                    foreach ($itemsToDelete as $itemId) {
+                        \Illuminate\Support\Facades\Log::info('Attempting to delete item', [
+                            'item_id' => $itemId,
+                            'floorplan_id' => $floorplanDesign->id
+                        ]);
+                        
+                        $item = $floorplanDesign->items()->where('item_id', $itemId)->first();
+                        if ($item) {
+                            \Illuminate\Support\Facades\Log::info('Found item to delete', [
+                                'item_id' => $itemId,
+                                'item_type' => $item->type,
+                                'item_name' => $item->item_name
+                            ]);
+                            
+                            // Delete the item
+                            $deleted = $item->delete();
+                            if ($deleted) {
+                                $deletedCount++;
+                                \Illuminate\Support\Facades\Log::info('Successfully deleted item', [
+                                    'item_id' => $itemId,
+                                    'item_type' => $item->type
+                                ]);
+                            } else {
+                                \Illuminate\Support\Facades\Log::error('Failed to delete item', [
+                                    'item_id' => $itemId
+                                ]);
+                            }
+                        } else {
+                            \Illuminate\Support\Facades\Log::warning('Item not found for deletion', [
+                                'item_id' => $itemId
+                            ]);
+                        }
+                    }
                     
-                    $deletedCount = $floorplanDesign->items()->whereIn('item_id', $itemsToDelete)->delete();
-                    
-                    \Illuminate\Support\Facades\Log::info('Bulk deleted floorplan items', [
+                    \Illuminate\Support\Facades\Log::info('Individual deletion completed', [
                         'expected_deleted_count' => $itemsToDelete->count(),
                         'actual_deleted_count' => $deletedCount,
                         'deleted_item_ids' => $itemsToDelete->toArray()
