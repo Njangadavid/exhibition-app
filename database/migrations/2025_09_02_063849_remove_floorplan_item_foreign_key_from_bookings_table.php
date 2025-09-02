@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -11,13 +12,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('bookings', function (Blueprint $table) {
-            // Drop the foreign key constraint
-            $table->dropForeign(['floorplan_item_id']);
-            
-            // Keep the column but remove the foreign key constraint
-            // The column will remain as a regular integer column
-        });
+        // First, try to find the actual constraint name
+        $constraints = DB::select("
+            SELECT CONSTRAINT_NAME 
+            FROM information_schema.KEY_COLUMN_USAGE 
+            WHERE TABLE_SCHEMA = DATABASE() 
+            AND TABLE_NAME = 'bookings' 
+            AND COLUMN_NAME = 'floorplan_item_id' 
+            AND CONSTRAINT_NAME != 'PRIMARY'
+        ");
+        
+        // Drop each foreign key constraint found
+        foreach ($constraints as $constraint) {
+            DB::statement("ALTER TABLE bookings DROP FOREIGN KEY {$constraint->CONSTRAINT_NAME}");
+        }
     }
 
     /**
