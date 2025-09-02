@@ -5183,13 +5183,18 @@
             // Function to delete selected shape
             function deleteSelectedShape() {
                 if (selectedShape) {
+                    console.log('Deleting shape:', selectedShape.id, selectedShape.type);
                     // Find and remove the selected shape from the shapes array
                     const index = shapes.findIndex(shape => shape.id === selectedShape.id);
                     if (index > -1) {
-                                            shapes.splice(index, 1);
-                    selectedShape = null; // Clear selection
-                    redrawCanvas(); // Redraw without the deleted shape
-                    trackChanges();
+                        shapes.splice(index, 1);
+                        console.log('Shape deleted from array. Remaining shapes:', shapes.length);
+                        selectedShape = null; // Clear selection
+                        redrawCanvas(); // Redraw without the deleted shape
+                        trackChanges();
+                        console.log('Changes tracked, hasUnsavedChanges:', hasUnsavedChanges);
+                    } else {
+                        console.error('Shape not found in array for deletion');
                     }
                 }
             }
@@ -6291,6 +6296,7 @@
                 buttonTop.disabled = true;
                 
                 // Collect floorplan properties
+                console.log('Saving floorplan with shapes:', shapes.length, shapes.map(s => ({id: s.id, type: s.type})));
                 const floorplanData = {
                     name: document.getElementById('floorplanName').value || 'Main Floorplan',
                     canvas_size: document.getElementById('canvasSize').value,
