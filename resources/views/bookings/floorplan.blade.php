@@ -505,10 +505,20 @@
         }
     }
     
-    /* Item info panel styling */
-    #itemInfoPanel {
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
+            /* Item info panel styling */
+        #itemInfoPanel {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Canvas selection styling */
+        #floorplanCanvas {
+            cursor: default;
+            transition: cursor 0.2s ease;
+        }
+        
+        #floorplanCanvas:hover {
+            cursor: pointer;
+        }
 </style>
 @endpush
 
@@ -518,6 +528,8 @@
             const canvas = document.getElementById('floorplanCanvas');
             const ctx = canvas.getContext('2d');
             let shapes = [];
+            let selectedShape = null;
+            let hoveredShape = null;
             
             // Initialize canvas
             function initCanvas() {
@@ -667,6 +679,80 @@
                 shapes.forEach(shape => {
                     drawShape(shape);
                 });
+                
+                // Draw hover effect
+                if (hoveredShape && hoveredShape !== selectedShape) {
+                    drawHover(hoveredShape);
+                }
+                
+                // Draw selection effect
+                if (selectedShape) {
+                    console.log('Drawing selection for:', selectedShape);
+                    drawSelection(selectedShape);
+                } else {
+                    console.log('No selected shape to draw');
+                }
+            }
+            
+            // Draw selection indicators
+            function drawSelection(shape) {
+                if (!shape) {
+                    console.log('drawSelection: No shape provided');
+                    return;
+                }
+                
+                console.log('drawSelection called for shape:', shape);
+                
+                const width = parseFloat(shape.width) || 40;
+                const height = parseFloat(shape.height) || 40;
+                const x = parseFloat(shape.x) || 0;
+                const y = parseFloat(shape.y) || 0;
+                
+                // Draw selection outline
+                ctx.save();
+                ctx.strokeStyle = '#007bff';
+                ctx.lineWidth = 4;
+                ctx.setLineDash([8, 4]);
+                ctx.strokeRect(x - 3, y - 3, width + 6, height + 6);
+                ctx.restore();
+                
+                // Draw selection corners
+                const cornerSize = 10;
+                ctx.fillStyle = '#007bff';
+                
+                // Top-left corner
+                ctx.fillRect(x - 3, y - 3, cornerSize, 4);
+                ctx.fillRect(x - 3, y - 3, 4, cornerSize);
+                
+                // Top-right corner
+                ctx.fillRect(x + width - cornerSize + 3, y - 3, cornerSize, 4);
+                ctx.fillRect(x + width - 1, y - 3, 4, cornerSize);
+                
+                // Bottom-left corner
+                ctx.fillRect(x - 3, y + height - 1, cornerSize, 4);
+                ctx.fillRect(x - 3, y + height - cornerSize + 3, 4, cornerSize);
+                
+                // Bottom-right corner
+                ctx.fillRect(x + width - cornerSize + 3, y + height - 1, cornerSize, 4);
+                ctx.fillRect(x + width - 1, y + height - cornerSize + 3, 4, cornerSize);
+            }
+            
+            // Draw hover effect
+            function drawHover(shape) {
+                if (!shape) return;
+                
+                const width = parseFloat(shape.width) || 40;
+                const height = parseFloat(shape.height) || 40;
+                const x = parseFloat(shape.x) || 0;
+                const y = parseFloat(shape.y) || 0;
+                
+                // Draw subtle hover outline
+                ctx.save();
+                ctx.strokeStyle = '#28a745';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([3, 3]);
+                ctx.strokeRect(x - 1, y - 1, width + 2, height + 2);
+                ctx.restore();
             }
             
             // Draw shape based on type
@@ -1100,14 +1186,64 @@
                 }
                 
                 if (clickedShape) {
+                    // Update selection
+                    selectedShape = clickedShape;
+                    console.log('Shape selected:', clickedShape);
+                    
                     // Only show popup for bookable items
                     if (clickedShape.bookable) {
                         showItemInfo(clickedShape, e);
                     } else {
                         hideItemInfo();
                     }
+                    
+                    // Redraw canvas to show selection
+                    redrawCanvas();
                 } else {
+                    // Clear selection if clicking on empty space
+                    selectedShape = null;
                     hideItemInfo();
+                    redrawCanvas();
+                }
+            });
+            
+            // Canvas mouse move event for hover effects
+            canvas.addEventListener('mousemove', function(e) {
+                const rect = canvas.getBoundingClientRect();
+                
+                // Calculate the scaling factor to account for responsive sizing
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                // Adjust mouse coordinates for canvas scaling
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+                
+                // Check if mouse is over any shape
+                let newHoveredShape = null;
+                for (let i = shapes.length - 1; i >= 0; i--) {
+                    if (isPointInShape(x, y, shapes[i])) {
+                        newHoveredShape = shapes[i];
+                        break;
+                    }
+                }
+                
+                // Update hover state if changed
+                if (newHoveredShape !== hoveredShape) {
+                    hoveredShape = newHoveredShape;
+                    redrawCanvas(); // Redraw to show/hide hover effect
+                    
+                    // Update cursor style
+                    canvas.style.cursor = hoveredShape ? 'pointer' : 'default';
+                }
+            });
+            
+            // Canvas mouse leave event to clear hover
+            canvas.addEventListener('mouseleave', function() {
+                if (hoveredShape) {
+                    hoveredShape = null;
+                    redrawCanvas();
+                    canvas.style.cursor = 'default';
                 }
             });
             
@@ -1362,6 +1498,10 @@
                 
                 // Slide out to the right
                 panel.style.right = '-350px';
+                
+                // Clear selection when hiding info panel
+                selectedShape = null;
+                drawCanvas();
                 
                 // Wait for animation to complete before hiding
                 setTimeout(() => {
