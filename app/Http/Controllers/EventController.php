@@ -315,11 +315,20 @@ class EventController extends Controller
                 \Illuminate\Support\Facades\Log::info('Processing floorplan items', [
                     'existing_count' => $existingItems->count(),
                     'new_count' => count($validated['items']),
+                    'existing_item_ids' => $existingItems->keys()->toArray(),
+                    'new_item_ids' => $newItemIds,
                     'sample_item_data' => $validated['items'][0] ?? 'No items'
                 ]);
                 
                 // Delete items that are no longer in the floorplan
                 $itemsToDelete = $existingItems->keys()->diff($newItemIds);
+                \Illuminate\Support\Facades\Log::info('Delete analysis', [
+                    'items_to_delete_count' => $itemsToDelete->count(),
+                    'items_to_delete_ids' => $itemsToDelete->toArray(),
+                    'existing_keys' => $existingItems->keys()->toArray(),
+                    'new_keys' => $newItemIds
+                ]);
+                
                 if ($itemsToDelete->count() > 0) {
                     \Illuminate\Support\Facades\Log::info('Items to be deleted', [
                         'item_ids_to_delete' => $itemsToDelete->toArray(),
@@ -345,8 +354,18 @@ class EventController extends Controller
                         ], 422);
                     }
                     
-                    $floorplanDesign->items()->whereIn('item_id', $itemsToDelete)->delete();
-                    \Illuminate\Support\Facades\Log::info('Deleted floorplan items', ['deleted_count' => $itemsToDelete->count()]);
+                    $deletedCount = $floorplanDesign->items()->whereIn('item_id', $itemsToDelete)->delete();
+                    \Illuminate\Support\Facades\Log::info('Deleted floorplan items', [
+                        'expected_deleted_count' => $itemsToDelete->count(),
+                        'actual_deleted_count' => $deletedCount,
+                        'deleted_item_ids' => $itemsToDelete->toArray()
+                    ]);
+                } else {
+                    \Illuminate\Support\Facades\Log::info('No items to delete', [
+                        'existing_items' => $existingItems->keys()->toArray(),
+                        'new_items' => $newItemIds,
+                        'difference' => $existingItems->keys()->diff($newItemIds)->toArray()
+                    ]);
                 }
                 
                 // Update or create items

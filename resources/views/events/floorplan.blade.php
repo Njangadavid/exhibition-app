@@ -6558,11 +6558,11 @@
                 checkOrphanedBookings();
             });
             
-            document.getElementById('cleanupOrphanedBookingsBtn').addEventListener('click', function() {
-                if (confirm('Are you sure you want to clean up orphaned bookings? This action cannot be undone and will permanently delete bookings that reference non-existent floorplan items.')) {
-                    cleanupOrphanedBookings();
-                }
-            });
+            // document.getElementById('cleanupOrphanedBookingsBtn').addEventListener('click', function() {
+            //     if (confirm('Are you sure you want to clean up orphaned bookings? This action cannot be undone and will permanently delete bookings that reference non-existent floorplan items.')) {
+            //         cleanupOrphanedBookings();
+            //     }
+            // });
             
             function checkOrphanedBookings() {
                 const button = document.getElementById('checkOrphanedBookingsBtn');
