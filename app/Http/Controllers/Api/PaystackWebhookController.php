@@ -110,6 +110,21 @@ class PaystackWebhookController extends Controller
                 $booking->status = 'booked';
                 $booking->save();
 
+                // Send payment confirmation email
+                try {
+                    $emailService = app(\App\Services\EmailCommunicationService::class);
+                    $emailService->sendTriggeredEmail('payment_successful', $booking);
+                    Log::info('Payment confirmation email triggered via webhook', [
+                        'booking_id' => $booking->id,
+                        'trigger_type' => 'payment_successful'
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send payment confirmation email via webhook', [
+                        'booking_id' => $booking->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+
                 Log::info('Payment completed via webhook', [
                     'payment_id' => $payment->id,
                     'booking_id' => $booking->id,
@@ -148,6 +163,24 @@ class PaystackWebhookController extends Controller
                 $payment->status = 'failed';
                 $payment->gateway_response = json_encode($eventData);
                 $payment->save();
+
+                // Send payment failure email
+                $booking = $payment->booking;
+                if ($booking) {
+                    try {
+                        $emailService = app(\App\Services\EmailCommunicationService::class);
+                        $emailService->sendTriggeredEmail('payment_failed', $booking);
+                        Log::info('Payment failure email triggered via webhook', [
+                            'booking_id' => $booking->id,
+                            'trigger_type' => 'payment_failed'
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::error('Failed to send payment failure email via webhook', [
+                            'booking_id' => $booking->id,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
 
                 Log::info('Payment failed via webhook', [
                     'payment_id' => $payment->id,

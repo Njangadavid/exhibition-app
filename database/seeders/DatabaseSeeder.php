@@ -20,6 +20,12 @@ class DatabaseSeeder extends Seeder
             'email' => 'test@example.com',
         ]);
 
+        // Seed roles and permissions first
+        $this->call([
+            PermissionSeeder::class,
+            RoleSeeder::class,
+        ]);
+
         // Seed events
         $this->call([
             EventSeeder::class,

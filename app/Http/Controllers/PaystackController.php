@@ -262,6 +262,21 @@ class PaystackController extends Controller
                 $booking->status = 'booked';
                 $booking->save();
 
+                // Send payment confirmation email
+                try {
+                    $emailService = app(\App\Services\EmailCommunicationService::class);
+                    $emailService->sendTriggeredEmail('payment_successful', $booking);
+                    Log::info('Payment confirmation email triggered', [
+                        'booking_id' => $booking->id,
+                        'trigger_type' => 'payment_successful'
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send payment confirmation email', [
+                        'booking_id' => $booking->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+
                 Log::info('Paystack payment successful', [
                     'booking_id' => $booking->id,
                     'reference' => $reference,
@@ -278,6 +293,21 @@ class PaystackController extends Controller
                     $payment->status = 'failed';
                     $payment->gateway_response = json_encode($transaction);
                     $payment->save();
+                }
+
+                // Send payment failure email
+                try {
+                    $emailService = app(\App\Services\EmailCommunicationService::class);
+                    $emailService->sendTriggeredEmail('payment_failed', $booking);
+                    Log::info('Payment failure email triggered', [
+                        'booking_id' => $booking->id,
+                        'trigger_type' => 'payment_failed'
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send payment failure email', [
+                        'booking_id' => $booking->id,
+                        'error' => $e->getMessage()
+                    ]);
                 }
 
                 Log::warning('Paystack payment failed', [

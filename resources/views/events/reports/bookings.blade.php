@@ -11,230 +11,257 @@
                     <p class="text-muted mb-0">Comprehensive overview of all booth bookings and exhibitor information</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-outline-primary" onclick="exportToCSV()">
-                        <i class="bi bi-download me-2"></i>Export CSV
-                    </button>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-download me-2"></i>Export
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="exportToExcel()">
+                                <i class="bi bi-file-earmark-excel me-2"></i>Export to Excel
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportToPDF()">
+                                <i class="bi bi-file-earmark-pdf me-2"></i>Export to PDF
+                            </a></li>
+                        </ul>
+                    </div>
                     <button class="btn btn-outline-success" onclick="window.print()">
                         <i class="bi bi-printer me-2"></i>Print Report
                     </button>
                 </div>
             </div>
 
-            <!-- Statistics Cards -->
+            <!-- Statistics Overview -->
             <div class="row mb-4">
-                <div class="col-md-6 col-lg-3 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0">
-                                    <div class="bg-primary bg-opacity-10 rounded-circle p-3">
-                                        <i class="bi bi-people text-primary fs-2"></i>
-                                    </div>
-                                </div>
-                                <div class="ms-3">
-                                    <div class="text-muted small fw-medium">Total Exhibitors</div>
-                                    <div class="h3 fw-bold text-dark mb-0">{{ $stats['total_booth_owners'] }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-6 col-lg-3 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0">
-                                    <div class="bg-success bg-opacity-10 rounded-circle p-3">
-                                        <i class="bi bi-check-circle text-success fs-2"></i>
-                                    </div>
-                                </div>
-                                <div class="ms-3">
-                                    <div class="text-muted small fw-medium">Paid Bookings</div>
-                                    <div class="h3 fw-bold text-dark mb-0">{{ $stats['paid_bookings'] }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-6 col-lg-3 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0">
-                                    <div class="bg-warning bg-opacity-10 rounded-circle p-3">
-                                        <i class="bi bi-clock text-warning fs-2"></i>
-                                    </div>
-                                </div>
-                                <div class="ms-3">
-                                    <div class="text-muted small fw-medium">Pending Payments</div>
-                                    <div class="h3 fw-bold text-dark mb-0">{{ $stats['pending_payments'] }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-6 col-lg-3 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0">
-                                    <div class="bg-info bg-opacity-10 rounded-circle p-3">
-                                        <i class="bi bi-currency-dollar text-info fs-2"></i>
-                                    </div>
-                                </div>
-                                <div class="ms-3">
-                                    <div class="text-muted small fw-medium">Paid Revenue</div>
-                                    <div class="h3 fw-bold text-dark mb-0">${{ number_format($stats['total_revenue'], 2) }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                
-            </div>
-
-            <!-- Second Row of Statistics -->
-            <div class="row mb-4">
-            <div class="col-md-6 col-lg-3 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0">
-                                    <div class="bg-secondary bg-opacity-10 rounded-circle p-3">
-                                        <i class="bi bi-calculator text-secondary fs-2"></i>
-                                    </div>
-                                </div>
-                                <div class="ms-3">
-                                    <div class="text-muted small fw-medium">Total Potential</div>
-                                    <div class="h3 fw-bold text-dark mb-0">${{ number_format($stats['total_potential_revenue'] ?? 0, 2) }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-3 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0">
-                                    <div class="bg-purple bg-opacity-10 rounded-circle p-3">
-                                        <i class="bi bi-person-badge text-purple fs-2"></i>
-                                    </div>
-                                </div>
-                                <div class="ms-3">
-                                    <div class="text-muted small fw-medium">Total Booth Members</div>
-                                    <div class="h3 fw-bold text-dark mb-0">{{ $boothOwners->sum(function($boothOwner) { return $boothOwner->boothMembers->count(); }) }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-6 col-lg-3 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0">
-                                    <div class="bg-teal bg-opacity-10 rounded-circle p-3">
-                                        <i class="bi bi-building text-teal fs-2"></i>
-                                    </div>
-                                </div>
-                                <div class="ms-3">
-                                    <div class="text-muted small fw-medium">Fully Occupied Booths</div>
-                                    <div class="h3 fw-bold text-dark mb-0">{{ $boothOwners->filter(function($boothOwner) { 
-                                        $floorplanItem = $boothOwner->booking->floorplanItem ?? null;
-                                        return $floorplanItem && $boothOwner->boothMembers->count() >= ($floorplanItem->max_capacity ?? 5);
-                                    })->count() }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-6 col-lg-3 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0">
-                                    <div class="bg-orange bg-opacity-10 rounded-circle p-3">
-                                        <i class="bi bi-people-fill text-orange fs-2"></i>
-                                    </div>
-                                </div>
-                                <div class="ms-3">
-                                    <div class="text-muted small fw-medium">Partially Filled</div>
-                                    <div class="h3 fw-bold text-dark mb-0">{{ $boothOwners->filter(function($boothOwner) { 
-                                        $floorplanItem = $boothOwner->booking->floorplanItem ?? null;
-                                        return $floorplanItem && $boothOwner->boothMembers->count() > 0 && $boothOwner->boothMembers->count() < ($floorplanItem->max_capacity ?? 5);
-                                    })->count() }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-            </div>
-
-            <!-- Search and Filter Section -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body">
+                <!-- Primary Metrics -->
+                <div class="col-lg-8">
                     <div class="row g-3">
-                        <div class="col-md-4">
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0">
-                                    <i class="bi bi-search text-muted"></i>
-                                </span>
-                                <input type="text" class="form-control border-start-0" id="searchInput" placeholder="Search exhibitors...">
+                        <div class="col-md-6 col-lg-3">
+                            <div class="stat-card stat-card-primary">
+                                <div class="stat-icon">
+                                    <i class="bi bi-people"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label">Total Exhibitors</div>
+                                    <div class="stat-value">{{ $stats['total_booth_owners'] }}</div>
+                                    <div class="stat-subtitle">Registered companies</div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <select class="form-select" id="statusFilter">
-                                <option value="">All Booking Statuses</option>
-                                <option value="reserved">Reserved</option>
-                                <option value="booked">Booked</option>
-                                <option value="cancelled">Cancelled</option>
-                                <option value="completed">Completed</option>
-                            </select>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="stat-card stat-card-success">
+                                <div class="stat-icon">
+                                    <i class="bi bi-check-circle"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label">Paid Bookings</div>
+                                    <div class="stat-value">{{ $stats['paid_bookings'] }}</div>
+                                    <div class="stat-subtitle">{{ $stats['total_booth_owners'] > 0 ? round(($stats['paid_bookings'] / $stats['total_booth_owners']) * 100, 1) : 0 }}% of total</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-3">
-                            <select class="form-select" id="spaceFilter">
-                                <option value="">All Booths</option>
-                                @foreach($boothOwners->pluck('booking.floorplanItem.label')->unique()->filter() as $label)
-                                <option value="{{ $label }}">{{ $label }}</option>
-                                @endforeach
-                            </select>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="stat-card stat-card-warning">
+                                <div class="stat-icon">
+                                    <i class="bi bi-clock"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label">Pending Payments</div>
+                                    <div class="stat-value">{{ $stats['pending_payments'] }}</div>
+                                    <div class="stat-subtitle">Awaiting payment</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-2">
-                            <select class="form-select" id="membersFilter">
-                                <option value="">All Member Status</option>
-                                <option value="full">Full</option>
-                                <option value="partial">Partially Filled</option>
-                                <option value="empty">Empty</option>
-                            </select>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="stat-card stat-card-info">
+                                <div class="stat-icon">
+                                    <i class="bi bi-currency-dollar"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-label">Paid Revenue</div>
+                                    <div class="stat-value">${{ number_format($stats['total_revenue'], 0) }}</div>
+                                    <div class="stat-subtitle">Confirmed income</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-2">
-                            <button class="btn btn-primary w-100" onclick="applyFilters()">
-                                <i class="bi bi-funnel me-2"></i>Filter
-                            </button>
+                    </div>
+                </div>
+                
+                <!-- Revenue Summary -->
+                <div class="col-lg-4">
+                    <div class="revenue-summary-card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-graph-up me-2"></i>Revenue Summary</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="revenue-item">
+                                <div class="revenue-label">Paid Revenue</div>
+                                <div class="revenue-value text-success">${{ number_format($stats['total_revenue'], 2) }}</div>
+                            </div>
+                            <div class="revenue-item">
+                                <div class="revenue-label">Potential Revenue</div>
+                                <div class="revenue-value text-muted">${{ number_format($stats['total_potential_revenue'] ?? 0, 2) }}</div>
+                            </div>
+                            <div class="revenue-divider"></div>
+                            <div class="revenue-item">
+                                <div class="revenue-label">Collection Rate</div>
+                                <div class="revenue-value text-primary">
+                                    {{ $stats['total_potential_revenue'] > 0 ? round(($stats['total_revenue'] / $stats['total_potential_revenue']) * 100, 1) : 0 }}%
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Bookings Table -->
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0">
-                        <i class="bi bi-table me-2"></i>
-                        Exhibitor Bookings
-                    </h5>
+            <!-- Secondary Metrics -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="stat-card stat-card-secondary stat-card-inline">
+                        <div class="stat-content-inline">
+                            <div class="stat-icon-inline">
+                                <i class="bi bi-person-badge"></i>
+                            </div>
+                            <div class="stat-info-inline">
+                                <div class="stat-label-inline">Total Booth Members</div>
+                                <div class="stat-value-inline">{{ $boothOwners->sum(function($boothOwner) { return $boothOwner->boothMembers->count(); }) }}</div>
+                                <div class="stat-subtitle-inline">All team members</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body p-0">
+                <div class="col-md-4">
+                    <div class="stat-card stat-card-success stat-card-inline">
+                        <div class="stat-content-inline">
+                            <div class="stat-icon-inline">
+                                <i class="bi bi-building"></i>
+                            </div>
+                            <div class="stat-info-inline">
+                                <div class="stat-label-inline">Fully Occupied</div>
+                                <div class="stat-value-inline">{{ $boothOwners->filter(function($boothOwner) { 
+                                    $floorplanItem = $boothOwner->booking->floorplanItem ?? null;
+                                    return $floorplanItem && $boothOwner->boothMembers->count() >= ($floorplanItem->max_capacity ?? 5);
+                                })->count() }}</div>
+                                <div class="stat-subtitle-inline">Booths at capacity</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card stat-card-warning stat-card-inline">
+                        <div class="stat-content-inline">
+                            <div class="stat-icon-inline">
+                                <i class="bi bi-people-fill"></i>
+                            </div>
+                            <div class="stat-info-inline">
+                                <div class="stat-label-inline">Partially Filled</div>
+                                <div class="stat-value-inline">{{ $boothOwners->filter(function($boothOwner) { 
+                                    $floorplanItem = $boothOwner->booking->floorplanItem ?? null;
+                                    return $floorplanItem && $boothOwner->boothMembers->count() > 0 && $boothOwner->boothMembers->count() < ($floorplanItem->max_capacity ?? 5);
+                                })->count() }}</div>
+                                <div class="stat-subtitle-inline">Booths with space</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enhanced Search and Filter Section -->
+            <div class="filter-section mb-4">
+                <div class="row g-3">
+                    <div class="col-lg-4">
+                        <div class="search-box">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text" class="form-control" id="searchInput" placeholder="Search by name, company, or email...">
+                                <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-8">
+                        <div class="filter-controls">
+                            <div class="row g-2">
+                                <div class="col-md-3">
+                                    <select class="form-select form-select-sm" id="statusFilter">
+                                        <option value="">All Statuses</option>
+                                        <option value="reserved">Reserved</option>
+                                        <option value="booked">Booked</option>
+                                        <option value="cancelled">Cancelled</option>
+                                        <option value="completed">Completed</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select form-select-sm" id="spaceFilter">
+                                        <option value="">All Booths</option>
+                                        @foreach($boothOwners->pluck('booking.floorplanItem.label')->unique()->filter() as $label)
+                                        <option value="{{ $label }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select form-select-sm" id="membersFilter">
+                                        <option value="">All Capacity</option>
+                                        <option value="full">Full</option>
+                                        <option value="partial">Partially Filled</option>
+                                        <option value="empty">Empty</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select form-select-sm" id="paymentFilter">
+                                        <option value="">All Payments</option>
+                                        <option value="paid">Paid</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="unpaid">Unpaid</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Active Filters Display -->
+                <div class="active-filters mt-3" id="activeFilters" style="display: none;">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-muted small">Active filters:</span>
+                        <div class="filter-tags" id="filterTags"></div>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="clearAllFilters()">
+                            <i class="bi bi-x-circle me-1"></i>Clear All
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enhanced Bookings Table -->
+            <div class="table-container">
+                <div class="table-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1">
+                                <i class="bi bi-table me-2"></i>
+                                Exhibitor Bookings
+                            </h5>
+                            <p class="text-muted mb-0 small">
+                                <span id="visibleCount">{{ $boothOwners->count() }}</span> of {{ $boothOwners->count() }} exhibitors shown
+                            </p>
+                        </div>
+                        <div class="table-actions">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary" onclick="toggleView('table')" id="tableViewBtn">
+                                    <i class="bi bi-table"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="toggleView('cards')" id="cardsViewBtn">
+                                    <i class="bi bi-grid-3x3-gap"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Table View -->
+                <div class="table-view" id="tableView">
                     <div class="table-responsive">
                         <table class="table table-hover mb-0" id="bookingsTable">
                             <thead class="table-light">
@@ -279,7 +306,8 @@
                                     data-status="{{ $booking->status ?? 'reserved' }}"
                                     data-space="{{ $floorplanItem->label ?? '' }}"
                                     data-members="{{ $floorplanItem && $boothOwner->boothMembers->count() >= ($floorplanItem->max_capacity ?? 5) ? 'full' : ($boothOwner->boothMembers->count() > 0 ? 'partial' : 'empty') }}"
-                                    data-search="{{ strtolower($boothOwner->form_responses['name'] ?? '') }} {{ strtolower($boothOwner->form_responses['company_name'] ?? '') }}">
+                                    data-payment="{{ $paymentStatus }}"
+                                    data-search="{{ strtolower($boothOwner->form_responses['name'] ?? '') }} {{ strtolower($boothOwner->form_responses['company_name'] ?? '') }} {{ strtolower($boothOwner->form_responses['email'] ?? '') }}">
                                     <td class="px-3 py-3">
                                         <div class="d-flex align-items-center">
                                             <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
@@ -369,7 +397,7 @@
                                                 class="btn btn-outline-primary" title="View Details">
                                                 <i class="bi bi-eye"></i>
                                             </a>
-                                            <button type="button" class="btn btn-outline-info" onclick="viewBooking({{ $booking->id }})" title="View Booking">
+                                            <button type="button" class="btn btn-outline-info" onclick="viewBooking({{ $booking->id }}, '{{ $event->slug }}', '{{ $booking->access_token }}')" title="View Booking">
                                                 <i class="bi bi-receipt"></i>
                                             </button>
                                             <button type="button" class="btn btn-outline-success" onclick="sendEmail({{ $boothOwner->id }})" title="Send Email">
@@ -391,6 +419,105 @@
                                 @endforelse
                             </tbody>
                         </table>
+                    </div>
+                </div>
+                
+                <!-- Card View -->
+                <div class="card-view" id="cardView" style="display: none;">
+                    <div class="row g-3" id="cardContainer">
+                        @forelse($boothOwners as $boothOwner)
+                        @php
+                        $booking = $boothOwner->booking;
+                        $floorplanItem = $booking->floorplanItem ?? null;
+                        $paymentStatus = $booking->payments->where('status', 'completed')->count() > 0 ? 'paid' :
+                        ($booking->payments->where('status', 'pending')->count() > 0 ? 'pending' : 'unpaid');
+                        $paymentStatusClass = $paymentStatus === 'paid' ? 'success' :
+                        ($paymentStatus === 'pending' ? 'warning' : 'secondary');
+                        @endphp
+                        <div class="col-lg-6 col-xl-4">
+                            <div class="exhibitor-card booking-card"
+                                data-status="{{ $booking->status ?? 'reserved' }}"
+                                data-space="{{ $floorplanItem->label ?? '' }}"
+                                data-members="{{ $floorplanItem && $boothOwner->boothMembers->count() >= ($floorplanItem->max_capacity ?? 5) ? 'full' : ($boothOwner->boothMembers->count() > 0 ? 'partial' : 'empty') }}"
+                                data-payment="{{ $paymentStatus }}"
+                                data-search="{{ strtolower($boothOwner->form_responses['name'] ?? '') }} {{ strtolower($boothOwner->form_responses['company_name'] ?? '') }} {{ strtolower($boothOwner->form_responses['email'] ?? '') }}">
+                                <div class="card-header">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">{{ $boothOwner->form_responses['name'] ?? 'N/A' }}</h6>
+                                            <p class="text-muted mb-0 small">{{ $boothOwner->form_responses['company_name'] ?? 'N/A' }}</p>
+                                        </div>
+                                        <span class="badge bg-{{ $paymentStatusClass }} bg-opacity-10 text-{{ $paymentStatusClass }} border border-{{ $paymentStatusClass }}">
+                                            {{ ucfirst($paymentStatus) }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <div class="info-item">
+                                                <i class="bi bi-envelope text-muted"></i>
+                                                <span class="small">{{ $boothOwner->form_responses['email'] ?? 'N/A' }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="info-item">
+                                                <i class="bi bi-telephone text-muted"></i>
+                                                <span class="small">{{ $boothOwner->form_responses['phone'] ?? 'N/A' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    @if($floorplanItem)
+                                    <div class="booth-info mb-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="badge bg-info bg-opacity-10 text-info border border-info">
+                                                {{ $floorplanItem->label }}
+                                            </span>
+                                            <span class="fw-bold text-success">${{ number_format($floorplanItem->price, 2) }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">{{ $floorplanItem->effective_booth_width_meters }}m x {{ $floorplanItem->effective_booth_height_meters }}m</small>
+                                            @php
+                                            $memberCount = $boothOwner->boothMembers->count();
+                                            $maxCapacity = $floorplanItem->max_capacity ?? 5;
+                                            $capacityClass = $memberCount >= $maxCapacity ? 'success' : ($memberCount > 0 ? 'warning' : 'secondary');
+                                            @endphp
+                                            <span class="badge bg-{{ $capacityClass }} bg-opacity-10 text-{{ $capacityClass }} border border-{{ $capacityClass }}">
+                                                {{ $memberCount }}/{{ $maxCapacity }} members
+                                            </span>
+                                        </div>
+                                    </div>
+                                    @endif
+                                    
+                                    <div class="card-actions">
+                                        <div class="btn-group w-100" role="group">
+                                            <a href="{{ route('events.reports.booth-owner-details', ['event' => $event, 'boothOwner' => $boothOwner]) }}"
+                                                class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-eye me-1"></i>View
+                                            </a>
+                                            <button type="button" class="btn btn-outline-info btn-sm" onclick="viewBooking({{ $booking->id }}, '{{ $event->slug }}', '{{ $booking->access_token }}')">
+                                                <i class="bi bi-receipt me-1"></i>Booking
+                                            </button>
+                                            <button type="button" class="btn btn-outline-success btn-sm" onclick="sendEmail({{ $boothOwner->id }})">
+                                                <i class="bi bi-envelope me-1"></i>Email
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="col-12">
+                            <div class="text-center py-5">
+                                <div class="text-muted">
+                                    <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                                    <h5>No bookings found</h5>
+                                    <p>There are no exhibitor bookings for this event yet.</p>
+                                </div>
+                            </div>
+                        </div>
+                        @endforelse
                     </div>
                 </div>
             </div>
@@ -417,67 +544,320 @@
 
     @push('scripts')
     <script>
-        // Search and filter functionality
+        let currentView = 'table';
+        
+        // Enhanced search and filter functionality
         function applyFilters() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const statusFilter = document.getElementById('statusFilter').value;
             const spaceFilter = document.getElementById('spaceFilter').value;
             const membersFilter = document.getElementById('membersFilter').value;
+            const paymentFilter = document.getElementById('paymentFilter').value;
 
-            const rows = document.querySelectorAll('.booking-row');
+            const rows = document.querySelectorAll('.booking-row, .booking-card');
+            let visibleCount = 0;
 
             rows.forEach(row => {
                 const searchText = row.dataset.search;
                 const status = row.dataset.status;
                 const space = row.dataset.space;
                 const members = row.dataset.members;
+                const payment = row.dataset.payment;
 
                 const matchesSearch = searchText.includes(searchTerm);
                 const matchesStatus = !statusFilter || status === statusFilter;
                 const matchesSpace = !spaceFilter || space === spaceFilter;
                 const matchesMembers = !membersFilter || members === membersFilter;
+                const matchesPayment = !paymentFilter || payment === paymentFilter;
 
-                if (matchesSearch && matchesStatus && matchesSpace && matchesMembers) {
+                if (matchesSearch && matchesStatus && matchesSpace && matchesMembers && matchesPayment) {
                     row.style.display = '';
+                    visibleCount++;
                 } else {
                     row.style.display = 'none';
                 }
             });
+
+            // Update visible count
+            document.getElementById('visibleCount').textContent = visibleCount;
+            
+            // Update active filters display
+            updateActiveFilters();
+        }
+        
+        // Update active filters display
+        function updateActiveFilters() {
+            const filters = [];
+            const searchTerm = document.getElementById('searchInput').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const spaceFilter = document.getElementById('spaceFilter').value;
+            const membersFilter = document.getElementById('membersFilter').value;
+            const paymentFilter = document.getElementById('paymentFilter').value;
+            
+            if (searchTerm) filters.push({ type: 'search', label: `Search: "${searchTerm}"` });
+            if (statusFilter) filters.push({ type: 'status', label: `Status: ${statusFilter}` });
+            if (spaceFilter) filters.push({ type: 'space', label: `Booth: ${spaceFilter}` });
+            if (membersFilter) filters.push({ type: 'members', label: `Capacity: ${membersFilter}` });
+            if (paymentFilter) filters.push({ type: 'payment', label: `Payment: ${paymentFilter}` });
+            
+            const activeFiltersDiv = document.getElementById('activeFilters');
+            const filterTagsDiv = document.getElementById('filterTags');
+            
+            if (filters.length > 0) {
+                activeFiltersDiv.style.display = 'block';
+                filterTagsDiv.innerHTML = filters.map(filter => 
+                    `<span class="badge bg-primary bg-opacity-10 text-primary border border-primary me-1">${filter.label}</span>`
+                ).join('');
+            } else {
+                activeFiltersDiv.style.display = 'none';
+            }
+        }
+        
+        // Clear search
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            applyFilters();
+        }
+        
+        // Clear all filters
+        function clearAllFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('spaceFilter').value = '';
+            document.getElementById('membersFilter').value = '';
+            document.getElementById('paymentFilter').value = '';
+            applyFilters();
+        }
+        
+        // Toggle between table and card view
+        function toggleView(view) {
+            currentView = view;
+            const tableView = document.getElementById('tableView');
+            const cardView = document.getElementById('cardView');
+            const tableViewBtn = document.getElementById('tableViewBtn');
+            const cardsViewBtn = document.getElementById('cardsViewBtn');
+            
+            if (view === 'table') {
+                tableView.style.display = 'block';
+                cardView.style.display = 'none';
+                tableViewBtn.classList.add('active');
+                cardsViewBtn.classList.remove('active');
+            } else {
+                tableView.style.display = 'none';
+                cardView.style.display = 'block';
+                tableViewBtn.classList.remove('active');
+                cardsViewBtn.classList.add('active');
+            }
+            
+            // Reapply filters to ensure consistency
+            applyFilters();
         }
 
-        // Export to CSV
-        function exportToCSV() {
+        // Get summary statistics
+        function getSummaryStats() {
+            const stats = {
+                totalExhibitors: {{ $stats['total_booth_owners'] }},
+                paidBookings: {{ $stats['paid_bookings'] }},
+                pendingPayments: {{ $stats['pending_payments'] }},
+                totalRevenue: {{ $stats['total_revenue'] }},
+                totalPotentialRevenue: {{ $stats['total_potential_revenue'] ?? 0 }},
+                totalBoothMembers: {{ $boothOwners->sum(function($boothOwner) { return $boothOwner->boothMembers->count(); }) }},
+                fullyOccupied: {{ $boothOwners->filter(function($boothOwner) { 
+                    $floorplanItem = $boothOwner->booking->floorplanItem ?? null;
+                    return $floorplanItem && $boothOwner->boothMembers->count() >= ($floorplanItem->max_capacity ?? 5);
+                })->count() }},
+                partiallyFilled: {{ $boothOwners->filter(function($boothOwner) { 
+                    $floorplanItem = $boothOwner->booking->floorplanItem ?? null;
+                    return $floorplanItem && $boothOwner->boothMembers->count() > 0 && $boothOwner->boothMembers->count() < ($floorplanItem->max_capacity ?? 5);
+                })->count() }},
+                eventTitle: '{{ $event->title }}',
+                eventDates: '{{ $event->start_date->format("F d, Y") }} - {{ $event->end_date->format("F d, Y") }}',
+                reportDate: '{{ date("F d, Y") }}'
+            };
+            return stats;
+        }
+
+        // Export to Excel with summary
+        function exportToExcel() {
+            const stats = getSummaryStats();
             const table = document.getElementById('bookingsTable');
             const rows = Array.from(table.querySelectorAll('tr'));
 
-            let csv = [];
+            // Create Excel content
+            let excelContent = [];
+            
+            // Add summary section
+            excelContent.push(['EXHIBITOR BOOKINGS REPORT']);
+            excelContent.push(['Event:', stats.eventTitle]);
+            excelContent.push(['Event Dates:', stats.eventDates]);
+            excelContent.push(['Report Generated:', stats.reportDate]);
+            excelContent.push([]);
+            
+            // Add summary statistics
+            excelContent.push(['SUMMARY STATISTICS']);
+            excelContent.push(['Total Exhibitors:', stats.totalExhibitors]);
+            excelContent.push(['Paid Bookings:', stats.paidBookings]);
+            excelContent.push(['Pending Payments:', stats.pendingPayments]);
+            excelContent.push(['Total Revenue:', '$' + stats.totalRevenue.toFixed(2)]);
+            excelContent.push(['Potential Revenue:', '$' + stats.totalPotentialRevenue.toFixed(2)]);
+            excelContent.push(['Collection Rate:', ((stats.totalRevenue / stats.totalPotentialRevenue) * 100).toFixed(1) + '%']);
+            excelContent.push(['Total Booth Members:', stats.totalBoothMembers]);
+            excelContent.push(['Fully Occupied Booths:', stats.fullyOccupied]);
+            excelContent.push(['Partially Filled Booths:', stats.partiallyFilled]);
+            excelContent.push([]);
+            
+            // Add detailed data
+            excelContent.push(['DETAILED EXHIBITOR DATA']);
+            
+            // Add headers with separated columns
+            const headers = [
+                'Exhibitor Name',
+                'Exhibitor Email', 
+                'Company Name',
+                'Company Location',
+                'Contact Email',
+                'Contact Phone',
+                'Booth Label',
+                'Booth Status',
+                'Booth Dimensions',
+                'Booth Price',
+                'Payment Status',
+                'Member Count',
+                'Max Capacity',
+                'Capacity Status'
+            ];
+            excelContent.push(headers);
 
-            // Add headers
-            const headers = [];
-            rows[0].querySelectorAll('th').forEach(th => {
-                headers.push(th.textContent.trim());
-            });
-            csv.push(headers.join(','));
-
-            // Add data rows
+            // Add data rows with separated fields
             rows.slice(1).forEach(row => {
-                if (row.style.display !== 'none') { // Only export visible rows
+                if (row.style.display !== 'none') {
+                    const cells = row.querySelectorAll('td');
                     const rowData = [];
-                    row.querySelectorAll('td').forEach(td => {
-                        rowData.push(`"${td.textContent.trim()}"`);
-                    });
-                    csv.push(rowData.join(','));
+                    
+                    // Exhibitor column (Name + Email)
+                    const exhibitorCell = cells[0];
+                    const exhibitorName = exhibitorCell.querySelector('.fw-semibold')?.textContent.trim() || '';
+                    const exhibitorEmail = exhibitorCell.querySelector('small')?.textContent.trim() || '';
+                    rowData.push(exhibitorName, exhibitorEmail);
+                    
+                    // Company column (Name + Location)
+                    const companyCell = cells[1];
+                    const companyName = companyCell.querySelector('.fw-medium')?.textContent.trim() || '';
+                    const companyLocation = companyCell.querySelector('small')?.textContent.trim() || '';
+                    rowData.push(companyName, companyLocation);
+                    
+                    // Contact column (Email + Phone)
+                    const contactCell = cells[2];
+                    const contactEmail = contactCell.querySelector('.fw-medium')?.textContent.trim() || '';
+                    const contactPhone = contactCell.querySelector('small')?.textContent.trim() || '';
+                    rowData.push(contactEmail, contactPhone);
+                    
+                    // Booth column (Label + Status + Dimensions)
+                    const boothCell = cells[3];
+                    const boothLabel = boothCell.querySelector('.badge')?.textContent.trim() || '';
+                    const boothStatus = boothCell.querySelectorAll('.badge')[1]?.textContent.trim() || '';
+                    const boothDimensions = boothCell.querySelector('small')?.textContent.trim() || '';
+                    rowData.push(boothLabel, boothStatus, boothDimensions);
+                    
+                    // Price column
+                    const priceCell = cells[4];
+                    const price = priceCell.textContent.trim().replace(/[^\d.-]/g, '') || '';
+                    rowData.push(price);
+                    
+                    // Payment Status column
+                    const paymentCell = cells[5];
+                    const paymentStatus = paymentCell.textContent.trim() || '';
+                    rowData.push(paymentStatus);
+                    
+                    // Booth Members column (Count + Capacity + Status)
+                    const membersCell = cells[6];
+                    const memberCount = membersCell.querySelector('.badge')?.textContent.trim().split('/')[0] || '';
+                    const maxCapacity = membersCell.querySelector('.badge')?.textContent.trim().split('/')[1] || '';
+                    const capacityStatus = membersCell.querySelector('small')?.textContent.trim() || '';
+                    rowData.push(memberCount, maxCapacity, capacityStatus);
+                    
+                    excelContent.push(rowData);
                 }
             });
 
-            const csvContent = csv.join('\n');
+            // Convert to CSV format for Excel
+            const csvContent = excelContent.map(row => 
+                row.map(cell => `"${cell}"`).join(',')
+            ).join('\n');
+
             const blob = new Blob([csvContent], {
-                type: 'text/csv'
+                type: 'text/csv;charset=utf-8;'
             });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'bookings-report-{{ $event->slug }}-{{ date("Y-m-d") }}.csv';
+            a.download = 'exhibitor-bookings-report-{{ $event->slug }}-{{ date("Y-m-d") }}.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Export to PDF using server-side generation
+        function exportToPDF() {
+            // Redirect to the PDF route
+            window.open('{{ route("events.reports.bookings.pdf", $event) }}', '_blank');
+        }
+
+        // Export to CSV (enhanced)
+        function exportToCSV() {
+            const stats = getSummaryStats();
+            const table = document.getElementById('bookingsTable');
+            const rows = Array.from(table.querySelectorAll('tr'));
+
+            let csv = [];
+            
+            // Add summary section
+            csv.push(['EXHIBITOR BOOKINGS REPORT']);
+            csv.push(['Event', stats.eventTitle]);
+            csv.push(['Event Dates', stats.eventDates]);
+            csv.push(['Report Generated', stats.reportDate]);
+            csv.push([]);
+            csv.push(['SUMMARY STATISTICS']);
+            csv.push(['Total Exhibitors', stats.totalExhibitors]);
+            csv.push(['Paid Bookings', stats.paidBookings]);
+            csv.push(['Pending Payments', stats.pendingPayments]);
+            csv.push(['Total Revenue', '$' + stats.totalRevenue.toFixed(2)]);
+            csv.push(['Potential Revenue', '$' + stats.totalPotentialRevenue.toFixed(2)]);
+            csv.push(['Collection Rate', ((stats.totalRevenue / stats.totalPotentialRevenue) * 100).toFixed(1) + '%']);
+            csv.push(['Total Booth Members', stats.totalBoothMembers]);
+            csv.push(['Fully Occupied Booths', stats.fullyOccupied]);
+            csv.push(['Partially Filled Booths', stats.partiallyFilled]);
+            csv.push([]);
+            csv.push(['DETAILED EXHIBITOR DATA']);
+
+            // Add headers
+            const headers = [];
+            rows[0].querySelectorAll('th').forEach(th => {
+                headers.push(th.textContent.trim().replace(/[^\w\s]/gi, ''));
+            });
+            csv.push(headers);
+
+            // Add data rows
+            rows.slice(1).forEach(row => {
+                if (row.style.display !== 'none') {
+                    const rowData = [];
+                    row.querySelectorAll('td').forEach(td => {
+                        rowData.push(td.textContent.trim());
+                    });
+                    csv.push(rowData);
+                }
+            });
+
+            const csvContent = csv.map(row => 
+                row.map(cell => `"${cell}"`).join(',')
+            ).join('\n');
+            
+            const blob = new Blob([csvContent], {
+                type: 'text/csv;charset=utf-8;'
+            });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'exhibitor-bookings-report-{{ $event->slug }}-{{ date("Y-m-d") }}.csv';
             a.click();
             window.URL.revokeObjectURL(url);
         }
@@ -485,9 +865,9 @@
 
 
         // View booking details
-        function viewBooking(bookingId) {
-            // This would typically redirect to a booking details page
-            window.open(`/bookings/${bookingId}`, '_blank');
+        function viewBooking(bookingId, eventSlug, accessToken) {
+            // Open booking details page in new tab
+            window.open(`/event/${eventSlug}/booking/${accessToken}/owner`, '_blank');
         }
 
         // Send email to exhibitor
@@ -501,18 +881,293 @@
         document.getElementById('statusFilter').addEventListener('change', applyFilters);
         document.getElementById('spaceFilter').addEventListener('change', applyFilters);
         document.getElementById('membersFilter').addEventListener('change', applyFilters);
+        document.getElementById('paymentFilter').addEventListener('change', applyFilters);
+        
+        // Initialize table view as active
+        document.getElementById('tableViewBtn').classList.add('active');
     </script>
     @endpush
 
     @push('styles')
     <style>
+        /* Statistics Cards */
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        
+        .stat-card-primary .stat-icon {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .stat-card-success .stat-icon {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+        
+        .stat-card-warning .stat-icon {
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+            color: white;
+        }
+        
+        .stat-card-info .stat-icon {
+            background: linear-gradient(135deg, #17a2b8, #6f42c1);
+            color: white;
+        }
+        
+        .stat-card-secondary .stat-icon {
+            background: linear-gradient(135deg, #6c757d, #495057);
+            color: white;
+        }
+        
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6c757d;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #212529;
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-subtitle {
+            font-size: 0.75rem;
+            color: #6c757d;
+        }
+        
+        /* Inline Stat Card Layout */
+        .stat-card-inline {
+            padding: 1rem 1.5rem;
+        }
+        
+        .stat-content-inline {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .stat-icon-inline {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+        
+        .stat-card-secondary .stat-icon-inline {
+            background: linear-gradient(135deg, #6c757d, #495057);
+            color: white;
+        }
+        
+        .stat-card-success .stat-icon-inline {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+        
+        .stat-card-warning .stat-icon-inline {
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+            color: white;
+        }
+        
+        .stat-info-inline {
+            flex: 1;
+        }
+        
+        .stat-label-inline {
+            font-size: 0.875rem;
+            color: #6c757d;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-value-inline {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #212529;
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-subtitle-inline {
+            font-size: 0.75rem;
+            color: #6c757d;
+        }
+        
+        /* Revenue Summary Card */
+        .revenue-summary-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.05);
+            height: 100%;
+        }
+        
+        .revenue-summary-card .card-header {
+            padding: 1rem 1rem 1rem 1rem;
+        }
+        
+        .revenue-summary-card .card-body {
+            padding: 1rem 1rem 1rem 1rem;
+        }
+        
+                .revenue-item {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            padding: 0.25rem 0;
+        }
+        
+        .revenue-label {
+            font-size: 0.8rem;
+            color: #6c757d;
+            flex: 1;
+        }
+        
+        .revenue-value {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .revenue-divider {
+            height: 1px;
+            background: #e9ecef;
+            margin: 0.5rem 0;
+        }
+        
+        /* Filter Section */
+        .filter-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .search-box .input-group-text {
+            background: #f8f9fa;
+            border-color: #dee2e6;
+        }
+        
+        .filter-controls .form-select-sm {
+            font-size: 0.875rem;
+        }
+        
+        .active-filters {
+            padding-top: 1rem;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        /* Table Container */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        
+        .table-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e9ecef;
+            background: #f8f9fa;
+        }
+        
+        .table-actions .btn.active {
+            background-color: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+        }
+        
+        /* Table Styles */
         .table th {
             font-weight: 600;
             color: #495057;
+            background: #f8f9fa;
         }
 
         .booking-row:hover {
             background-color: #f8f9fa;
+        }
+
+        /* Card View */
+        .exhibitor-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .exhibitor-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        
+        .exhibitor-card .card-header {
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            padding: 1rem;
+        }
+        
+        .exhibitor-card .card-body {
+            padding: 1rem;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .booth-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 0.75rem;
+        }
+        
+        .card-actions .btn-group .btn {
+            border-radius: 0.375rem !important;
+        }
+        
+        .card-actions .btn-group .btn:first-child {
+            border-top-left-radius: 0.375rem !important;
+            border-bottom-left-radius: 0.375rem !important;
+        }
+        
+        .card-actions .btn-group .btn:last-child {
+            border-top-right-radius: 0.375rem !important;
+            border-bottom-right-radius: 0.375rem !important;
         }
 
         .badge {
@@ -534,15 +1189,35 @@
         }
 
         @media print {
-
             .btn,
-            .card-header {
+            .card-header,
+            .table-header,
+            .filter-section {
                 display: none !important;
             }
 
-            .card {
+            .card,
+            .table-container {
                 border: none !important;
                 box-shadow: none !important;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .stat-card {
+                padding: 1rem;
+            }
+            
+            .stat-value {
+                font-size: 1.5rem;
+            }
+            
+            .filter-section {
+                padding: 1rem;
+            }
+            
+            .table-header {
+                padding: 1rem;
             }
         }
     </style>

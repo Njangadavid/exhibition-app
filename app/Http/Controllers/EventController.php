@@ -10,6 +10,7 @@ use App\Models\FloorplanDesign;
 use App\Models\FloorplanItem;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class EventController extends Controller
 {
@@ -609,6 +610,54 @@ class EventController extends Controller
         ];
 
         return view('events.reports.bookings', compact('event', 'boothOwners', 'stats'));
+    }
+
+    /**
+     * Export bookings report as PDF
+     */
+    public function bookingsReportPdf(Event $event)
+    {
+        // Get all booth owners with their bookings for this event
+        $boothOwners = \App\Models\BoothOwner::whereHas('booking', function($query) use ($event) {
+            $query->where('event_id', $event->id);
+        })->with(['booking.floorplanItem.floorplanDesign', 'booking.payments', 'boothMembers'])
+        ->get();
+
+        // Get statistics
+        $stats = [
+            'total_booth_owners' => $boothOwners->count(),
+            'total_bookings' => $boothOwners->count(),
+            'paid_bookings' => $boothOwners->filter(function($boothOwner) {
+                return $boothOwner->booking && $boothOwner->booking->payments->where('status', 'completed')->count() > 0;
+            })->count(),
+            'pending_payments' => $boothOwners->filter(function($boothOwner) {
+                return $boothOwner->booking && $boothOwner->booking->payments->where('status', 'pending')->count() > 0;
+            })->count(),
+            'total_revenue' => $boothOwners->sum(function($boothOwner) {
+                if ($boothOwner->booking && $boothOwner->booking->payments->where('status', 'completed')->count() > 0) {
+                    return $boothOwner->booking->floorplanItem ? $boothOwner->booking->floorplanItem->price : 0;
+                }
+                return 0;
+            }),
+            'total_potential_revenue' => $boothOwners->sum(function($boothOwner) {
+                return $boothOwner->booking && $boothOwner->booking->floorplanItem ? $boothOwner->booking->floorplanItem->price : 0;
+            }),
+            'total_booth_members' => $boothOwners->sum(function($boothOwner) { 
+                return $boothOwner->boothMembers->count(); 
+            }),
+            'fully_occupied' => $boothOwners->filter(function($boothOwner) { 
+                $floorplanItem = $boothOwner->booking->floorplanItem ?? null;
+                return $floorplanItem && $boothOwner->boothMembers->count() >= ($floorplanItem->max_capacity ?? 5);
+            })->count(),
+            'partially_filled' => $boothOwners->filter(function($boothOwner) { 
+                $floorplanItem = $boothOwner->booking->floorplanItem ?? null;
+                return $floorplanItem && $boothOwner->boothMembers->count() > 0 && $boothOwner->boothMembers->count() < ($floorplanItem->max_capacity ?? 5);
+            })->count()
+        ];
+
+        $pdf = Pdf::loadView('events.reports.bookings-pdf', compact('event', 'boothOwners', 'stats'));
+        
+        return $pdf->download('exhibitor-bookings-report-' . $event->slug . '-' . date('Y-m-d') . '.pdf');
     }
 
     /**

@@ -57,9 +57,10 @@ class EmailCommunicationService
 
             Log::info("Template conditions met, proceeding with email sending");
 
-            // Send to owner (but not for member_registration triggers)
-            if ($triggerType !== 'owner_registration' && $triggerType !== 'member_registration') {
-                Log::info("Sending email to owner");
+            // Send to owner for specific triggers only
+            $ownerTriggers = ['owner_registration', 'payment_successful', 'payment_failed', 'booking_confirmed', 'booking_cancelled'];
+            if (in_array($triggerType, $ownerTriggers)) {
+                Log::info("Sending email to owner", ['trigger_type' => $triggerType]);
                 $this->sendEmailToOwner($template, $booking);
             }
 

@@ -26,6 +26,12 @@
                         <i class="bi bi-plus me-1"></i>
                         {{ __('Create Event') }}
                     </x-nav-link>
+                    @if(auth()->user()->isAdmin())
+                        <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')" class="nav-link me-3">
+                            <i class="bi bi-people me-1"></i>
+                            {{ __('Manage Users') }}
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -81,6 +87,12 @@
                 <i class="bi bi-plus me-2"></i>
                 {{ __('Create Event') }}
             </x-responsive-nav-link>
+            @if(auth()->user()->isAdmin())
+                <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')" class="nav-link px-3 py-2">
+                    <i class="bi bi-people me-2"></i>
+                    {{ __('Manage Users') }}
+                </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->

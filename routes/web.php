@@ -43,6 +43,12 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::resource('payment-methods', \App\Http\Controllers\Admin\PaymentMethodController::class);
     Route::patch('payment-methods/{paymentMethod}/toggle-status', [\App\Http\Controllers\Admin\PaymentMethodController::class, 'toggleStatus'])->name('payment-methods.toggle-status');
     Route::patch('payment-methods/{paymentMethod}/set-default', [\App\Http\Controllers\Admin\PaymentMethodController::class, 'setDefault'])->name('payment-methods.set-default');
+    
+    // User Management routes (Admin only)
+    Route::resource('users', \App\Http\Controllers\UserManagementController::class)->middleware('role:admin');
+    Route::patch('users/{user}/toggle-status', [\App\Http\Controllers\UserManagementController::class, 'toggleStatus'])->name('users.toggle-status')->middleware('role:admin');
+    Route::get('users/roles', [\App\Http\Controllers\UserManagementController::class, 'roles'])->name('users.roles')->middleware('role:admin');
+    Route::patch('users/roles/{role}/permissions', [\App\Http\Controllers\UserManagementController::class, 'updateRolePermissions'])->name('users.roles.permissions')->middleware('role:admin');
 });
 
 Route::middleware('auth')->group(function () {
@@ -79,6 +85,7 @@ Route::middleware('auth')->group(function () {
     
     // Reports routes
     Route::get('/events/{event}/reports/bookings', [EventController::class, 'bookingsReport'])->name('events.reports.bookings');
+    Route::get('/events/{event}/reports/bookings/pdf', [EventController::class, 'bookingsReportPdf'])->name('events.reports.bookings.pdf');
     Route::get('/events/{event}/reports/booth-owner/{boothOwner}', [EventController::class, 'boothOwnerDetails'])->name('events.reports.booth-owner-details');
     
     // Booth Member routes (for admin access) - using web routes instead of API routes
