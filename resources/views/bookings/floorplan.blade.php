@@ -25,6 +25,37 @@
             box-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
         }
         
+        /* Text overlay styles for selectable text */
+        .text-overlay {
+            position: absolute;
+            pointer-events: auto;
+            user-select: text;
+            cursor: text;
+            background: transparent;
+            border: none;
+            outline: none;
+            resize: none;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            color: #111827;
+            z-index: 10;
+            line-height: 1.2;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        /* Links within text overlays */
+        .text-overlay a {
+            color: #2563eb;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        
+        .text-overlay a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+        
         /* Enhanced Card Styles */
         #itemInfoPanel .card {
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -48,7 +79,7 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         
-        /* Compact Capacity & Price Cards */
+        /* Compact Booth Members & Price Cards */
         #itemInfoPanel .row .col-6 .bg-light {
             min-height: 45px;
             display: flex;
@@ -278,7 +309,7 @@
                                                     <div class="text-center p-1 bg-light rounded border border-1 border-primary border-opacity-10">
                                                         <div class="text-primary fw-bold small mb-0" id="itemMaxCapacity">5</div>
                                                         <small class="text-muted" style="font-size: 0.7rem;">
-                                                            <i class="bi bi-people me-1"></i>Capacity
+                                                            <i class="bi bi-people me-1"></i>Booth members allowed
                                                         </small>
                                                     </div>
                                                 </div>
@@ -408,6 +439,9 @@
                             <div class="border border-2 border-dashed border-secondary rounded bg-light position-relative canvas-container" style="min-height: 500px;">
                                 <canvas id="floorplanCanvas" width="{{ $floorplanDesign->canvas_width ?? 800 }}" height="{{ $floorplanDesign->canvas_height ?? 600 }}" style="border: 1px solid #ccc; cursor: pointer;"></canvas>
                                 
+                                <!-- Text overlay container for selectable text -->
+                                <div id="textOverlayContainer" style="position: absolute; top: 0; left: 0; pointer-events: auto; z-index: 10;"></div>
+                                
                                 <!-- Canvas Instructions (shown when empty) -->
                                 <div id="canvasInstructions" class="position-absolute text-center">
                                     <i class="bi bi-mouse text-muted" style="font-size: 3rem;"></i>
@@ -415,7 +449,7 @@
                                     <p class="text-muted mb-3">Click on items to view details and book</p>
                                     <div class="text-muted small">
                                         <p class="mb-1">• Click on booths to see availability</p>
-                                        <p class="mb-1">• View pricing and capacity</p>
+                                        <p class="mb-1">• View pricing and booth members allowed</p>
                                         <p class="mb-0">• Book your preferred space</p>
                                     </div>
                                 </div>
@@ -455,7 +489,7 @@
                                     <h6 class="card-title">{{ $existingBooking->floorplanItem->label ?? 'N/A' }}</h6>
                                     <p class="card-text small text-muted">
                                         <strong>Type:</strong> {{ ucfirst($existingBooking->floorplanItem->type ?? 'booth') }}<br>
-                                        <strong>Capacity:</strong> {{ $existingBooking->floorplanItem->max_capacity ?? 5 }} members<br>
+                                        <strong>Booth members allowed:</strong> {{ $existingBooking->floorplanItem->max_capacity ?? 5 }}<br>
                                         <strong>Price:</strong> ${{ number_format($existingBooking->floorplanItem->price ?? 0, 2) }}
                                     </p>
                                     <div class="d-flex align-items-center">
@@ -690,6 +724,12 @@
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                 }
                 
+                // Clear existing text overlays
+                const textOverlayContainer = document.getElementById('textOverlayContainer');
+                if (textOverlayContainer) {
+                    textOverlayContainer.innerHTML = '';
+                }
+                
                 shapes.forEach(shape => {
                     drawShape(shape);
                 });
@@ -759,6 +799,186 @@
                 ctx.setLineDash([3, 3]);
                 ctx.strokeRect(x - 1, y - 1, width + 2, height + 2);
                 ctx.restore();
+            }
+            
+            // Convert text to HTML with smart link detection
+            function convertTextToHtml(text) {
+                if (!text) return '';
+                
+                
+                // First, escape HTML to prevent XSS
+                let html = escapeHtml(text);
+                
+                // Convert line breaks to <br> tags
+                html = html.replace(/\n/g, '<br>');
+                
+                // URL regex pattern - matches complete domains properly
+                // This pattern matches:
+                // 1. https:// or http:// URLs
+                // 2. www. URLs  
+                // 3. Domain names with proper TLD (supports multi-part domains like .co.ke)
+                const urlRegex = /(https?:\/\/[^\s<>"']+|www\.[^\s<>"']+|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})*(?:\/[^\s<>"']*)?)/g;
+                
+                // Email regex pattern
+                const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+                
+                // Convert URLs to links
+                html = html.replace(urlRegex, (url) => {
+                    let href = url;
+                    
+                    // Add protocol if missing
+                    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                        href = 'https://' + url;
+                    }
+                    
+                    return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+                });
+                
+                // Convert email addresses to mailto links
+                html = html.replace(emailRegex, (email) => {
+                    return `<a href="mailto:${email}">${email}</a>`;
+                });
+                
+                return html;
+            }
+            
+            // Escape HTML to prevent XSS
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            // Create HTML overlay for text shapes to make them selectable
+            function createTextOverlay(shape) {
+                const textContent = shape.text_content || shape.text || 'TEXT';
+                if (!textContent) return;
+                
+                
+                // Remove existing overlay for this shape
+                const existingOverlay = document.getElementById(`text-overlay-${shape.item_id}`);
+                if (existingOverlay) {
+                    existingOverlay.remove();
+                }
+                
+                // Create text overlay element
+                const overlay = document.createElement('div');
+                overlay.id = `text-overlay-${shape.item_id}`;
+                overlay.className = 'text-overlay';
+                
+                // Set position and size
+                const canvasRect = canvas.getBoundingClientRect();
+                const scaleX = canvasRect.width / canvas.width;
+                const scaleY = canvasRect.height / canvas.height;
+                
+                overlay.style.left = `${shape.x * scaleX}px`;
+                overlay.style.top = `${shape.y * scaleY}px`;
+                overlay.style.width = `${(shape.width || 120) * scaleX}px`;
+                overlay.style.height = `${(shape.height || 30) * scaleY}px`;
+                
+                // Set text properties
+                const fontSize = shape.font_size || window.floorplanDefaults?.font_size || 16;
+                const fontFamily = shape.font_family || window.floorplanDefaults?.font_family || 'Arial';
+                const textColor = shape.text_color || window.floorplanDefaults?.text_color || '#111827';
+                
+                overlay.style.fontSize = `${fontSize * scaleY}px`;
+                overlay.style.fontFamily = fontFamily;
+                overlay.style.color = textColor;
+                
+                // Set text alignment
+                const textAlignment = shape.label_position || window.floorplanDefaults?.default_label_position || 'center';
+                switch(textAlignment) {
+                    case 'left':
+                        overlay.style.textAlign = 'left';
+                        overlay.style.paddingLeft = '5px';
+                        break;
+                    case 'right':
+                        overlay.style.textAlign = 'right';
+                        overlay.style.paddingRight = '5px';
+                        break;
+                    case 'center':
+                    default:
+                        overlay.style.textAlign = 'center';
+                        break;
+                }
+                
+                // Handle rotation
+                if (shape.rotation && shape.rotation !== 0) {
+                    overlay.style.transform = `rotate(${shape.rotation}deg)`;
+                    overlay.style.transformOrigin = 'center';
+                }
+                
+                // Set content with smart link detection
+                const htmlContent = convertTextToHtml(textContent);
+                overlay.innerHTML = htmlContent;
+                
+                // Make text selectable and copyable
+                overlay.setAttribute('contenteditable', 'false');
+                overlay.setAttribute('data-text', textContent);
+                
+                // Add event listeners
+                overlay.addEventListener('click', (e) => {
+                    // If clicking on a link, let it handle the click naturally
+                    if (e.target.tagName === 'A') {
+                        return; // Let the link open normally
+                    }
+                    
+                    e.stopPropagation();
+                    overlay.focus();
+                });
+                
+                overlay.addEventListener('dblclick', (e) => {
+                    // If double-clicking on a link, let it handle the click naturally
+                    if (e.target.tagName === 'A') {
+                        return; // Let the link open normally
+                    }
+                    
+                    e.stopPropagation();
+                    // Select all text on double click
+                    if (window.getSelection) {
+                        const selection = window.getSelection();
+                        const range = document.createRange();
+                        range.selectNodeContents(overlay);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    }
+                });
+                
+                // Add context menu for right-click to copy
+                overlay.addEventListener('contextmenu', (e) => {
+                    // If right-clicking on a link, let it handle the context menu naturally
+                    if (e.target.tagName === 'A') {
+                        return; // Let the link handle its own context menu
+                    }
+                    
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Select all text and copy to clipboard
+                    if (window.getSelection) {
+                        const selection = window.getSelection();
+                        const range = document.createRange();
+                        range.selectNodeContents(overlay);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                        
+                        // Copy to clipboard
+                        try {
+                            document.execCommand('copy');
+                            // Show a brief success message
+                            const originalText = overlay.textContent;
+                            overlay.textContent = 'Copied!';
+                            setTimeout(() => {
+                                overlay.textContent = originalText;
+                            }, 1000);
+                        } catch (err) {
+                            console.log('Copy failed:', err);
+                        }
+                    }
+                });
+                
+                // Add to container
+                document.getElementById('textOverlayContainer').appendChild(overlay);
             }
             
             // Draw shape based on type
@@ -988,29 +1208,12 @@
                         drawGarden(shape);
                         break;
                     case 'text':
+                        // For text shapes, create HTML overlay instead of drawing on canvas
+                        createTextOverlay(shape);
+                        
+                        // Draw only the background and border on canvas
                         const centerTX = shape.x + (shape.width || 120) / 2;
                         const centerTY = shape.y + (shape.height || 30) / 2;
-                        
-                        // Debug: Log text item properties
-                        if (shape.type === 'text') {
-                            console.log('Text item properties:', {
-                                fill_color: shape.fill_color,
-                                text_color: shape.text_color,
-                                stroke_color: shape.stroke_color,
-                                text_content: shape.text_content,
-                                text: shape.text,
-                                font_size: shape.font_size,
-                                font_family: shape.font_family
-                            });
-                        }
-                        
-                        // Apply rotation if shape has rotation
-                        if (shape.rotation && shape.rotation !== 0) {
-                            ctx.save();
-                            ctx.translate(centerTX, centerTY);
-                            ctx.rotate(shape.rotation * Math.PI / 180);
-                            ctx.translate(-centerTX, -centerTY);
-                        }
                         
                         // Draw text background/fill if fill color is specified
                         if (shape.fill_color || window.floorplanDefaults?.fill_color) {
@@ -1019,55 +1222,10 @@
                             ctx.fillRect(shape.x, shape.y, shape.width || 120, shape.height || 30);
                         }
                         
-                        // Set text properties - use inheritance
-                        ctx.fillStyle = shape.text_color || window.floorplanDefaults?.text_color || '#111827';
-                        ctx.font = `${shape.font_size || window.floorplanDefaults?.font_size || 16}px ${shape.font_family || window.floorplanDefaults?.font_family || 'Arial'}`;
-                        
-                        // Use label position for text alignment (left, right, center)
-                        const textAlignment = shape.label_position || window.floorplanDefaults?.default_label_position || 'center';
-                        let textAlign, textX;
-                        
-                        switch(textAlignment) {
-                            case 'left':
-                                ctx.textAlign = 'left';
-                                textX = shape.x + 5; // Small padding from left edge
-                                break;
-                            case 'right':
-                                ctx.textAlign = 'right';
-                                textX = shape.x + (shape.width || 120) - 5; // Small padding from right edge
-                                break;
-                            case 'center':
-                            default:
-                                ctx.textAlign = 'center';
-                                textX = centerTX;
-                                break;
-                        }
-                        
-                        ctx.textBaseline = 'middle';
-                        
-                        // Draw multi-line text
-                        const textContent = shape.text_content || shape.text || 'TEXT';
-                        if (textContent) {
-                            const lines = textContent.split('\n');
-                            const lineHeight = (shape.font_size || window.floorplanDefaults?.font_size || 16) * 1.2;
-                            const totalHeight = lines.length * lineHeight;
-                            const startY = centerTY - (totalHeight - lineHeight) / 2;
-                            
-                            lines.forEach((line, index) => {
-                                const y = startY + (index * lineHeight);
-                                ctx.fillText(line, textX, y);
-                            });
-                        }
-                        
                         // Draw text boundary rectangle for visual feedback - use inheritance
                         ctx.strokeStyle = shape.stroke_color || window.floorplanDefaults?.stroke_color || 'rgba(0,0,0,0.1)';
                         ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 1;
                         ctx.strokeRect(shape.x, shape.y, shape.width || 120, shape.height || 30);
-                        
-                        // Restore canvas context if rotation was applied
-                        if (shape.rotation && shape.rotation !== 0) {
-                            ctx.restore();
-                        }
                         break;
                             
                     default:
@@ -1077,8 +1235,8 @@
                         break;
                 }
                 
-                // Draw label if exists
-                if (shape.label) {
+                // Draw label if exists (but not for text shapes)
+                if (shape.label && shape.type !== 'text') {
                     drawItemLabel(shape);
                 }
                 
@@ -1203,6 +1361,13 @@
             
             // Canvas click event for item selection
             canvas.addEventListener('click', function(e) {
+                // Check if click is on a text overlay first
+                const textOverlay = e.target.closest('.text-overlay');
+                if (textOverlay) {
+                    // Let text overlay handle the click
+                    return;
+                }
+                
                 const rect = canvas.getBoundingClientRect();
                 
                 // Calculate the scaling factor to account for responsive sizing
@@ -4751,7 +4916,7 @@
                                     <h6 class="card-title mb-1">${item.item_name || item.label || item.type}</h6>
                                     <small class="text-muted">
                                         <strong>Type:</strong> ${item.type} | 
-                                        <strong>Capacity:</strong> ${item.max_capacity || 5} | 
+                                        <strong>Booth members allowed:</strong> ${item.max_capacity || 5} | 
                                         <strong>Price:</strong> $${item.price || 100}
                                     </small>
                                 </div>
@@ -4810,6 +4975,16 @@
                     removeBtn.disabled = false;
                 });
             }
+            
+            // Handle window resize to update text overlay positions
+            window.addEventListener('resize', () => {
+                // Update text overlay positions when window is resized
+                shapes.forEach(shape => {
+                    if (shape.type === 'text') {
+                        createTextOverlay(shape);
+                    }
+                });
+            });
         }
     </script>
 @endpush

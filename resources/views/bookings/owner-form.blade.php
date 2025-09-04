@@ -379,12 +379,12 @@
                                     </div>
                                 </div>
 
-                            <!-- Logo & Branding -->
+                            <!-- Logo & Booth Name -->
                             <div class="card mb-4">
                                 <div class="card-header bg-warning text-dark py-2">
                                     <h6 class="mb-0">
-                                        <i class="bi bi-images me-2"></i>Logo & Branding
-                                        @if(!($boothOwner && isset($boothOwner->form_responses['company_logo']) && $boothOwner->form_responses['company_logo']) || !($boothOwner && isset($boothOwner->form_responses['booth_branding_logo']) && $boothOwner->form_responses['booth_branding_logo']))
+                                        <i class="bi bi-images me-2"></i>Logo & Booth Name
+                                        @if(!($boothOwner && isset($boothOwner->form_responses['company_logo']) && $boothOwner->form_responses['company_logo']) || !($boothOwner && isset($boothOwner->form_responses['booth_name']) && $boothOwner->form_responses['booth_name']))
                                         <span class="badge bg-warning text-dark ms-2">Required</span>
                                         @endif
                                     </h6>
@@ -423,31 +423,23 @@
                                         </div>
                                         <div class="col-md-6">
                                             <div class="mb-2">
-                                                
-                                                <label for="booth_branding_logo" class="form-label small mb-1">
-                                                    <i class="bi bi-palette me-1"></i>Booth Branding Logo
-                                                    @if(!($boothOwner && isset($boothOwner->form_responses['booth_branding_logo']) && $boothOwner->form_responses['booth_branding_logo']))
+                                                <label for="booth_name" class="form-label small mb-1">
+                                                    <i class="bi bi-tag me-1"></i>Booth Name
                                                     <span class="text-danger">*</span>
-                                                    @endif
                                                 </label>
-                                                @if($boothOwner && isset($boothOwner->form_responses['booth_branding_logo']) && $boothOwner->form_responses['booth_branding_logo'])
-                                                <div class="mb-2">
-                                                    <small class="text-muted">Current branding:</small>
-                                                    <img src="{{ Storage::url($boothOwner->form_responses['booth_branding_logo']) }}"
-                                                        alt="Current Booth Branding" class="ms-2" style="max-height: 40px; max-width: 100px;">
+                                                <input type="text" class="form-control form-control-sm @error('booth_name') is-invalid @enderror"
+                                                    id="booth_name" name="booth_name" maxlength="25"
+                                                    value="{{ old('booth_name', $boothOwner->form_responses['booth_name'] ?? '') }}"
+                                                    placeholder="Enter booth name (max 25 characters)">
+                                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                                    <div class="form-text small text-muted">
+                                                        Display name for your booth
+                                                    </div>
+                                                    <small class="text-muted">
+                                                        <span id="booth_name_count">0</span>/25
+                                                    </small>
                                                 </div>
-                                                @endif
-                                                <input type="file" class="form-control form-control-sm @error('booth_branding_logo') is-invalid @enderror"
-                                                    id="booth_branding_logo" name="booth_branding_logo" accept="image/*"
-                                                    data-has-existing="{{ $boothOwner && isset($boothOwner->form_responses['booth_branding_logo']) && $boothOwner->form_responses['booth_branding_logo'] ? 'true' : 'false' }}">
-                                                <div class="form-text small">
-                                                    @if($boothOwner && isset($boothOwner->form_responses['booth_branding_logo']))
-                                                    Upload new branding logo
-                                                    @else
-                                                    Custom booth branding (PNG, JPG, SVG - Max 2MB)
-                                                    @endif
-                                                </div>
-                                                @error('booth_branding_logo')
+                                                @error('booth_name')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
                                             </div>
@@ -761,7 +753,7 @@
 
             // Validate required files only if they don't already exist
             const companyLogo = document.getElementById('company_logo');
-            const boothBrandingLogo = document.getElementById('booth_branding_logo');
+            const boothName = document.getElementById('booth_name');
 
             // Check if company logo is required (no existing logo)
             if (companyLogo.dataset.hasExisting === 'false' && !companyLogo.files.length) {
@@ -778,17 +770,17 @@
                 return false;
             }
 
-            // Check if booth branding logo is required (no existing logo)
-            if (boothBrandingLogo.dataset.hasExisting === 'false' && !boothBrandingLogo.files.length) {
+            // Check if booth name is required
+            if (!boothName.value.trim()) {
                 e.preventDefault();
-                boothBrandingLogo.classList.add('is-invalid');
-                let errorDiv = boothBrandingLogo.parentNode.querySelector('.invalid-feedback');
+                boothName.classList.add('is-invalid');
+                let errorDiv = boothName.parentNode.querySelector('.invalid-feedback');
                 if (!errorDiv) {
                     errorDiv.className = 'invalid-feedback';
-                    boothBrandingLogo.parentNode.appendChild(errorDiv);
+                    boothName.parentNode.appendChild(errorDiv);
                 }
-                errorDiv.textContent = 'Booth branding logo is required.';
-                boothBrandingLogo.focus();
+                errorDiv.textContent = 'Booth name is required.';
+                boothName.focus();
                 return false;
             }
 
@@ -834,16 +826,38 @@
 
 
 
-        document.getElementById('booth_branding_logo').addEventListener('change', function() {
-            if (this.files.length > 0) {
-                this.dataset.hasExisting = 'false';
-                this.classList.remove('is-invalid');
-                const errorDiv = this.parentNode.querySelector('.invalid-feedback');
+        // Booth name character count
+        const boothNameInput = document.getElementById('booth_name');
+        const boothNameCount = document.getElementById('booth_name_count');
+        
+        function updateBoothNameCount() {
+            const currentLength = boothNameInput.value.length;
+            boothNameCount.textContent = currentLength;
+            
+            // Change color based on character count
+            if (currentLength > 20) {
+                boothNameCount.style.color = '#dc3545'; // Red
+            } else if (currentLength > 15) {
+                boothNameCount.style.color = '#ffc107'; // Yellow
+            } else {
+                boothNameCount.style.color = '#6c757d'; // Gray
+            }
+            
+            // Clear validation errors when user types
+            if (boothNameInput.value.trim()) {
+                boothNameInput.classList.remove('is-invalid');
+                const errorDiv = boothNameInput.parentNode.querySelector('.invalid-feedback');
                 if (errorDiv) {
                     errorDiv.remove();
                 }
             }
-        });
+        }
+        
+        boothNameInput.addEventListener('input', updateBoothNameCount);
+        boothNameInput.addEventListener('keyup', updateBoothNameCount);
+        
+        // Initialize count on page load
+        updateBoothNameCount();
     });
 </script>
 @endpush

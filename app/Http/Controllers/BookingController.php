@@ -30,9 +30,9 @@ class BookingController extends Controller
         $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)
             ->where('access_token_expires_at', '>', now())
             ->firstOrFail();
-        
+
         $booking = $boothOwner->booking;
-        
+
         if (!$booking) {
             return redirect()->route('events.public.floorplan', $eventSlug)
                 ->with('error', 'No booking found for this access token. Please start over.');
@@ -128,20 +128,34 @@ class BookingController extends Controller
         // Check if we have existing logos from session or need new ones
         $currentBookingId = session('current_booking_id');
         $hasExistingLogos = false;
-        
+
         if ($currentBookingId) {
             $existingBooking = Booking::where('id', $currentBookingId)
                 ->where('floorplan_item_id', $itemId)
                 ->where('event_id', $eventSlug)
                 ->first();
-                
+
             if ($existingBooking && $existingBooking->boothOwner) {
-                $hasExistingLogos = !empty($existingBooking->boothOwner->form_responses['company_logo']) && 
-                                   !empty($existingBooking->boothOwner->form_responses['booth_branding_logo']);
+                $formResponses = $existingBooking->boothOwner->form_responses;
+                $hasExistingLogos = !empty($formResponses['company_logo']);
+                
+                // Debug logging
+                \Log::info('Checking existing logos', [
+                    'booking_id' => $existingBooking->id,
+                    'form_responses' => $formResponses,
+                    'has_company_logo' => !empty($formResponses['company_logo']),
+                    'has_existing_logos' => $hasExistingLogos
+                ]);
             }
         }
         
         $logoValidation = $hasExistingLogos ? 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048' : 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048';
+        
+        // Debug logging
+        \Log::info('Logo validation rule for new booking', [
+            'has_existing_logos' => $hasExistingLogos,
+            'logo_validation_rule' => $logoValidation
+        ]);
 
         $request->validate([
             'name' => 'required|string|max:255',
@@ -153,7 +167,7 @@ class BookingController extends Controller
             'company_website' => 'nullable|url|max:255',
             'country' => 'required|string|size:2',
             'company_logo' => $logoValidation,
-            'booth_branding_logo' => $logoValidation,
+            'booth_name' => 'required|string|max:25',
             'social_facebook' => 'nullable|url|max:255',
             'social_twitter' => 'nullable|url|max:255',
             'social_linkedin' => 'nullable|url|max:255',
@@ -244,20 +258,14 @@ class BookingController extends Controller
             // Handle logo upload if provided
             $logoPath = null;
             $boothBrandingPath = null;
-            
+
             if ($request->hasFile('company_logo')) {
                 $logoPath = $request->file('company_logo')->store('company-logos', 'public');
             } elseif ($existingBooking && $existingBooking->boothOwner && isset($existingBooking->boothOwner->form_responses['company_logo'])) {
                 // Keep existing logo if no new one uploaded
                 $logoPath = $existingBooking->boothOwner->form_responses['company_logo'];
             }
-            
-            if ($request->hasFile('booth_branding_logo')) {
-                $boothBrandingPath = $request->file('booth_branding_logo')->store('booth-branding', 'public');
-            } elseif ($existingBooking && $existingBooking->boothOwner && isset($existingBooking->boothOwner->form_responses['booth_branding_logo'])) {
-                // Keep existing branding logo if no new one uploaded
-                $boothBrandingPath = $existingBooking->boothOwner->form_responses['booth_branding_logo'];
-            }
+
 
             if ($existingBooking) {
                 Log::info('Updating existing booking', [
@@ -277,14 +285,14 @@ class BookingController extends Controller
                         'company_website' => $request->company_website,
                         'country' => $request->country,
                         'company_logo' => $logoPath,
-                        'booth_branding_logo' => $boothBrandingPath,
+                        'booth_name' => $request->booth_name,
                         'social_facebook' => $request->social_facebook,
                         'social_twitter' => $request->social_twitter,
                         'social_linkedin' => $request->social_linkedin,
                         'social_instagram' => $request->social_instagram,
                     ],
                 ]);
-             
+
                 // Generate access token if not exists
                 if (!$existingBooking->boothOwner || !$existingBooking->boothOwner->access_token) {
                     $existingBooking->refreshAccessToken();
@@ -309,7 +317,7 @@ class BookingController extends Controller
                         'company_website' => $request->company_website,
                         'country' => $request->country,
                         'company_logo' => $logoPath,
-                        'booth_branding_logo' => $boothBrandingPath,
+                        'booth_name' => $request->booth_name,
                         'social_facebook' => $request->social_facebook,
                         'social_twitter' => $request->social_twitter,
                         'social_linkedin' => $request->social_linkedin,
@@ -391,11 +399,11 @@ class BookingController extends Controller
     public function showMemberForm(Request $request, $eventSlug, $accessToken)
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        
+
         // Find booth owner by access token, then get the booking
         $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
         $booking = $boothOwner->booking;
-        
+
         if (!$booking) {
             return redirect()->route('events.public.floorplan', $eventSlug)
                 ->with('error', 'No booking found for this access token. Please start over.');
@@ -409,12 +417,12 @@ class BookingController extends Controller
 
         // Get existing booth members
         $boothMembers = $boothOwner->boothMembers()->get();
-        
+
         // Get the member registration form for this event
         $memberForm = \App\Models\FormBuilder::where('event_id', $event->id)
             ->where('type', 'member_registration')
             ->first();
-        
+
         // Get form fields if memberForm exists
         $formFields = [];
         if ($memberForm) {
@@ -423,7 +431,7 @@ class BookingController extends Controller
                 ->get()
                 ->toArray();
         }
-        
+
         // Transform booth members to include form_fields data
         $transformedBoothMembers = $boothMembers->map(function ($member) use ($formFields) {
             return [
@@ -451,11 +459,11 @@ class BookingController extends Controller
         ]);
 
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        
+
         // Find booth owner by access token, then get the booking
         $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
         $booking = $boothOwner->booking;
-        
+
         if (!$booking) {
             return redirect()->route('events.public.floorplan', $eventSlug)
                 ->with('error', 'No booking found for this access token. Please start over.');
@@ -524,11 +532,11 @@ class BookingController extends Controller
         ]);
 
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        
+
         // Find booth owner by access token, then get the booking
         $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
         $booking = $boothOwner->booking;
-        
+
         if (!$booking) {
             return response()->json([
                 'success' => false,
@@ -578,12 +586,12 @@ class BookingController extends Controller
             // Get existing members to compare
             $existingMembers = $booking->boothOwner->boothMembers()->get();
             $existingEmails = $existingMembers->pluck('form_responses.email')->filter()->toArray();
-            
+
             // Process only new members (not already in database)
             $newMembers = [];
             $updatedMembers = [];
             $membersToKeep = [];
-            
+
             // First, identify which members should be kept (from incoming data)
             foreach ($memberDetails as $memberData) {
                 $memberEmail = $memberData['email'] ?? null;
@@ -591,7 +599,7 @@ class BookingController extends Controller
                     $membersToKeep[] = $memberEmail;
                 }
             }
-            
+
             // Remove members that are no longer in the list (deleted members)
             foreach ($existingMembers as $existingMember) {
                 $existingEmail = $existingMember->form_responses['email'] ?? null;
@@ -603,17 +611,17 @@ class BookingController extends Controller
                     $existingMember->delete();
                 }
             }
-            
+
             // Now process the remaining members
             foreach ($memberDetails as $memberData) {
                 $memberEmail = $memberData['email'] ?? null;
-                
+
                 if ($memberEmail && in_array($memberEmail, $existingEmails)) {
                     // Update existing member
-                    $existingMember = $existingMembers->first(function($member) use ($memberEmail) {
+                    $existingMember = $existingMembers->first(function ($member) use ($memberEmail) {
                         return ($member->form_responses['email'] ?? '') === $memberEmail;
                     });
-                    
+
                     if ($existingMember) {
                         $existingMember->update([
                             'form_responses' => $memberData,
@@ -626,7 +634,7 @@ class BookingController extends Controller
                     $newMembers[] = $memberData;
                 }
             }
-            
+
             // Create new members
             foreach ($newMembers as $memberData) {
                 \App\Models\BoothMember::create([
@@ -639,7 +647,7 @@ class BookingController extends Controller
 
             // Send member registration email trigger for new members or when resend requested
             $emailService = app(EmailCommunicationService::class);
-            
+
             // Send email for each new member
             foreach ($newMembers as $memberData) {
                 try {
@@ -658,7 +666,7 @@ class BookingController extends Controller
                     // Don't fail the member saving process if email fails
                 }
             }
-            
+
             // Send email for updated member if resend requested
             if ($resendEmail && $resendMemberData) {
                 try {
@@ -708,11 +716,11 @@ class BookingController extends Controller
     public function showPayment($eventSlug, $accessToken)
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        
+
         // Find booth owner by access token, then get the booking
         $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
         $booking = $boothOwner->booking;
-        
+
         if (!$booking) {
             return redirect()->route('events.public.floorplan', $eventSlug)
                 ->with('error', 'No booking found for this access token. Please start over.');
@@ -736,11 +744,11 @@ class BookingController extends Controller
     public function processPayment(Request $request, $eventSlug, $accessToken)
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        
+
         // Find booth owner by access token, then get the booking
         $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
         $booking = $boothOwner->booking;
-        
+
         if (!$booking) {
             return redirect()->route('events.public.floorplan', $eventSlug)
                 ->with('error', 'No booking found for this access token. Please start over.');
@@ -959,11 +967,11 @@ class BookingController extends Controller
     public function paystackCallback(Request $request, $eventSlug, $accessToken)
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        
+
         // Find booth owner by access token, then get the booking
         $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
         $booking = $boothOwner->booking;
-        
+
         if (!$booking) {
             return redirect()->route('events.public.floorplan', $eventSlug)
                 ->with('error', 'No booking found for this access token. Please start over.');
@@ -1039,11 +1047,11 @@ class BookingController extends Controller
     public function showSuccess($eventSlug, $accessToken)
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        
+
         // Find booth owner by access token, then get the booking
         $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
         $booking = $boothOwner->booking;
-        
+
         if (!$booking) {
             return redirect()->route('events.public.floorplan', $eventSlug)
                 ->with('error', 'No booking found for this access token. Please start over.');
@@ -1080,9 +1088,9 @@ class BookingController extends Controller
         $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)
             ->where('access_token_expires_at', '>', now())
             ->firstOrFail();
-        
+
         $booking = $boothOwner->booking;
-        
+
         if (!$booking) {
             return redirect()->route('events.public.floorplan', $eventSlug)
                 ->with('error', 'No booking found for this access token. Please start over.');
@@ -1094,11 +1102,25 @@ class BookingController extends Controller
                 ->with('error', 'Access token has expired or is invalid.');
         }
 
-        // Check if we have existing logos
-        $hasExistingLogos = !empty($booking->boothOwner->form_responses['company_logo']) && 
-                           !empty($booking->boothOwner->form_responses['booth_branding_logo']);
+        // Check if we have existing logos and booth name
+        $formResponses = $booking->boothOwner->form_responses;
+        $hasExistingLogos = !empty($formResponses['company_logo']);
         
+        // Debug logging
+        \Log::info('Checking existing logos for update', [
+            'booking_id' => $booking->id,
+            'form_responses' => $formResponses,
+            'has_company_logo' => !empty($formResponses['company_logo']),
+            'has_existing_logos' => $hasExistingLogos
+        ]);
+
         $logoValidation = $hasExistingLogos ? 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048' : 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048';
+        
+        // Debug logging
+        \Log::info('Logo validation rule for update', [
+            'has_existing_logos' => $hasExistingLogos,
+            'logo_validation_rule' => $logoValidation
+        ]);
 
         // Validate the request
         $request->validate([
@@ -1111,7 +1133,7 @@ class BookingController extends Controller
             'company_website' => 'nullable|url|max:255',
             'country' => 'required|string|size:2',
             'company_logo' => $logoValidation,
-            'booth_branding_logo' => $logoValidation,
+            'booth_name' => 'required|string|max:25',
             'social_facebook' => 'nullable|url|max:255',
             'social_twitter' => 'nullable|url|max:255',
             'social_linkedin' => 'nullable|url|max:255',
@@ -1124,20 +1146,15 @@ class BookingController extends Controller
             // Handle logo uploads
             $logoPath = null;
             $boothBrandingPath = null;
-            
+
             if ($request->hasFile('company_logo')) {
                 $logoPath = $request->file('company_logo')->store('company-logos', 'public');
             } else {
                 // Keep existing logo if no new one uploaded
                 $logoPath = $booking->boothOwner->form_responses['company_logo'] ?? null;
             }
-            
-            if ($request->hasFile('booth_branding_logo')) {
-                $boothBrandingPath = $request->file('booth_branding_logo')->store('booth-branding', 'public');
-            } else {
-                // Keep existing branding logo if no new one uploaded
-                $boothBrandingPath = $booking->boothOwner->form_responses['booth_branding_logo'] ?? null;
-            }
+
+
 
             // Update existing booth owner
             $booking->boothOwner->update([
@@ -1151,7 +1168,7 @@ class BookingController extends Controller
                     'company_website' => $request->company_website,
                     'country' => $request->country,
                     'company_logo' => $logoPath,
-                    'booth_branding_logo' => $boothBrandingPath,
+                    'booth_name' => $request->booth_name,
                     'social_facebook' => $request->social_facebook,
                     'social_twitter' => $request->social_twitter,
                     'social_linkedin' => $request->social_linkedin,
@@ -1208,14 +1225,14 @@ class BookingController extends Controller
     public function removeBooking(Request $request, $eventSlug, $accessToken)
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        
+
         // Find booth owner by access token, then get the booking
         $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)
             ->where('access_token_expires_at', '>', now())
             ->firstOrFail();
-        
+
         $booking = $boothOwner->booking;
-        
+
         if (!$booking) {
             return response()->json([
                 'success' => false,
@@ -1285,7 +1302,7 @@ class BookingController extends Controller
         $floorplanDesign = $event->floorplanDesign;
         if ($floorplanDesign) {
             $floorplanDesign->load('items');
-            
+
             // Load booking information for each item to determine availability
             $items = $floorplanDesign->items;
             foreach ($items as $item) {
@@ -1343,23 +1360,23 @@ class BookingController extends Controller
      */
     public function publicFloorplanWithToken(Event $event, $accessToken)
     {
-      
+
         // Check if event is published or active
         if (!in_array($event->status, ['published', 'active'])) {
             abort(404, 'Event not found.');
         }
-        
+
         // Find booth owner by access token, then get the booking
         $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)
             ->where('access_token_expires_at', '>', now())
             ->firstOrFail();
-           
+
         $existingBooking = $boothOwner->booking;
-        
+
         if (!$existingBooking) {
             abort(404, 'No booking found for this access token. Please start over.');
         }
-       
+
         // Load the booking with its relationships
         // $existingBooking->load(['floorplanItem', 'boothMembers']);
 
@@ -1367,7 +1384,7 @@ class BookingController extends Controller
         $floorplanDesign = $event->floorplanDesign;
         if ($floorplanDesign) {
             $floorplanDesign->load('items');
-            
+
             // Load booth owners for company information
             // $event->load('boothOwners');
 
@@ -1557,7 +1574,7 @@ class BookingController extends Controller
     {
         try {
             $event = Event::where('slug', $eventSlug)->firstOrFail();
-            
+
             // Find booth owner by access token, then get the booking
             $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)
                 ->where('access_token_expires_at', '>', now())
@@ -1606,7 +1623,6 @@ class BookingController extends Controller
                 'success' => true,
                 'message' => 'Payment confirmation email has been resent successfully!'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Failed to resend payment confirmation email', [
                 'event_slug' => $eventSlug,
@@ -1628,13 +1644,13 @@ class BookingController extends Controller
     {
         // CSRF token is handled automatically by Laravel when using X-CSRF-TOKEN header
         // No need to validate _token from request body
-        
+
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        
+
         // Find booth owner by access token, then get the booking
         $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
         $booking = $boothOwner->booking;
-        
+
         if (!$booking) {
             return response()->json([
                 'success' => false,
@@ -1677,7 +1693,6 @@ class BookingController extends Controller
                 'message' => 'Member deleted successfully!',
                 'deleted_member_id' => $memberId
             ]);
-
         } catch (\Exception $e) {
             Log::error('Failed to delete member', [
                 'booking_id' => $booking->id,
@@ -1703,11 +1718,11 @@ class BookingController extends Controller
         ]);
 
         $event = Event::where('slug', $eventSlug)->firstOrFail();
-        
+
         // Find booth owner by access token, then get the booking
         $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
         $booking = $boothOwner->booking;
-        
+
         if (!$booking) {
             return response()->json([
                 'success' => false,
@@ -1783,7 +1798,6 @@ class BookingController extends Controller
                 'message' => 'Member updated successfully!',
                 'updated_member_id' => $memberId
             ]);
-
         } catch (\Exception $e) {
             Log::error('Failed to update member', [
                 'booking_id' => $booking->id,
@@ -1795,6 +1809,91 @@ class BookingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update member. Please try again.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a booking and all related data
+     */
+    public function destroy(Booking $booking)
+    {
+        // Check if user is authenticated
+        if (!auth()->check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You must be logged in to perform this action.'
+            ], 401);
+        }
+
+        // Load user with roles relationship
+        $user = auth()->user()->load('roles');
+        
+        // Check if user has admin role - try multiple methods
+        $hasAdminRole = $user->isAdmin();
+        $directRoleCheck = $user->roles()->where('name', 'admin')->exists();
+        $roleCount = $user->roles()->count();
+        
+        if (!$hasAdminRole && !$directRoleCheck) {
+            \Log::warning('Unauthorized delete attempt', [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'user_roles' => $user->roles->pluck('name')->toArray(),
+                'roles_count' => $roleCount,
+                'is_admin_method' => $hasAdminRole,
+                'direct_role_check' => $directRoleCheck,
+                'booking_id' => $booking->id
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'You don\'t have permission to delete bookings. Admin access required.'
+            ], 403);
+        }
+
+        // Debug logging
+        \Log::info('Delete booking request', [
+            'booking_id' => $booking->id,
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'user_roles' => $user->roles->pluck('name')->toArray(),
+            'roles_count' => $user->roles->count(),
+            'is_admin' => $user->isAdmin()
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Delete related data in the correct order to avoid foreign key constraints
+            $booking->boothMembers()->delete();
+            $booking->payments()->delete();
+            
+            // Delete booth owner
+            if ($booking->boothOwner) {
+                $booking->boothOwner->delete();
+            }
+            
+            // Delete the booking itself
+            $booking->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Booking deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Failed to delete booking', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete booking. Please try again.'
             ], 500);
         }
     }

@@ -62,13 +62,13 @@ class User extends Authenticatable
     /**
      * Get all permissions for the user through their roles.
      */
-    public function permissions(): BelongsToMany
+    public function permissions()
     {
-        return $this->belongsToMany(Permission::class, 'user_roles', 'user_id', 'role_id')
-                    ->join('role_permissions', 'roles.id', '=', 'role_permissions.role_id')
-                    ->join('permissions', 'role_permissions.permission_id', '=', 'permissions.id')
-                    ->select('permissions.*')
-                    ->distinct();
+        return Permission::whereHas('roles', function ($query) {
+            $query->whereHas('users', function ($userQuery) {
+                $userQuery->where('user_id', $this->id);
+            });
+        });
     }
 
     /**

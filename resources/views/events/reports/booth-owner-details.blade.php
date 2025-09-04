@@ -297,8 +297,8 @@
                                          </div>
                                      </div>
                                      <div class="mb-3">
-                                         <label class="form-label small text-muted mb-1">Booth Type</label>
-                                         <div class="fw-semibold">{{ $boothOwner->booking->floorplanItem->type ?? 'N/A' }}</div>
+                                         <label class="form-label small text-muted mb-1">Booth Name</label>
+                                         <div class="fw-semibold">{{ $boothOwner->form_responses['booth_name'] ?? 'N/A' }}</div>
                                      </div>
                                      <div class="mb-3">
                                          <label class="form-label small text-muted mb-1">Dimensions</label>
@@ -310,7 +310,7 @@
                                  </div>
                                  <div class="col-6">
                                      <div class="mb-3">
-                                         <label class="form-label small text-muted mb-1">Max Capacity</label>
+                                         <label class="form-label small text-muted mb-1">Booth Members Allowed</label>
                                          <div class="fw-semibold">{{ $boothOwner->booking->floorplanItem->max_capacity ?? '5' }} members</div>
                                      </div>
                                      <div class="mb-3">

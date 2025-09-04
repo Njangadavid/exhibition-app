@@ -46,20 +46,7 @@ $hasCompletedPayment = $booking->hasCompletedPayments();
                 @endif
 
                 <!-- Upgrade Information Alert -->
-                @if($booking->hasPendingUpgradePayments())
-                <div class="alert alert-info mb-4">
-                    <div class="d-flex align-items-center">
-                        <i class="bi bi-arrow-up-circle me-3 fs-4"></i>
-                        <div>
-                            <h6 class="mb-1">Booth Upgraded!</h6>
-                            <p class="mb-2">You've upgraded to a better space. Please complete the additional payment to confirm your upgrade.</p>
-                            <div class="mt-2">
-                                <span class="badge bg-info fs-6">Additional Amount Due: ${{ number_format($booking->getUpgradeAmountDue(), 2) }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                @endif
+                
 
 
                 <!-- Booking Summary Card -->
@@ -73,35 +60,35 @@ $hasCompletedPayment = $booking->hasCompletedPayments();
                         <div class="row">
                             <!-- Space Details -->
                             <div class="col-md-6">
-                                <h6 class="fw-bold text-primary mb-3">Space Details</h6>
+                                <h6 class="fw-bold text-primary mb-3 small">Space Details</h6>
 
-                                <div class="mb-2">
-                                    <strong>Booth Number:</strong> {{ $booking->floorplanItem->label ?? 'N/A' }}
+                                <div class="mb-2 small">
+                                    <strong>Booth:</strong> {{ $booking->floorplanItem->label ?? 'N/A' }} - {{ $booking->boothOwner->form_responses['booth_name'] ?? 'Booth' }}
                                 </div>
-                                <div class="mb-2">
+                                <div class="mb-2 small">
                                     <strong>Type:</strong> {{ ucfirst($booking->floorplanItem->type ?? 'booth') }}
                                 </div>
-                                <div class="mb-2">
+                                <div class="mb-2 small">
                                     <strong>Capacity:</strong> {{ $booking->floorplanItem->max_capacity ?? 5 }} members
                                 </div>
-                                <div class="mb-2">
+                                <div class="mb-2 small">
                                     <strong>Members Registered:</strong> {{ $booking->boothMembers ? count($booking->boothMembers) : 0 }}
                                 </div>
                             </div>
 
                             <!-- Owner Details -->
                             <div class="col-md-6">
-                                <h6 class="fw-bold text-primary mb-3">Owner Details</h6>
-                                <div class="mb-2">
+                                <h6 class="fw-bold text-primary mb-3 small">Owner Details</h6>
+                                <div class="mb-2 small">
                                     <strong>Name:</strong> {{ $booking->boothOwner->form_responses['name'] ?? 'N/A' }}
                                 </div>
-                                <div class="mb-2">
+                                <div class="mb-2 small">
                                     <strong>Email:</strong> {{ $booking->boothOwner->form_responses['email'] ?? 'N/A' }}
                                 </div>
-                                <div class="mb-2">
+                                <div class="mb-2 small">
                                     <strong>Phone:</strong> {{ $booking->boothOwner->form_responses['phone'] ?? 'N/A' }}
                                 </div>
-                                <div class="mb-2">
+                                <div class="mb-2 small">
                                     <strong>Company:</strong> {{ $booking->boothOwner->form_responses['company_name'] ?? 'N/A' }}
                                 </div>
                             </div>
@@ -113,29 +100,29 @@ $hasCompletedPayment = $booking->hasCompletedPayments();
                             <div class="col-12">
                                 <h6 class="fw-bold text-primary mb-3">Payment Summary</h6>
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span>Space Rental ({{ $booking->floorplanItem->label ?? 'N/A' }})</span>
-                                    <span>${{ number_format($totalAmount, 2) }}</span>
+                                    <span class="small">Space Rental ({{ $booking->floorplanItem->label ?? 'N/A' }} - {{ $booking->boothOwner->form_responses['booth_name'] ?? 'Booth' }})</span>
+                                    <span class="small">${{ number_format($totalAmount, 2) }}</span>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span>Exhibitors ({{ $booking->boothMembers ? count($booking->boothMembers) : 0 }} registered)</span>
-                                    <span class="text-success">Included</span>
+                                    <span class="small">Exhibitors ({{ $booking->boothMembers ? count($booking->boothMembers) : 0 }} registered)</span>
+                                    <span class="small text-success">Included</span>
                                 </div>
 
                                 @if($hasCompletedPayment)
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span>Amount Paid</span>
-                                    <span class="text-success">${{ number_format($totalPaid, 2) }}</span>
+                                    <span class="small">Amount Paid</span>
+                                    <span class="small text-success">${{ number_format($totalPaid, 2) }}</span>
                                 </div>
                                 <hr>
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <strong class="fs-5">Remaining Balance</strong>
-                                    <strong class="fs-4 {{ $balance > 0 ? 'text-warning' : 'text-success' }}">${{ number_format($balance, 2) }}</strong>
+                                    <strong class="fs-6">Remaining Balance</strong>
+                                    <strong class="fs-5 {{ $balance > 0 ? 'text-warning' : 'text-success' }}">${{ number_format($balance, 2) }}</strong>
                                 </div>
                                 @else
                                 <hr>
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <strong class="fs-5">Total Amount</strong>
-                                    <strong class="fs-4 text-primary">${{ number_format($totalAmount, 2) }}</strong>
+                                    <strong class="fs-6">Total Amount</strong>
+                                    <strong class="fs-5 text-primary">${{ number_format($totalAmount, 2) }}</strong>
                                 </div>
                                 @endif
                             </div>
@@ -146,16 +133,16 @@ $hasCompletedPayment = $booking->hasCompletedPayments();
                 <!-- Payment Action -->
                 @if($balance > 0)
                 <div class="card shadow-sm">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
+                    <div class="card-header py-2">
+                        <h6 class="card-title mb-0 small">
                             <i class="bi bi-credit-card me-2"></i>Complete Your Payment
-                        </h5>
+                        </h6>
                     </div>
-                    <div class="card-body text-center">
-                        <div class="mb-4">
-                            <i class="bi bi-shield-check text-success" style="font-size: 4rem;"></i>
-                            <h4 class="mt-3 mb-2">Ready to Complete Your Booking?</h4>
-                            <p class="text-muted">Your booking details have been saved. Click the button below to proceed with payment.</p>
+                    <div class="card-body text-center py-3">
+                        <div class="mb-3">
+                            <i class="bi bi-shield-check text-success" style="font-size: 2rem;"></i>
+                            <h6 class="mt-2 mb-2 small">Ready to Complete Your Booking?</h6>
+                            <p class="text-muted small mb-0">Your booking details have been saved. Click the button below to proceed with payment.</p>
                         </div>
 
                         <!-- Payment Method Info -->
@@ -164,22 +151,22 @@ $hasCompletedPayment = $booking->hasCompletedPayments();
                         @endphp
 
                         @if($defaultPaymentMethod)
-                        <div class="mb-4">
+                        <div class="mb-3">
                             <div class="row justify-content-center">
-                                <div class="col-md-6">
+                                <div class="col-md-8">
                                     <div class="card payment-method-display">
-                                        <div class="card-body text-center">
+                                        <div class="card-body text-center py-3">
                                             @if($defaultPaymentMethod->icon)
-                                            <i class="{{ $defaultPaymentMethod->icon }} fs-1" style="color: {{ $defaultPaymentMethod->color ?? '#0d6efd' }}"></i>
+                                            <i class="{{ $defaultPaymentMethod->icon }} fs-3" style="color: {{ $defaultPaymentMethod->color ?? '#0d6efd' }}"></i>
                                             @else
-                                            <i class="bi bi-credit-card fs-1" style="color: {{ $defaultPaymentMethod->color ?? '#0d6efd' }}"></i>
+                                            <i class="bi bi-credit-card fs-3" style="color: {{ $defaultPaymentMethod->color ?? '#0d6efd' }}"></i>
                                             @endif
-                                            <h6 class="card-title mt-2">{{ $defaultPaymentMethod->name }}</h6>
-                                            <p class="card-text text-muted small">{{ $defaultPaymentMethod->description ?? 'Secure payment processing' }}</p>
+                                            <h6 class="card-title mt-2 small">{{ $defaultPaymentMethod->name }}</h6>
+                                            <p class="card-text text-muted small mb-2">{{ $defaultPaymentMethod->description ?? 'Secure payment processing' }}</p>
                                             <form action="{{ route('bookings.process-payment', ['eventSlug' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]) }}" method="POST" class="d-inline">
                                                 @csrf
-                                                <button type="submit" class="btn btn-success btn-lg mt-2">
-                                                    <i class="bi bi-credit-card me-1"></i>Pay Balance ${{ number_format($balance, 2) }}
+                                                <button type="submit" class="btn btn-success btn-sm">
+                                                    <i class="bi bi-credit-card me-1"></i>Pay ${{ number_format($balance, 2) }}
                                                 </button>
                                             </form>
                                         </div>
@@ -188,10 +175,10 @@ $hasCompletedPayment = $booking->hasCompletedPayments();
                             </div>
                         </div>
                         @else
-                        <div class="mb-4">
-                            <div class="alert alert-warning">
+                        <div class="mb-3">
+                            <div class="alert alert-warning py-2">
                                 <i class="bi bi-exclamation-triangle me-2"></i>
-                                No default payment method is currently available. Please contact the event organizer.
+                                <span class="small">No default payment method is currently available. Please contact the event organizer.</span>
                             </div>
                         </div>
                         @endif

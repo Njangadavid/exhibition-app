@@ -279,6 +279,9 @@
                                         <i class="bi bi-grid-3x3-gap me-2"></i>Booth
                                     </th>
                                     <th class="border-0 px-3 py-3">
+                                        <i class="bi bi-tag me-2"></i>Booth Name
+                                    </th>
+                                    <th class="border-0 px-3 py-3">
                                         <i class="bi bi-currency-dollar me-2"></i>Price
                                     </th>
                                     <th class="border-0 px-3 py-3">
@@ -303,6 +306,7 @@
                                 ($paymentStatus === 'pending' ? 'warning' : 'secondary');
                                 @endphp
                                 <tr class="booking-row"
+                                    data-booking-id="{{ $booking->id }}"
                                     data-status="{{ $booking->status ?? 'reserved' }}"
                                     data-space="{{ $floorplanItem->label ?? '' }}"
                                     data-members="{{ $floorplanItem && $boothOwner->boothMembers->count() >= ($floorplanItem->max_capacity ?? 5) ? 'full' : ($boothOwner->boothMembers->count() > 0 ? 'partial' : 'empty') }}"
@@ -353,6 +357,9 @@
                                         @endif
                                     </td>
                                     <td class="px-3 py-3">
+                                        <div class="fw-medium">{{ $boothOwner->form_responses['booth_name'] ?? 'N/A' }}</div>
+                                    </td>
+                                    <td class="px-3 py-3">
                                         @if($floorplanItem)
                                         <div class="fw-bold text-success">${{ number_format($floorplanItem->price, 2) }}</div>
                                         @else
@@ -400,8 +407,8 @@
                                             <button type="button" class="btn btn-outline-info" onclick="viewBooking({{ $booking->id }}, '{{ $event->slug }}', '{{ $booking->access_token }}')" title="View Booking">
                                                 <i class="bi bi-receipt"></i>
                                             </button>
-                                            <button type="button" class="btn btn-outline-success" onclick="sendEmail({{ $boothOwner->id }})" title="Send Email">
-                                                <i class="bi bi-envelope"></i>
+                                            <button type="button" class="btn btn-outline-danger" onclick="confirmDelete({{ $booking->id }}, '{{ $boothOwner->form_responses['name'] ?? 'Exhibitor' }}')" title="Delete Booking">
+                                                <i class="bi bi-trash"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -436,6 +443,7 @@
                         @endphp
                         <div class="col-lg-6 col-xl-4">
                             <div class="exhibitor-card booking-card"
+                                data-booking-id="{{ $booking->id }}"
                                 data-status="{{ $booking->status ?? 'reserved' }}"
                                 data-space="{{ $floorplanItem->label ?? '' }}"
                                 data-members="{{ $floorplanItem && $boothOwner->boothMembers->count() >= ($floorplanItem->max_capacity ?? 5) ? 'full' : ($boothOwner->boothMembers->count() > 0 ? 'partial' : 'empty') }}"
@@ -476,6 +484,9 @@
                                             </span>
                                             <span class="fw-bold text-success">${{ number_format($floorplanItem->price, 2) }}</span>
                                         </div>
+                                        <div class="mb-2">
+                                            <div class="fw-medium small">{{ $boothOwner->form_responses['booth_name'] ?? 'N/A' }}</div>
+                                        </div>
                                         <div class="d-flex justify-content-between align-items-center">
                                             <small class="text-muted">{{ $floorplanItem->effective_booth_width_meters }}m x {{ $floorplanItem->effective_booth_height_meters }}m</small>
                                             @php
@@ -499,8 +510,8 @@
                                             <button type="button" class="btn btn-outline-info btn-sm" onclick="viewBooking({{ $booking->id }}, '{{ $event->slug }}', '{{ $booking->access_token }}')">
                                                 <i class="bi bi-receipt me-1"></i>Booking
                                             </button>
-                                            <button type="button" class="btn btn-outline-success btn-sm" onclick="sendEmail({{ $boothOwner->id }})">
-                                                <i class="bi bi-envelope me-1"></i>Email
+                                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete({{ $booking->id }}, '{{ $boothOwner->form_responses['name'] ?? 'Exhibitor' }}')">
+                                                <i class="bi bi-trash me-1"></i>Delete
                                             </button>
                                         </div>
                                     </div>
@@ -542,9 +553,43 @@
         </div>
     </div>
 
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">
+                        <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                        Confirm Delete
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the booking for <strong id="deleteExhibitorName"></strong>?</p>
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> This action cannot be undone. All booking data, including booth owner information and booth members, will be permanently deleted.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                        <i class="bi bi-trash me-1"></i>Delete Booking
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @push('scripts')
     <script>
-        let currentView = 'table';
+        // Check if currentView is already declared
+        if (typeof currentView === 'undefined') {
+            var currentView = 'table';
+        }
+        
+        // Define route URLs
+        const deleteBookingRoute = '{{ route("admin.bookings.destroy", ":id") }}';
         
         // Enhanced search and filter functionality
         function applyFilters() {
@@ -720,6 +765,7 @@
                 'Booth Label',
                 'Booth Status',
                 'Booth Dimensions',
+                'Booth Name',
                 'Booth Price',
                 'Payment Status',
                 'Member Count',
@@ -759,18 +805,23 @@
                     const boothDimensions = boothCell.querySelector('small')?.textContent.trim() || '';
                     rowData.push(boothLabel, boothStatus, boothDimensions);
                     
+                    // Booth Name column
+                    const boothNameCell = cells[4];
+                    const boothName = boothNameCell.textContent.trim() || '';
+                    rowData.push(boothName);
+                    
                     // Price column
-                    const priceCell = cells[4];
+                    const priceCell = cells[5];
                     const price = priceCell.textContent.trim().replace(/[^\d.-]/g, '') || '';
                     rowData.push(price);
                     
                     // Payment Status column
-                    const paymentCell = cells[5];
+                    const paymentCell = cells[6];
                     const paymentStatus = paymentCell.textContent.trim() || '';
                     rowData.push(paymentStatus);
                     
                     // Booth Members column (Count + Capacity + Status)
-                    const membersCell = cells[6];
+                    const membersCell = cells[7];
                     const memberCount = membersCell.querySelector('.badge')?.textContent.trim().split('/')[0] || '';
                     const maxCapacity = membersCell.querySelector('.badge')?.textContent.trim().split('/')[1] || '';
                     const capacityStatus = membersCell.querySelector('small')?.textContent.trim() || '';
@@ -876,6 +927,125 @@
             alert('Email functionality would be implemented here');
         }
 
+        // Delete booking functionality
+        let deleteBookingId = null;
+
+        function confirmDelete(bookingId, exhibitorName) {
+            deleteBookingId = bookingId;
+            document.getElementById('deleteExhibitorName').textContent = exhibitorName;
+            
+            // Show the delete modal - handle both Bootstrap 5 and fallback
+            const modalElement = document.getElementById('deleteModal');
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const deleteModal = new bootstrap.Modal(modalElement);
+                deleteModal.show();
+            } else {
+                // Fallback for when Bootstrap is not available
+                modalElement.style.display = 'block';
+                modalElement.classList.add('show');
+                document.body.classList.add('modal-open');
+                
+                // Add backdrop
+                const backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop fade show';
+                backdrop.id = 'deleteModalBackdrop';
+                document.body.appendChild(backdrop);
+            }
+        }
+
+        function deleteBooking() {
+            if (!deleteBookingId) return;
+
+            // Show loading state
+            const deleteBtn = document.getElementById('confirmDeleteBtn');
+            const originalText = deleteBtn.innerHTML;
+            deleteBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Deleting...';
+            deleteBtn.disabled = true;
+
+            // Send delete request
+            const deleteUrl = deleteBookingRoute.replace(':id', deleteBookingId);
+            fetch(deleteUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove the row/card from the DOM
+                    const bookingRow = document.querySelector(`tr[data-booking-id="${deleteBookingId}"], .booking-card[data-booking-id="${deleteBookingId}"]`);
+                    if (bookingRow) {
+                        bookingRow.remove();
+                    }
+                    
+                    // Update visible count
+                    const visibleRows = document.querySelectorAll('.booking-row:not([style*="display: none"]), .booking-card:not([style*="display: none"])');
+                    document.getElementById('visibleCount').textContent = visibleRows.length;
+                    
+                    // Show success message
+                    showAlert('Booking deleted successfully', 'success');
+                    
+                    // Close modal
+                    const modalElement = document.getElementById('deleteModal');
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        const deleteModal = bootstrap.Modal.getInstance(modalElement);
+                        if (deleteModal) {
+                            deleteModal.hide();
+                        }
+                    } else {
+                        // Fallback modal closing
+                        modalElement.style.display = 'none';
+                        modalElement.classList.remove('show');
+                        document.body.classList.remove('modal-open');
+                        
+                        // Remove backdrop
+                        const backdrop = document.getElementById('deleteModalBackdrop');
+                        if (backdrop) {
+                            backdrop.remove();
+                        }
+                    }
+                } else {
+                    showAlert(data.message || 'Failed to delete booking', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                console.error('Error details:', {
+                    message: error.message,
+                    stack: error.stack
+                });
+                showAlert('An error occurred while deleting the booking', 'danger');
+            })
+            .finally(() => {
+                // Reset button state
+                deleteBtn.innerHTML = originalText;
+                deleteBtn.disabled = false;
+                deleteBookingId = null;
+            });
+        }
+
+        function showAlert(message, type) {
+            // Create alert element
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            document.body.appendChild(alertDiv);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
         // Initialize search on input
         document.getElementById('searchInput').addEventListener('input', applyFilters);
         document.getElementById('statusFilter').addEventListener('change', applyFilters);
@@ -885,6 +1055,38 @@
         
         // Initialize table view as active
         document.getElementById('tableViewBtn').classList.add('active');
+        
+        // Initialize delete confirmation button
+        document.getElementById('confirmDeleteBtn').addEventListener('click', deleteBooking);
+        
+        // Add event listeners for modal close buttons (fallback)
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('btn-close') || e.target.classList.contains('btn-secondary')) {
+                const modal = e.target.closest('.modal');
+                if (modal && modal.id === 'deleteModal') {
+                    closeModalFallback();
+                }
+            }
+        });
+        
+        // Close modal when clicking backdrop (fallback)
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'deleteModalBackdrop') {
+                closeModalFallback();
+            }
+        });
+        
+        function closeModalFallback() {
+            const modalElement = document.getElementById('deleteModal');
+            modalElement.style.display = 'none';
+            modalElement.classList.remove('show');
+            document.body.classList.remove('modal-open');
+            
+            const backdrop = document.getElementById('deleteModalBackdrop');
+            if (backdrop) {
+                backdrop.remove();
+            }
+        }
     </script>
     @endpush
 
@@ -1113,10 +1315,66 @@
             font-weight: 600;
             color: #495057;
             background: #f8f9fa;
+            white-space: nowrap;
+        }
+
+        .table td {
+            white-space: nowrap;
         }
 
         .booking-row:hover {
             background-color: #f8f9fa;
+        }
+
+        /* Make action column sticky and prevent wrapping */
+        .table th:last-child,
+        .table td:last-child {
+            position: sticky;
+            right: 0;
+            background: white;
+            z-index: 10;
+            min-width: 120px;
+            white-space: nowrap;
+        }
+
+        .table th:last-child {
+            background: #f8f9fa;
+        }
+
+        .booking-row:hover td:last-child {
+            background: #f8f9fa;
+        }
+
+        /* Ensure table doesn't wrap content */
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .table {
+            min-width: max-content;
+        }
+
+        /* Ensure proper spacing for action buttons */
+        .table td:last-child .btn-group {
+            white-space: nowrap;
+        }
+
+        .table td:last-child .btn {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        /* Mobile responsiveness for action column */
+        @media (max-width: 768px) {
+            .table th:last-child,
+            .table td:last-child {
+                min-width: 100px;
+            }
+            
+            .table td:last-child .btn {
+                font-size: 0.7rem;
+                padding: 0.2rem 0.4rem;
+            }
         }
 
         /* Card View */

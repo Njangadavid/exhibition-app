@@ -187,6 +187,7 @@ class UserManagementController extends Controller
      */
     public function roles()
     {
+         
         $roles = Role::with('permissions')->get();
         $permissions = \App\Models\Permission::active()->get()->groupBy('category');
         

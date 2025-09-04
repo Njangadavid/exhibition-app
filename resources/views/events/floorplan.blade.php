@@ -1317,7 +1317,7 @@
                                 break;
                             case 'center':
                             default:
-                                ctx.textAlign = 'center';
+                        ctx.textAlign = 'center';
                                 textX = textCenterX;
                                 break;
                         }

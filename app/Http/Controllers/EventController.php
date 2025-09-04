@@ -122,15 +122,31 @@ class EventController extends Controller
      */
     public function destroy(Event $event)
     {
-        // Delete logo if exists
-        if ($event->logo) {
-            Storage::disk('public')->delete($event->logo);
+        try {
+            // Delete logo if exists
+            if ($event->logo) {
+                Storage::disk('public')->delete($event->logo);
+            }
+
+            $event->delete();
+
+            // Always return JSON for this route since it's designed for AJAX
+            return response()->json([
+                'success' => true,
+                'message' => 'Event deleted successfully!'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to delete event', [
+                'event_id' => $event->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete event. Please try again.'
+            ], 500);
         }
-
-        $event->delete();
-
-        return redirect()->route('events.index')
-            ->with('success', 'Event deleted successfully!');
     }
 
     /**

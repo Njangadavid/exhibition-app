@@ -1,16 +1,26 @@
-<x-app-layout>
-    <x-slot name="header">
+<?php if (isset($component)) { $__componentOriginal9ac128a9029c0e4701924bd2d73d7f54 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal9ac128a9029c0e4701924bd2d73d7f54 = $attributes; } ?>
+<?php $component = App\View\Components\AppLayout::resolve([] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('app-layout'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\App\View\Components\AppLayout::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+     <?php $__env->slot('header', null, []); ?> 
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="h4 mb-0">
                 <i class="bi bi-calendar-event me-2"></i>
-                {{ __('Event Management') }}
+                <?php echo e(__('Event Management')); ?>
+
             </h2>
-            <a href="{{ route('events.create') }}" class="btn btn-primary">
+            <a href="<?php echo e(route('events.create')); ?>" class="btn btn-primary">
                 <i class="bi bi-plus me-2"></i>
                 Create New Event
             </a>
         </div>
-    </x-slot>
+     <?php $__env->endSlot(); ?>
 
     <div class="py-4">
         <div class="container-fluid">
@@ -27,7 +37,7 @@
                                 </div>
                                 <div class="ms-3">
                                     <div class="text-muted small fw-medium">Total Events</div>
-                                    <div class="h3 fw-bold text-dark mb-0">{{ App\Models\Event::count() }}</div>
+                                    <div class="h3 fw-bold text-dark mb-0"><?php echo e(App\Models\Event::count()); ?></div>
                                 </div>
                             </div>
                         </div>
@@ -45,7 +55,7 @@
                                 </div>
                                 <div class="ms-3">
                                     <div class="text-muted small fw-medium">Active Now</div>
-                                    <div class="h3 fw-bold text-dark mb-0">{{ App\Models\Event::active()->count() }}</div>
+                                    <div class="h3 fw-bold text-dark mb-0"><?php echo e(App\Models\Event::active()->count()); ?></div>
                                 </div>
                             </div>
                         </div>
@@ -63,7 +73,7 @@
                                 </div>
                                 <div class="ms-3">
                                     <div class="text-muted small fw-medium">Upcoming</div>
-                                    <div class="h3 fw-bold text-dark mb-0">{{ App\Models\Event::upcoming()->count() }}</div>
+                                    <div class="h3 fw-bold text-dark mb-0"><?php echo e(App\Models\Event::upcoming()->count()); ?></div>
                                 </div>
                             </div>
                         </div>
@@ -81,7 +91,7 @@
                                 </div>
                                 <div class="ms-3">
                                     <div class="text-muted small fw-medium">Completed</div>
-                                    <div class="h3 fw-bold text-dark mb-0">{{ App\Models\Event::completed()->count() }}</div>
+                                    <div class="h3 fw-bold text-dark mb-0"><?php echo e(App\Models\Event::completed()->count()); ?></div>
                                 </div>
                             </div>
                         </div>
@@ -132,16 +142,16 @@
                     <div class="mt-3 pt-3 border-top">
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             <span class="small fw-medium text-muted">Quick Access:</span>
-                            <a href="{{ route('events.index') }}" class="badge bg-primary text-decoration-none px-3 py-2">
+                            <a href="<?php echo e(route('events.index')); ?>" class="badge bg-primary text-decoration-none px-3 py-2">
                                 <i class="bi bi-grid me-1"></i>All Events
                             </a>
-                            <a href="{{ route('events.index') }}?status=active" class="badge bg-success text-decoration-none px-3 py-2">
+                            <a href="<?php echo e(route('events.index')); ?>?status=active" class="badge bg-success text-decoration-none px-3 py-2">
                                 <i class="bi bi-play-circle me-1"></i>Active
                             </a>
-                            <a href="{{ route('events.index') }}?status=upcoming" class="badge bg-info text-decoration-none px-3 py-2">
+                            <a href="<?php echo e(route('events.index')); ?>?status=upcoming" class="badge bg-info text-decoration-none px-3 py-2">
                                 <i class="bi bi-clock me-1"></i>Upcoming
                             </a>
-                            <a href="{{ route('events.index') }}?status=completed" class="badge bg-warning text-decoration-none px-3 py-2">
+                            <a href="<?php echo e(route('events.index')); ?>?status=completed" class="badge bg-warning text-decoration-none px-3 py-2">
                                 <i class="bi bi-check-circle me-1"></i>Completed
                             </a>
                         </div>
@@ -150,44 +160,45 @@
             </div>
 
             <!-- Events Grid -->
-            @if($events->count() > 0)
+            <?php if($events->count() > 0): ?>
                 <div class="row g-4">
-                    @foreach($events as $event)
+                    <?php $__currentLoopData = $events; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $event): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <div class="col-lg-6 col-xl-4 event-card" 
-                             data-event-slug="{{ $event->slug }}"
-                             data-status="{{ $event->status }}"
-                             data-title="{{ strtolower($event->name) }}"
-                             data-description="{{ strtolower($event->description) }}"
-                             data-date="{{ $event->start_date->format('Y-m-d') }}">
+                             data-event-slug="<?php echo e($event->slug); ?>"
+                             data-status="<?php echo e($event->status); ?>"
+                             data-title="<?php echo e(strtolower($event->name)); ?>"
+                             data-description="<?php echo e(strtolower($event->description)); ?>"
+                             data-date="<?php echo e($event->start_date->format('Y-m-d')); ?>">
                             <div class="card border-0 shadow-sm h-100 event-item">
                                 <!-- Event Logo - Full Width -->
-                                @if($event->logo)
+                                <?php if($event->logo): ?>
                                     <div class="event-logo-container">
-                                        <img src="{{ Storage::url($event->logo) }}" alt="{{ $event->name }}" class="event-logo">
+                                        <img src="<?php echo e(Storage::url($event->logo)); ?>" alt="<?php echo e($event->name); ?>" class="event-logo">
                                     </div>
-                                @else
+                                <?php else: ?>
                                     <div class="event-logo-placeholder">
                                         <i class="bi bi-calendar-event"></i>
                                     </div>
-                                @endif
+                                <?php endif; ?>
                                 
                                 <!-- Event Header with Status -->
                                 <div class="card-header bg-transparent border-0 pb-0">
                                     <div class="d-flex justify-content-between align-items-start">
                                         <div>
                                             <span class="badge 
-                                                @if($event->status === 'active') bg-success
-                                                @elseif($event->status === 'published') bg-primary
-                                                @elseif($event->status === 'completed') bg-info
-                                                @elseif($event->status === 'cancelled') bg-danger
-                                                @else bg-secondary @endif px-3 py-2">
+                                                <?php if($event->status === 'active'): ?> bg-success
+                                                <?php elseif($event->status === 'published'): ?> bg-primary
+                                                <?php elseif($event->status === 'completed'): ?> bg-info
+                                                <?php elseif($event->status === 'cancelled'): ?> bg-danger
+                                                <?php else: ?> bg-secondary <?php endif; ?> px-3 py-2">
                                                 <i class="bi 
-                                                    @if($event->status === 'active') bi-play-circle
-                                                    @elseif($event->status === 'published') bi-globe
-                                                    @elseif($event->status === 'completed') bi-check-circle
-                                                    @elseif($event->status === 'cancelled') bi-x-circle
-                                                    @else bi-dash-circle @endif me-1"></i>
-                                                {{ ucfirst($event->status) }}
+                                                    <?php if($event->status === 'active'): ?> bi-play-circle
+                                                    <?php elseif($event->status === 'published'): ?> bi-globe
+                                                    <?php elseif($event->status === 'completed'): ?> bi-check-circle
+                                                    <?php elseif($event->status === 'cancelled'): ?> bi-x-circle
+                                                    <?php else: ?> bi-dash-circle <?php endif; ?> me-1"></i>
+                                                <?php echo e(ucfirst($event->status)); ?>
+
                                             </span>
                                         </div>
                                         
@@ -197,23 +208,23 @@
                                                 <i class="bi bi-three-dots-vertical"></i>
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-end">
-                                                <li><a class="dropdown-item" href="{{ route('events.show', $event) }}">
+                                                <li><a class="dropdown-item" href="<?php echo e(route('events.show', $event)); ?>">
                                                     <i class="bi bi-eye me-2"></i>View Details
                                                 </a></li>
-                                                <li><a class="dropdown-item" href="{{ route('events.edit', $event) }}">
+                                                <li><a class="dropdown-item" href="<?php echo e(route('events.edit', $event)); ?>">
                                                     <i class="bi bi-pencil me-2"></i>Edit Event
                                                 </a></li>
-                                                <li><a class="dropdown-item" href="{{ route('events.dashboard', $event) }}">
+                                                <li><a class="dropdown-item" href="<?php echo e(route('events.dashboard', $event)); ?>">
                                                     <i class="bi bi-speedometer2 me-2"></i>Dashboard
                                                 </a></li>
                                                 <li><hr class="dropdown-divider"></li>
-                                                <li><a class="dropdown-item" href="{{ route('events.public.show', $event) }}" target="_blank">
+                                                <li><a class="dropdown-item" href="<?php echo e(route('events.public.show', $event)); ?>" target="_blank">
                                                     <i class="bi bi-globe me-2"></i>Public Page
                                                 </a></li>
-                                                <li><a class="dropdown-item" href="{{ route('events.public.floorplan', $event) }}" target="_blank">
+                                                <li><a class="dropdown-item" href="<?php echo e(route('events.public.floorplan', $event)); ?>" target="_blank">
                                                     <i class="bi bi-map me-2"></i>Floorplan
                                                 </a></li>
-                                                <li><a class="dropdown-item" href="{{ route('admin.payment-methods.index', ['event' => $event->id]) }}">
+                                                <li><a class="dropdown-item" href="<?php echo e(route('admin.payment-methods.index', ['event' => $event->id])); ?>">
                                                     <i class="bi bi-credit-card me-2"></i>Payment Methods
                                                 </a></li>
                                             </ul>
@@ -223,67 +234,69 @@
 
                                 <!-- Event Content -->
                                 <div class="card-body pt-2">
-                                    <h5 class="card-title fw-bold mb-2 text-truncate" title="{{ $event->name }}">
-                                        <a href="{{ route('events.dashboard', $event) }}" class="text-decoration-none text-dark hover-text-primary" style="transition: color 0.2s ease;">
-                                            {{ $event->name }}
+                                    <h5 class="card-title fw-bold mb-2 text-truncate" title="<?php echo e($event->name); ?>">
+                                        <a href="<?php echo e(route('events.dashboard', $event)); ?>" class="text-decoration-none text-dark hover-text-primary" style="transition: color 0.2s ease;">
+                                            <?php echo e($event->name); ?>
+
                                         </a>
                                     </h5>
                                     
-                                    <p class="text-muted small mb-3 line-clamp-2" title="{{ $event->description }}">
-                                        {{ Str::limit($event->description, 120) }}
+                                    <p class="text-muted small mb-3 line-clamp-2" title="<?php echo e($event->description); ?>">
+                                        <?php echo e(Str::limit($event->description, 120)); ?>
+
                                     </p>
 
                                     <!-- Event Timeline -->
                                     <div class="mb-3">
                                         <div class="d-flex align-items-center mb-2">
                                             <i class="bi bi-calendar-event text-primary me-2"></i>
-                                            <span class="small fw-medium">{{ $event->start_date->format('M d, Y') }}</span>
+                                            <span class="small fw-medium"><?php echo e($event->start_date->format('M d, Y')); ?></span>
                                             <span class="text-muted mx-2">•</span>
-                                            <span class="text-muted small">{{ $event->duration_in_days }} day{{ $event->duration_in_days > 1 ? 's' : '' }}</span>
+                                            <span class="text-muted small"><?php echo e($event->duration_in_days); ?> day<?php echo e($event->duration_in_days > 1 ? 's' : ''); ?></span>
                                         </div>
                                         <div class="d-flex align-items-center">
                                             <i class="bi bi-clock text-info me-2"></i>
-                                            <span class="small">{{ $event->start_date->format('g:i A') }} - {{ $event->end_date->format('g:i A') }}</span>
+                                            <span class="small"><?php echo e($event->start_date->format('g:i A')); ?> - <?php echo e($event->end_date->format('g:i A')); ?></span>
                                         </div>
                                     </div>
 
                                     <!-- Progress Indicator for Active Events -->
-                                    @if($event->status === 'active')
-                                        @php
+                                    <?php if($event->status === 'active'): ?>
+                                        <?php
                                             $totalDays = $event->start_date->diffInDays($event->end_date) + 1;
                                             $elapsedDays = $event->start_date->diffInDays(now()) + 1;
                                             $progress = min(100, max(0, ($elapsedDays / $totalDays) * 100));
-                                        @endphp
+                                        ?>
                                         <div class="mb-3">
                                             <div class="d-flex justify-content-between align-items-center mb-1">
                                                 <span class="small text-muted">Event Progress</span>
-                                                <span class="small fw-medium">{{ round($progress) }}%</span>
+                                                <span class="small fw-medium"><?php echo e(round($progress)); ?>%</span>
                                             </div>
                                             <div class="progress" style="height: 6px;">
-                                                <div class="progress-bar bg-success" style="width: {{ $progress }}%"></div>
+                                                <div class="progress-bar bg-success" style="width: <?php echo e($progress); ?>%"></div>
                                             </div>
                                         </div>
-                                    @endif
+                                    <?php endif; ?>
                                 </div>
 
                                 <!-- Action Buttons -->
                                 <div class="card-footer bg-transparent border-0 pt-0">
                                     <div class="d-grid gap-2">
-                                        <a href="{{ route('events.dashboard', $event) }}" class="btn btn-primary btn-sm">
+                                        <a href="<?php echo e(route('events.dashboard', $event)); ?>" class="btn btn-primary btn-sm">
                                             <i class="bi bi-speedometer2 me-2"></i>Manage Event
                                         </a>
                                         <div class="d-flex gap-1">
-                                            <a href="{{ route('events.public.show', $event) }}" class="btn btn-outline-success btn-sm flex-fill" target="_blank" title="View Public Page">
+                                            <a href="<?php echo e(route('events.public.show', $event)); ?>" class="btn btn-outline-success btn-sm flex-fill" target="_blank" title="View Public Page">
                                                 <i class="bi bi-globe"></i>
                                             </a>
-                                            <a href="{{ route('events.public.floorplan', $event) }}" class="btn btn-outline-info btn-sm flex-fill" target="_blank" title="View Floorplan">
+                                            <a href="<?php echo e(route('events.public.floorplan', $event)); ?>" class="btn btn-outline-info btn-sm flex-fill" target="_blank" title="View Floorplan">
                                                 <i class="bi bi-map"></i>
                                             </a>
-                                            <a href="{{ route('events.edit', $event) }}" class="btn btn-outline-secondary btn-sm flex-fill" title="Edit Event">
+                                            <a href="<?php echo e(route('events.edit', $event)); ?>" class="btn btn-outline-secondary btn-sm flex-fill" title="Edit Event">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
                                             <button type="button" class="btn btn-outline-danger btn-sm flex-fill" 
-                                                    onclick="confirmDeleteEvent('{{ $event->slug }}', '{{ addslashes($event->name) }}')" 
+                                                    onclick="confirmDeleteEvent('<?php echo e($event->slug); ?>', '<?php echo e(addslashes($event->name)); ?>')" 
                                                     title="Delete Event">
                                                 <i class="bi bi-trash"></i>
                                             </button>
@@ -292,18 +305,19 @@
                                 </div>
                             </div>
                         </div>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </div>
 
                 <!-- Enhanced Pagination -->
-                @if($events->hasPages())
+                <?php if($events->hasPages()): ?>
                     <div class="mt-5">
                         <nav aria-label="Events pagination">
-                            {{ $events->links() }}
+                            <?php echo e($events->links()); ?>
+
                         </nav>
                     </div>
-                @endif
-            @else
+                <?php endif; ?>
+            <?php else: ?>
                 <!-- Enhanced Empty State -->
                 <div class="card border-0 shadow-sm">
                     <div class="card-body text-center py-5">
@@ -315,7 +329,7 @@
                         <h3 class="h4 mb-3">No events found</h3>
                         <p class="text-muted mb-4 fs-6">Get started by creating your first event to manage exhibitions, conferences, or any gathering.</p>
                         <div class="d-flex justify-content-center gap-3">
-                            <a href="{{ route('events.create') }}" class="btn btn-primary btn-lg">
+                            <a href="<?php echo e(route('events.create')); ?>" class="btn btn-primary btn-lg">
                                 <i class="bi bi-plus-circle me-2"></i>
                                 Create Your First Event
                             </a>
@@ -326,7 +340,7 @@
                         </div>
                     </div>
                 </div>
-            @endif
+            <?php endif; ?>
         </div>
     </div>
 
@@ -506,7 +520,7 @@
 
         // Delete Event Functionality
         let deleteEventSlug = null;
-        const deleteEventRoute = '{{ route("events.delete", ":slug") }}';
+        const deleteEventRoute = '<?php echo e(route("events.delete", ":slug")); ?>';
 
         function confirmDeleteEvent(eventSlug, eventName) {
             deleteEventSlug = eventSlug;
@@ -632,4 +646,14 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+ <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal9ac128a9029c0e4701924bd2d73d7f54)): ?>
+<?php $attributes = $__attributesOriginal9ac128a9029c0e4701924bd2d73d7f54; ?>
+<?php unset($__attributesOriginal9ac128a9029c0e4701924bd2d73d7f54); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal9ac128a9029c0e4701924bd2d73d7f54)): ?>
+<?php $component = $__componentOriginal9ac128a9029c0e4701924bd2d73d7f54; ?>
+<?php unset($__componentOriginal9ac128a9029c0e4701924bd2d73d7f54); ?>
+<?php endif; ?>
+<?php /**PATH C:\xampp\htdocs\exhibition-app\resources\views/events/index.blade.php ENDPATH**/ ?>

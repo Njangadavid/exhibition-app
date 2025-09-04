@@ -170,7 +170,9 @@ class PaystackWebhookController extends Controller
                     try {
                         $emailService = app(\App\Services\EmailCommunicationService::class);
                         $emailService->sendTriggeredEmail('payment_failed', $booking);
-                        Log::info('Payment failure email triggered via webhook', [
+                        Log::info(
+                            'Payment failure email triggered via webhook', 
+                            [
                             'booking_id' => $booking->id,
                             'trigger_type' => 'payment_failed'
                         ]);

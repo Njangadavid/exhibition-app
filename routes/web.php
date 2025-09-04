@@ -26,7 +26,84 @@ Route::get('/event/{eventSlug}/booking/{accessToken}/change-space/{itemId}', [Bo
 Route::get('/event/{eventSlug}/booking/{accessToken}/members', [BookingController::class, 'showMemberForm'])->name('bookings.member-form');
 Route::post('/event/{eventSlug}/booking/{accessToken}/members', [BookingController::class, 'processMemberForm'])->name('bookings.process-members');
 Route::post('/event/{eventSlug}/booking/{accessToken}/save-members', [BookingController::class, 'saveMembers'])->name('bookings.save-members');
-Route::delete('/event/{eventSlug}/booking/{accessToken}/member/{memberId}', [BookingController::class, 'deleteMember'])->name('bookings.delete-member');
+Route::post('/event/{eventSlug}/booking/{accessToken}/member/{memberId}/delete', [BookingController::class, 'deleteMember'])->name('bookings.delete-member');
+Route::post('/admin/bookings/{booking}/delete', [BookingController::class, 'destroy'])->name('admin.bookings.destroy')->middleware(['auth']);
+
+// Debug route to check user roles
+Route::get('/debug/user-roles', function () {
+    if (!auth()->check()) {
+        return response()->json(['error' => 'Not authenticated']);
+    }
+    
+    $user = auth()->user()->load('roles');
+    
+    // Get permissions using the fixed method
+    $permissions = $user->permissions()->get();
+    
+    // Also check what roles exist in the database
+    $allRoles = \App\Models\Role::all()->pluck('name')->toArray();
+    
+    return response()->json([
+        'user_id' => $user->id,
+        'user_email' => $user->email,
+        'roles' => $user->roles->pluck('name')->toArray(),
+        'roles_count' => $user->roles->count(),
+        'is_admin' => $user->isAdmin(),
+        'permissions' => $permissions->pluck('name')->toArray(),
+        'permissions_count' => $permissions->count(),
+        'all_roles_in_db' => $allRoles,
+        'admin_role_exists' => in_array('admin', $allRoles)
+    ]);
+})->middleware(['auth']);
+
+// Simple test route to verify routes are working
+Route::get('/test-route', function () {
+    return response()->json([
+        'message' => 'Route is working!',
+        'timestamp' => now(),
+        'server' => 'production'
+    ]);
+});
+
+// Test event delete route
+Route::post('/test-event-delete/{id}', function ($id) {
+    return response()->json([
+        'message' => 'Event delete route working!',
+        'event_id' => $id,
+        'timestamp' => now()
+    ]);
+});
+
+
+// Simple test route for event delete
+Route::post('/test-events-delete/{id}', function ($id) {
+    return response()->json([
+        'message' => 'Event delete test route working!',
+        'event_id' => $id,
+        'url' => request()->url(),
+        'method' => request()->method(),
+        'timestamp' => now()
+    ]);
+});
+
+// Temporary delete route without middleware for testing
+Route::post('/test-delete/{booking}', function ($bookingId) {
+    return response()->json([
+        'message' => 'POST Delete route hit!',
+        'booking_id' => $bookingId,
+        'timestamp' => now()
+    ]);
+});
+
+// GET route for testing (easier to test in browser)
+Route::get('/test-delete/{booking}', function ($bookingId) {
+    return response()->json([
+        'message' => 'GET Delete route hit!',
+        'booking_id' => $bookingId,
+        'timestamp' => now(),
+        'method' => 'GET'
+    ]);
+});
 Route::post('/event/{eventSlug}/booking/{accessToken}/member/{memberId}/update', [BookingController::class, 'updateMember'])->name('bookings.update-member');
 Route::get('/event/{eventSlug}/booking/{accessToken}/payment', [BookingController::class, 'showPayment'])->name('bookings.payment');
 Route::post('/event/{eventSlug}/booking/{accessToken}/payment', [PaystackController::class, 'initializePayment'])->name('bookings.process-payment');
@@ -54,10 +131,11 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/profile/delete', [ProfileController::class, 'destroy'])->name('profile.destroy');
     
     // Event routes
     Route::resource('events', EventController::class);
+    Route::post('/events/{event:slug}/delete', [EventController::class, 'destroy'])->name('events.delete');
     Route::get('/events-dashboard', [EventController::class, 'dashboard'])->name('events.dashboard');
     
     // Event-specific routes
@@ -93,7 +171,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/booth-members/{member}/edit', [EventController::class, 'getBoothMemberForEdit'])->name('booth-members.edit');
     Route::get('/booth-members/new/{boothOwner}', [EventController::class, 'getFormFieldsForNewMember'])->name('booth-members.new');
     Route::put('/booth-members/{member}', [EventController::class, 'updateBoothMember'])->name('booth-members.update');
-    Route::delete('/booth-members/{member}', [EventController::class, 'deleteBoothMember'])->name('booth-members.delete');
+    Route::post('/booth-members/{member}/delete', [EventController::class, 'deleteBoothMember'])->name('booth-members.delete');
+
 });
 
 // Paystack routes
@@ -394,6 +473,120 @@ Route::prefix('artisan')->group(function () {
             ], 500);
         }
     })->name('artisan.build-status');
+
+    // Seeder routes for production updates
+    Route::get('/seed-permissions', function () {
+        try {
+            \Artisan::call('db:seed', ['--class' => 'PermissionSeeder', '--force' => true]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Permissions seeded successfully!',
+                'output' => \Artisan::output()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error seeding permissions: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('artisan.seed-permissions');
+
+    Route::get('/seed-roles', function () {
+        try {
+            \Artisan::call('db:seed', ['--class' => 'RoleSeeder', '--force' => true]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Roles seeded successfully!',
+                'output' => \Artisan::output()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error seeding roles: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('artisan.seed-roles');
+
+    Route::get('/seed-assign-admin-role', function () {
+        try {
+            \Artisan::call('db:seed', ['--class' => 'AssignAdminRoleSeeder', '--force' => true]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Admin role assigned successfully!',
+                'output' => \Artisan::output()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error assigning admin role: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('artisan.seed-assign-admin-role');
+
+    Route::get('/seed-user-management', function () {
+        try {
+            // Run all user management seeders in order
+            \Artisan::call('db:seed', ['--class' => 'PermissionSeeder', '--force' => true]);
+            \Artisan::call('db:seed', ['--class' => 'RoleSeeder', '--force' => true]);
+            \Artisan::call('db:seed', ['--class' => 'AssignAdminRoleSeeder', '--force' => true]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'User management system seeded successfully!',
+                'commands' => ['PermissionSeeder', 'RoleSeeder', 'AssignAdminRoleSeeder'],
+                'output' => \Artisan::output()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error seeding user management system: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('artisan.seed-user-management');
+
+    Route::get('/seed-all', function () {
+        try {
+            // Run all seeders
+            \Artisan::call('db:seed', ['--force' => true]);
+            return response()->json([
+                'success' => true,
+                'message' => 'All seeders completed successfully!',
+                'output' => \Artisan::output()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error running all seeders: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('artisan.seed-all');
+
+    // Check seeder status
+    Route::get('/seeder-status', function () {
+        try {
+            $status = [
+                'permissions' => \App\Models\Permission::count(),
+                'roles' => \App\Models\Role::count(),
+                'users_with_roles' => \App\Models\User::whereHas('roles')->count(),
+                'admin_users' => \App\Models\User::whereHas('roles', function($query) {
+                    $query->where('name', 'admin');
+                })->count(),
+                'database_connection' => \DB::connection()->getPdo() ? 'Connected' : 'Disconnected',
+                'timestamp' => now()->toDateTimeString()
+            ];
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Seeder status retrieved successfully!',
+                'status' => $status
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error getting seeder status: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('artisan.seeder-status');
 });
 
 require __DIR__.'/auth.php';

@@ -226,6 +226,7 @@
                          <th>Company</th>
                          <th>Contact</th>
                          <th>Booth</th>
+                         <th>Booth Name</th>
                          <th>Size</th>
                          <th>Price</th>
                          <th>Members</th>
@@ -270,6 +271,9 @@
                               @else
                                  N/A
                              @endif
+                         </td>
+                         <td>
+                             {{ $boothOwner->form_responses['booth_name'] ?? 'N/A' }}
                          </td>
                          <td>
                              @if($floorplanItem)
