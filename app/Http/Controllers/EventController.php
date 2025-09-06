@@ -19,7 +19,8 @@ class EventController extends Controller
      */
     public function index()
     {
-        $events = Event::latest()->paginate(10);
+        // Get events visible to the current user
+        $events = Event::visibleTo(auth()->user())->latest()->paginate(10);
         
         return view('events.index', compact('events'));
     }
@@ -29,9 +30,15 @@ class EventController extends Controller
      */
     public function create()
     {
+        // Check if user has permission to create events
+        if (!auth()->user()->hasPermission('create_events')) {
+            abort(403, 'You do not have permission to create events.');
+        }
+
         $statusOptions = Event::getStatusOptions();
+        $users = \App\Models\User::active()->get();
         
-        return view('events.create', compact('statusOptions'));
+        return view('events.create', compact('statusOptions', 'users'));
     }
 
     /**
@@ -39,6 +46,11 @@ class EventController extends Controller
      */
     public function store(Request $request)
     {
+        // Check if user has permission to create events
+        if (!auth()->user()->hasPermission('create_events')) {
+            abort(403, 'You do not have permission to create events.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'required|string',
@@ -46,6 +58,8 @@ class EventController extends Controller
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
+            'assigned_users' => 'nullable|array',
+            'assigned_users.*' => 'exists:users,id',
         ]);
 
         // Generate slug from name
@@ -57,7 +71,15 @@ class EventController extends Controller
             $validated['logo'] = $logoPath;
         }
 
-        Event::create($validated);
+        // Create the event with owner
+        $validated['owner_id'] = auth()->id();
+        $event = Event::create($validated);
+
+        // Assign users to the event (always include the owner)
+        $assignedUsers = $request->input('assigned_users', []);
+        $assignedUsers[] = auth()->id(); // Always include the owner
+        $assignedUsers = array_unique($assignedUsers); // Remove duplicates
+        $event->users()->sync($assignedUsers);
 
         return redirect()->route('events.index')
             ->with('success', 'Event created successfully!');
@@ -68,6 +90,11 @@ class EventController extends Controller
      */
     public function show(Event $event)
     {
+        // Check if user can view this event
+        if (!$event->canBeViewedBy(auth()->user())) {
+            abort(403, 'You do not have permission to view this event.');
+        }
+
         return view('events.show', compact('event'));
     }
 
@@ -76,9 +103,15 @@ class EventController extends Controller
      */
     public function edit(Event $event)
     {
+        // Check if user can view this event
+        if (!$event->canBeViewedBy(auth()->user())) {
+            abort(403, 'You do not have permission to edit this event.');
+        }
+
         $statusOptions = Event::getStatusOptions();
+        $users = \App\Models\User::active()->get();
         
-        return view('events.edit', compact('event', 'statusOptions'));
+        return view('events.edit', compact('event', 'statusOptions', 'users'));
     }
 
     /**
@@ -86,6 +119,12 @@ class EventController extends Controller
      */
     public function update(Request $request, Event $event)
     {
+        // Check if user can view this event
+        if (!$event->canBeViewedBy(auth()->user())) {
+            abort(403, 'You do not have permission to edit this event.');
+        }
+
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'required|string',
@@ -93,6 +132,8 @@ class EventController extends Controller
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
+            'assigned_users' => 'nullable|array',
+            'assigned_users.*' => 'exists:users,id',
         ]);
 
         // Generate slug from name (only if name changed)
@@ -113,8 +154,52 @@ class EventController extends Controller
 
         $event->update($validated);
 
+        // Update user assignments
+        $assignedUsers = $request->input('assigned_users', []);
+        
+        // Ensure it's an array
+        if (!is_array($assignedUsers)) {
+            $assignedUsers = [];
+        }
+        
+        // If current user is admin, they can manage ownership
+        if (auth()->user()->hasRole('admin')) {
+            // Admin can remove owner from assignments if they want
+            $event->users()->sync($assignedUsers);
+        } else {
+            // Non-admin users: always include the owner
+            $assignedUsers[] = $event->owner_id; // Always include the owner
+            $assignedUsers = array_unique($assignedUsers); // Remove duplicates
+            $event->users()->sync($assignedUsers);
+        }
+
         return redirect()->route('events.index')
             ->with('success', 'Event updated successfully!');
+    }
+
+    /**
+     * Transfer event ownership (admin only)
+     */
+    public function transferOwnership(Request $request, Event $event)
+    {
+        // Check if user is admin
+        if (!auth()->user()->hasRole('admin')) {
+            abort(403, 'Only administrators can transfer event ownership.');
+        }
+
+        $validated = $request->validate([
+            'new_owner_id' => 'required|exists:users,id',
+        ]);
+
+        $newOwner = \App\Models\User::findOrFail($validated['new_owner_id']);
+
+        if ($event->transferOwnership($newOwner, auth()->user())) {
+            return redirect()->back()
+                ->with('success', "Event ownership transferred to {$newOwner->name} successfully!");
+        } else {
+            return redirect()->back()
+                ->with('error', 'Failed to transfer event ownership.');
+        }
     }
 
     /**
@@ -173,14 +258,18 @@ class EventController extends Controller
      */
     public function dashboard()
     {
-        $activeEvents = Event::active()->count();
-        $upcomingEvents = Event::upcoming()->count();
-        $completedEvents = Event::completed()->count();
-        $totalEvents = Event::count();
+        $user = auth()->user();
         
-        $recentEvents = Event::latest()->take(5)->get();
-        $upcomingEventsList = Event::upcoming()->take(3)->get();
-
+        // Get events visible to the current user
+        $visibleEvents = Event::visibleTo($user);
+        
+        $activeEvents = $visibleEvents->active()->count();
+        $upcomingEvents = $visibleEvents->upcoming()->count();
+        $completedEvents = $visibleEvents->completed()->count();
+        $totalEvents = $visibleEvents->count();
+        
+        $recentEvents = $visibleEvents->latest()->take(5)->get();
+        $upcomingEventsList = $visibleEvents->upcoming()->take(3)->get();
         return view('events.dashboard', compact(
             'activeEvents',
             'upcomingEvents', 
@@ -196,6 +285,16 @@ class EventController extends Controller
      */
     public function eventDashboard(Event $event)
     {
+        // Check if user has permission to view events
+        if (!auth()->user()->hasPermission('view_events')) {
+            abort(403, 'You do not have permission to view events.');
+        }
+
+        // Check if user can view this specific event
+        if (!$event->canBeViewedBy(auth()->user())) {
+            abort(403, 'You do not have permission to view this event.');
+        }
+
         return view('events.dashboard', compact('event'));
     }
 
@@ -204,6 +303,11 @@ class EventController extends Controller
      */
     public function floorplan(Event $event)
     {
+        // Check if user has permission to manage floorplans
+        if (!auth()->user()->hasPermission('manage_floorplans') && !auth()->user()->hasPermission('manage_own_floorplans')) {
+            abort(403, 'You do not have permission to manage floorplans.');
+        }
+
         // Load existing floorplan design if exists
         $floorplanDesign = $event->floorplanDesign()->with('items')->first();
         

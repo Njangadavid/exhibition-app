@@ -117,15 +117,33 @@ Route::get('/dashboard', function () {
 
 // Admin routes
 Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
-    Route::resource('payment-methods', \App\Http\Controllers\Admin\PaymentMethodController::class);
-    Route::patch('payment-methods/{paymentMethod}/toggle-status', [\App\Http\Controllers\Admin\PaymentMethodController::class, 'toggleStatus'])->name('payment-methods.toggle-status');
-    Route::patch('payment-methods/{paymentMethod}/set-default', [\App\Http\Controllers\Admin\PaymentMethodController::class, 'setDefault'])->name('payment-methods.set-default');
+    Route::resource('payment-methods', \App\Http\Controllers\Admin\PaymentMethodController::class)->middleware('permission:manage_payment_methods');
+    Route::patch('payment-methods/{paymentMethod}/toggle-status', [\App\Http\Controllers\Admin\PaymentMethodController::class, 'toggleStatus'])->name('payment-methods.toggle-status')->middleware('permission:manage_payment_methods');
+    Route::patch('payment-methods/{paymentMethod}/set-default', [\App\Http\Controllers\Admin\PaymentMethodController::class, 'setDefault'])->name('payment-methods.set-default')->middleware('permission:manage_payment_methods');
+    
+    // Role Management routes (Admin only) - Must come before users resource routes
+    Route::get('roles', [\App\Http\Controllers\UserManagementController::class, 'roles'])->name('roles.index')->middleware('permission:assign_roles');
+    Route::patch('roles/{role}/permissions', [\App\Http\Controllers\UserManagementController::class, 'updateRolePermissions'])->name('roles.permissions')->middleware('permission:assign_roles');
     
     // User Management routes (Admin only)
-    Route::resource('users', \App\Http\Controllers\UserManagementController::class)->middleware('role:admin');
-    Route::patch('users/{user}/toggle-status', [\App\Http\Controllers\UserManagementController::class, 'toggleStatus'])->name('users.toggle-status')->middleware('role:admin');
-    Route::get('users/roles', [\App\Http\Controllers\UserManagementController::class, 'roles'])->name('users.roles')->middleware('role:admin');
-    Route::patch('users/roles/{role}/permissions', [\App\Http\Controllers\UserManagementController::class, 'updateRolePermissions'])->name('users.roles.permissions')->middleware('role:admin');
+    Route::resource('users', \App\Http\Controllers\UserManagementController::class)->middleware('permission:manage_users');
+    Route::patch('users/{user}/toggle-status', [\App\Http\Controllers\UserManagementController::class, 'toggleStatus'])->name('users.toggle-status')->middleware('permission:manage_users');
+    
+    // Test route to check if admin routes work
+    Route::get('test-admin', function () {
+        return response()->json([
+            'message' => 'Admin route is working!',
+            'user' => auth()->user() ? auth()->user()->email : 'Not logged in',
+            'roles' => auth()->user() ? auth()->user()->roles->pluck('name')->toArray() : [],
+            'is_admin' => auth()->user() ? auth()->user()->hasRole('admin') : false
+        ]);
+    })->middleware('permission:manage_users')->name('test.admin');
+    
+    // Event Email Settings routes (Admin only)
+    Route::get('events/{event}/email-settings', [\App\Http\Controllers\Admin\EventEmailSettingsController::class, 'show'])->name('events.email-settings')->middleware('permission:manage_email_settings');
+    Route::post('events/{event}/email-settings', [\App\Http\Controllers\Admin\EventEmailSettingsController::class, 'store'])->name('events.email-settings.store')->middleware('permission:manage_email_settings');
+    Route::post('events/{event}/email-settings/test', [\App\Http\Controllers\Admin\EventEmailSettingsController::class, 'test'])->name('events.email-settings.test')->middleware('permission:manage_email_settings');
+    Route::delete('events/{event}/email-settings', [\App\Http\Controllers\Admin\EventEmailSettingsController::class, 'destroy'])->name('events.email-settings.destroy')->middleware('permission:manage_email_settings');
 });
 
 Route::middleware('auth')->group(function () {
@@ -136,35 +154,36 @@ Route::middleware('auth')->group(function () {
     // Event routes
     Route::resource('events', EventController::class);
     Route::post('/events/{event:slug}/delete', [EventController::class, 'destroy'])->name('events.delete');
-    Route::get('/events-dashboard', [EventController::class, 'dashboard'])->name('events.dashboard');
+    Route::post('/events/{event}/transfer-ownership', [EventController::class, 'transferOwnership'])->name('events.transfer-ownership')->middleware('role:admin');
+    Route::get('/events-dashboard', [EventController::class, 'dashboard'])->name('events.overview');
     
     // Event-specific routes
     Route::get('/events/{event}/dashboard', [EventController::class, 'eventDashboard'])->name('events.dashboard');
-    Route::get('/events/{event}/floorplan', [EventController::class, 'floorplan'])->name('events.floorplan');
-    Route::post('/events/{event}/floorplan/save', [EventController::class, 'saveFloorplan'])->name('events.floorplan.save');
-    Route::get('/events/{event}/floorplan/load', [EventController::class, 'loadFloorplan'])->name('events.floorplan.load');
+    Route::get('/events/{event}/floorplan', [EventController::class, 'floorplan'])->name('events.floorplan')->middleware('permission:manage_floorplans,manage_own_floorplans');
+    Route::post('/events/{event}/floorplan/save', [EventController::class, 'saveFloorplan'])->name('events.floorplan.save')->middleware('permission:manage_floorplans,manage_own_floorplans');
+    Route::get('/events/{event}/floorplan/load', [EventController::class, 'loadFloorplan'])->name('events.floorplan.load')->middleware('permission:manage_floorplans,manage_own_floorplans');
     Route::get('/events/{event}/registration', [EventController::class, 'registration'])->name('events.registration');
     
     // Floorplan maintenance routes
-    Route::get('/events/{event}/floorplan/check-orphaned-bookings', [EventController::class, 'checkOrphanedBookings'])->name('events.floorplan.check-orphaned');
-    Route::post('/events/{event}/floorplan/cleanup-orphaned-bookings', [EventController::class, 'cleanupOrphanedBookings'])->name('events.floorplan.cleanup-orphaned');
+    Route::get('/events/{event}/floorplan/check-orphaned-bookings', [EventController::class, 'checkOrphanedBookings'])->name('events.floorplan.check-orphaned')->middleware('permission:manage_floorplans,manage_own_floorplans');
+    Route::post('/events/{event}/floorplan/cleanup-orphaned-bookings', [EventController::class, 'cleanupOrphanedBookings'])->name('events.floorplan.cleanup-orphaned')->middleware('permission:manage_floorplans,manage_own_floorplans');
     
     // Form Builder routes
-    Route::resource('events.form-builders', FormBuilderController::class);
-    Route::get('/events/{event}/form-builders/{formBuilder}/design', [FormBuilderController::class, 'design'])->name('events.form-builders.design');
-    Route::get('/events/{event}/form-builders/{formBuilder}/preview', [FormBuilderController::class, 'preview'])->name('events.form-builders.preview');
-    Route::get('/events/{event}/form-builders/{formBuilder}/json', [FormBuilderController::class, 'getFormJson'])->name('events.form-builders.json');
+    Route::resource('events.form-builders', FormBuilderController::class)->middleware('permission:manage_forms,manage_own_forms');
+    Route::get('/events/{event}/form-builders/{formBuilder}/design', [FormBuilderController::class, 'design'])->name('events.form-builders.design')->middleware('permission:manage_forms,manage_own_forms');
+    Route::get('/events/{event}/form-builders/{formBuilder}/preview', [FormBuilderController::class, 'preview'])->name('events.form-builders.preview')->middleware('permission:manage_forms,manage_own_forms');
+    Route::get('/events/{event}/form-builders/{formBuilder}/json', [FormBuilderController::class, 'getFormJson'])->name('events.form-builders.json')->middleware('permission:manage_forms,manage_own_forms');
     
     // Email Template routes
-    Route::resource('events.email-templates', \App\Http\Controllers\Admin\EmailTemplateController::class);
-    Route::post('/events/{event}/email-templates/{emailTemplate}/clone', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'clone'])->name('events.email-templates.clone');
-    Route::post('/events/{event}/email-templates/{emailTemplate}/test', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'test'])->name('events.email-templates.test');
-    Route::patch('/events/{event}/email-templates/{emailTemplate}/toggle-status', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'toggleStatus'])->name('events.email-templates.toggle-status');
+    Route::resource('events.email-templates', \App\Http\Controllers\Admin\EmailTemplateController::class)->middleware('permission:manage_emails,manage_own_emails');
+    Route::post('/events/{event}/email-templates/{emailTemplate}/clone', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'clone'])->name('events.email-templates.clone')->middleware('permission:manage_emails,manage_own_emails');
+    Route::post('/events/{event}/email-templates/{emailTemplate}/test', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'test'])->name('events.email-templates.test')->middleware('permission:manage_emails,manage_own_emails');
+    Route::patch('/events/{event}/email-templates/{emailTemplate}/toggle-status', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'toggleStatus'])->name('events.email-templates.toggle-status')->middleware('permission:manage_emails,manage_own_emails');
     
     // Reports routes
-    Route::get('/events/{event}/reports/bookings', [EventController::class, 'bookingsReport'])->name('events.reports.bookings');
-    Route::get('/events/{event}/reports/bookings/pdf', [EventController::class, 'bookingsReportPdf'])->name('events.reports.bookings.pdf');
-    Route::get('/events/{event}/reports/booth-owner/{boothOwner}', [EventController::class, 'boothOwnerDetails'])->name('events.reports.booth-owner-details');
+    Route::get('/events/{event}/reports/bookings', [EventController::class, 'bookingsReport'])->name('events.reports.bookings')->middleware('permission:view_booking_reports');
+    Route::get('/events/{event}/reports/bookings/pdf', [EventController::class, 'bookingsReportPdf'])->name('events.reports.bookings.pdf')->middleware('permission:view_booking_reports');
+    Route::get('/events/{event}/reports/booth-owner/{boothOwner}', [EventController::class, 'boothOwnerDetails'])->name('events.reports.booth-owner-details')->middleware('permission:view_booking_reports');
     
     // Booth Member routes (for admin access) - using web routes instead of API routes
     Route::put('/booth-members', [EventController::class, 'storeBoothMember'])->name('booth-members.store');

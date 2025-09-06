@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\PaymentMethod;
 use Illuminate\Support\Facades\Log;
+use App\Helpers\SidebarHelper;
 
 class PaymentMethodController extends Controller
 {
@@ -14,17 +15,23 @@ class PaymentMethodController extends Controller
      */
     public function index(Request $request)
     {
+        // Check if user has permission to manage payment methods
+        if (!auth()->user()->hasPermission('manage_payment_methods')) {
+            abort(403, 'You do not have permission to manage payment methods.');
+        }
+
         $event = null;
         $paymentMethods = PaymentMethod::orderBy('sort_order');
-        
+
         // If event ID is provided, filter by event
         if ($request->has('event')) {
             $event = \App\Models\Event::findOrFail($request->event);
             $paymentMethods = $paymentMethods->where('event_id', $event->id);
         }
-        
+
         $paymentMethods = $paymentMethods->get();
-        
+        SidebarHelper::expand();
+
         return view('admin.payment-methods.index', compact('paymentMethods', 'event'));
     }
 
@@ -33,11 +40,16 @@ class PaymentMethodController extends Controller
      */
     public function create(Request $request)
     {
+        // Check if user has permission to manage payment methods
+        if (!auth()->user()->hasPermission('manage_payment_methods')) {
+            abort(403, 'You do not have permission to manage payment methods.');
+        }
+
         $event = null;
         if ($request->has('event')) {
             $event = \App\Models\Event::findOrFail($request->event);
         }
-        
+
         $types = [
             'card' => 'Card Payment',
             'bank_transfer' => 'Bank Transfer',
@@ -45,6 +57,7 @@ class PaymentMethodController extends Controller
             'mobile_money' => 'Mobile Money',
             'crypto' => 'Cryptocurrency',
         ];
+        SidebarHelper::expand();
 
         return view('admin.payment-methods.create', compact('types', 'event'));
     }
@@ -54,6 +67,11 @@ class PaymentMethodController extends Controller
      */
     public function store(Request $request)
     {
+        // Check if user has permission to manage payment methods
+        if (!auth()->user()->hasPermission('manage_payment_methods')) {
+            abort(403, 'You do not have permission to manage payment methods.');
+        }
+
         $validated = $request->validate([
             'event_id' => 'required|exists:events,id',
             'name' => 'required|string|max:255',
@@ -89,7 +107,7 @@ class PaymentMethodController extends Controller
 
         try {
             PaymentMethod::create($validated);
-            
+
             Log::info('Payment method created', [
                 'name' => $validated['name'],
                 'code' => $validated['code'],
@@ -114,6 +132,8 @@ class PaymentMethodController extends Controller
      */
     public function show(PaymentMethod $paymentMethod)
     {
+        SidebarHelper::expand();
+
         return view('admin.payment-methods.show', compact('paymentMethod'));
     }
 
@@ -122,6 +142,11 @@ class PaymentMethodController extends Controller
      */
     public function edit(PaymentMethod $paymentMethod)
     {
+        // Check if user has permission to manage payment methods
+        if (!auth()->user()->hasPermission('manage_payment_methods')) {
+            abort(403, 'You do not have permission to manage payment methods.');
+        }
+
         $types = [
             'card' => 'Card Payment',
             'bank_transfer' => 'Bank Transfer',
@@ -141,6 +166,11 @@ class PaymentMethodController extends Controller
      */
     public function update(Request $request, PaymentMethod $paymentMethod)
     {
+        // Check if user has permission to manage payment methods
+        if (!auth()->user()->hasPermission('manage_payment_methods')) {
+            abort(403, 'You do not have permission to manage payment methods.');
+        }
+
         $validated = $request->validate([
             'event_id' => 'required|exists:events,id',
             'name' => 'required|string|max:255',
@@ -177,7 +207,7 @@ class PaymentMethodController extends Controller
 
         try {
             $paymentMethod->update($validated);
-            
+
             Log::info('Payment method updated', [
                 'id' => $paymentMethod->id,
                 'name' => $validated['name'],
@@ -204,6 +234,11 @@ class PaymentMethodController extends Controller
      */
     public function destroy(PaymentMethod $paymentMethod)
     {
+        // Check if user has permission to manage payment methods
+        if (!auth()->user()->hasPermission('manage_payment_methods')) {
+            abort(403, 'You do not have permission to manage payment methods.');
+        }
+
         try {
             // Don't allow deletion of default payment method
             if ($paymentMethod->is_default) {
@@ -212,7 +247,7 @@ class PaymentMethodController extends Controller
 
             $eventId = $paymentMethod->event_id;
             $paymentMethod->delete();
-            
+
             Log::info('Payment method deleted', [
                 'id' => $paymentMethod->id,
                 'name' => $paymentMethod->name,
@@ -236,11 +271,16 @@ class PaymentMethodController extends Controller
      */
     public function toggleStatus(PaymentMethod $paymentMethod)
     {
+        // Check if user has permission to manage payment methods
+        if (!auth()->user()->hasPermission('manage_payment_methods')) {
+            abort(403, 'You do not have permission to manage payment methods.');
+        }
+
         try {
             $paymentMethod->update(['is_active' => !$paymentMethod->is_active]);
-            
+
             $status = $paymentMethod->is_active ? 'activated' : 'deactivated';
-            
+
             Log::info('Payment method status toggled', [
                 'id' => $paymentMethod->id,
                 'name' => $paymentMethod->name,
@@ -263,13 +303,18 @@ class PaymentMethodController extends Controller
      */
     public function setDefault(PaymentMethod $paymentMethod)
     {
+        // Check if user has permission to manage payment methods
+        if (!auth()->user()->hasPermission('manage_payment_methods')) {
+            abort(403, 'You do not have permission to manage payment methods.');
+        }
+
         try {
             // Unset current default
             PaymentMethod::where('is_default', true)->update(['is_default' => false]);
-            
+
             // Set new default
             $paymentMethod->update(['is_default' => true]);
-            
+
             Log::info('Default payment method changed', [
                 'id' => $paymentMethod->id,
                 'name' => $paymentMethod->name
@@ -301,7 +346,7 @@ class PaymentMethodController extends Controller
                     'currency' => $config['currency'] ?? 'USD',
                     'supported_countries' => $config['supported_countries'] ?? [],
                 ];
-                
+
             case 'bank_transfer':
                 return [
                     'bank_name' => $config['bank_name'] ?? '',
@@ -312,7 +357,7 @@ class PaymentMethodController extends Controller
                     'currency' => $config['currency'] ?? 'USD',
                     'instructions' => $config['instructions'] ?? '',
                 ];
-                
+
             case 'digital_wallet':
                 return [
                     'client_id' => $config['client_id'] ?? '',
@@ -322,7 +367,7 @@ class PaymentMethodController extends Controller
                     'currency' => $config['currency'] ?? 'USD',
                     'supported_countries' => $config['supported_countries'] ?? [],
                 ];
-                
+
             default:
                 return $config;
         }

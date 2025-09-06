@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 use Carbon\Carbon;
 use Illuminate\Support\Str;
@@ -25,6 +26,7 @@ class Event extends Model
         'logo',
         'start_date',
         'end_date',
+        'owner_id',
     ];
 
     /**
@@ -199,6 +201,14 @@ class Event extends Model
     }
 
     /**
+     * Get the email settings for the event
+     */
+    public function emailSettings(): HasOne
+    {
+        return $this->hasOne(EventEmailSettings::class);
+    }
+
+    /**
      * Get the count of booked booths for this event
      */
     public function getBookedBoothsCountAttribute(): int
@@ -291,5 +301,107 @@ class Event extends Model
             ->count();
 
         return round(($paidBookings / $totalBookings) * 100);
+    }
+
+    /**
+     * Get the owner of this event
+     */
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    /**
+     * Get the users assigned to this event
+     */
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'event_user');
+    }
+
+    /**
+     * Check if a user can view this event
+     */
+    public function canBeViewedBy(User $user): bool
+    {
+        // Administrators can view all events
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        // Event owner can always view their event
+        if ($this->owner_id === $user->id) {
+            return true;
+        }
+
+        // Check if user is assigned to this event
+        return $this->users()->where('user_id', $user->id)->exists();
+    }
+
+    /**
+     * Check if a user is the owner of this event
+     */
+    public function isOwnedBy(User $user): bool
+    {
+        return $this->owner_id === $user->id;
+    }
+
+    /**
+     * Get all users that should be assigned to this event (including owner)
+     */
+    public function getAllAssignedUsers()
+    {
+        $assignedUsers = $this->users;
+        
+        // Always include the owner if they exist
+        if ($this->owner && !$assignedUsers->contains('id', $this->owner->id)) {
+            $assignedUsers->push($this->owner);
+        }
+        
+        return $assignedUsers;
+    }
+
+    /**
+     * Check if a user can manage event ownership (only admins)
+     */
+    public function canManageOwnership(User $user): bool
+    {
+        return $user->hasRole('admin');
+    }
+
+    /**
+     * Transfer ownership to another user (admin only)
+     */
+    public function transferOwnership(User $newOwner, User $admin): bool
+    {
+        if (!$this->canManageOwnership($admin)) {
+            return false;
+        }
+
+        $this->update(['owner_id' => $newOwner->id]);
+        
+        // Ensure new owner is assigned to the event
+        $this->users()->syncWithoutDetaching([$newOwner->id]);
+        
+        return true;
+    }
+
+    /**
+     * Scope to get events visible to a specific user
+     */
+    public function scopeVisibleTo($query, User $user)
+    {
+        // Administrators can see all events
+        if ($user->hasRole('admin')) {
+            return $query;
+        }
+
+        // Users can see events they own or are assigned to
+        return $query->where(function ($q) use ($user) {
+            $q->where('owner_id', $user->id)
+              ->orWhereHas('users', function ($subQ) use ($user) {
+                  $subQ->where('user_id', $user->id);
+              });
+        });
     }
 }

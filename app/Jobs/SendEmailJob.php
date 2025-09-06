@@ -5,6 +5,8 @@ namespace App\Jobs;
 use App\Models\EmailTemplate;
 use App\Models\EmailLog;
 use App\Models\Booking;
+use App\Models\Event;
+use App\Services\EmailConfigurationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -27,11 +29,12 @@ class SendEmailJob implements ShouldQueue
     protected $subject;
     protected $content;
     protected $attachmentData;
+    protected $eventId;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(int $emailLogId, int $templateId, string $recipientEmail, string $subject, string $content, ?array $attachmentData = null)
+    public function __construct(int $emailLogId, int $templateId, string $recipientEmail, string $subject, string $content, ?array $attachmentData = null, ?int $eventId = null)
     {
         $this->emailLogId = $emailLogId;
         $this->templateId = $templateId;
@@ -39,6 +42,7 @@ class SendEmailJob implements ShouldQueue
         $this->subject = $subject;
         $this->content = $content;
         $this->attachmentData = $attachmentData;
+        $this->eventId = $eventId;
     }
 
     /**
@@ -56,6 +60,17 @@ class SendEmailJob implements ShouldQueue
 
             $emailLog->markAsProcessing();
 
+            // Configure email settings for the event if eventId is provided
+            $emailConfigService = new EmailConfigurationService();
+            $eventConfigured = false;
+            
+            if ($this->eventId) {
+                $event = Event::find($this->eventId);
+                if ($event && $event->emailSettings && $event->emailSettings->isConfigured()) {
+                    $eventConfigured = $emailConfigService->configureForEvent($event);
+                }
+            }
+
             // Sanitize content to ensure proper UTF-8 encoding
             $sanitizedContent = $this->sanitizeContent($this->content);
             $sanitizedSubject = $this->sanitizeContent($this->subject);
@@ -66,20 +81,46 @@ class SendEmailJob implements ShouldQueue
             // Add intuitive footer for owner_registration and payment triggers
             $htmlContent = $this->addIntuitiveFooter($htmlContent, $this->templateId);
 
-            // Send the email using Laravel Mail as HTML
-            Mail::html($htmlContent, function ($message) {
-                $message->to($this->recipientEmail)
-                        ->subject($this->subject);
+            // Send the email using custom mailer if available, otherwise use default
+            if ($eventConfigured && app()->bound('mail.manager.custom')) {
+                // Use custom mailer for event-specific settings
+                $customMailer = app('mail.manager.custom');
+                
+                // Create the email message
+                $email = (new \Symfony\Component\Mime\Email())
+                    ->from(new \Symfony\Component\Mime\Address($event->emailSettings->send_as_email, $event->emailSettings->send_as_name))
+                    ->to($this->recipientEmail)
+                    ->subject($this->subject)
+                    ->html($htmlContent);
                 
                 // Add attachment if provided
                 if ($this->attachmentData) {
-                    $message->attachData(
-                        $this->attachmentData['content'],
-                        $this->attachmentData['filename'],
-                        ['mime' => $this->attachmentData['mime_type']]
-                    );
+                    $email->attach($this->attachmentData['content'], $this->attachmentData['filename'], $this->attachmentData['mime_type']);
                 }
-            });
+                
+                // Send the email using the custom mailer
+                $customMailer->send($email);
+            } else {
+                // Use default Laravel Mail
+                Mail::html($htmlContent, function ($message) {
+                    $message->to($this->recipientEmail)
+                            ->subject($this->subject);
+                    
+                    // Add attachment if provided
+                    if ($this->attachmentData) {
+                        $message->attachData(
+                            $this->attachmentData['content'],
+                            $this->attachmentData['filename'],
+                            ['mime' => $this->attachmentData['mime_type']]
+                        );
+                    }
+                });
+            }
+
+            // Reset email configuration to global settings
+            if ($eventConfigured) {
+                $emailConfigService->resetToGlobal();
+            }
 
             // Mark as sent
             $emailLog->update([
@@ -90,10 +131,17 @@ class SendEmailJob implements ShouldQueue
             Log::info('Email sent successfully', [
                 'email_log_id' => $this->emailLogId,
                 'recipient' => $this->recipientEmail,
-                'subject' => $this->subject
+                'subject' => $this->subject,
+                'event_id' => $this->eventId,
+                'event_configured' => $eventConfigured
             ]);
 
         } catch (\Exception $e) {
+            // Reset email configuration to global settings on error
+            if (isset($emailConfigService) && $eventConfigured) {
+                $emailConfigService->resetToGlobal();
+            }
+
             // Update email log status to failed
             $emailLog = EmailLog::find($this->emailLogId);
             if ($emailLog) {
@@ -105,7 +153,8 @@ class SendEmailJob implements ShouldQueue
 
             Log::error('Failed to send email', [
                 'email_log_id' => $this->emailLogId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'event_id' => $this->eventId
             ]);
 
             throw $e;

@@ -15,6 +15,11 @@ class UserManagementController extends Controller
      */
     public function index(Request $request)
     {
+        // Check if user has permission to manage users
+        if (!auth()->user()->hasPermission('manage_users')) {
+            abort(403, 'You do not have permission to manage users.');
+        }
+
         $query = User::with('roles');
 
         // Search functionality
@@ -49,6 +54,11 @@ class UserManagementController extends Controller
      */
     public function create()
     {
+        // Check if user has permission to manage users
+        if (!auth()->user()->hasPermission('manage_users')) {
+            abort(403, 'You do not have permission to manage users.');
+        }
+
         $roles = Role::active()->get();
         return view('admin.users.create', compact('roles'));
     }
@@ -58,6 +68,11 @@ class UserManagementController extends Controller
      */
     public function store(Request $request)
     {
+        // Check if user has permission to manage users
+        if (!auth()->user()->hasPermission('manage_users')) {
+            abort(403, 'You do not have permission to manage users.');
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -91,6 +106,11 @@ class UserManagementController extends Controller
      */
     public function show(User $user)
     {
+        // Check if user has permission to manage users
+        if (!auth()->user()->hasPermission('manage_users')) {
+            abort(403, 'You do not have permission to manage users.');
+        }
+
         $user->load('roles.permissions');
         return view('admin.users.show', compact('user'));
     }
@@ -100,6 +120,11 @@ class UserManagementController extends Controller
      */
     public function edit(User $user)
     {
+        // Check if user has permission to manage users
+        if (!auth()->user()->hasPermission('manage_users')) {
+            abort(403, 'You do not have permission to manage users.');
+        }
+
         $roles = Role::active()->get();
         $user->load('roles');
         return view('admin.users.edit', compact('user', 'roles'));
@@ -110,6 +135,11 @@ class UserManagementController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        // Check if user has permission to manage users
+        if (!auth()->user()->hasPermission('manage_users')) {
+            abort(403, 'You do not have permission to manage users.');
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => [
@@ -152,6 +182,11 @@ class UserManagementController extends Controller
      */
     public function destroy(User $user)
     {
+        // Check if user has permission to manage users
+        if (!auth()->user()->hasPermission('manage_users')) {
+            abort(403, 'You do not have permission to manage users.');
+        }
+
         // Prevent deleting the current user
         if ($user->id === auth()->id()) {
             return redirect()->route('admin.users.index')
@@ -169,6 +204,11 @@ class UserManagementController extends Controller
      */
     public function toggleStatus(User $user)
     {
+        // Check if user has permission to manage users
+        if (!auth()->user()->hasPermission('manage_users')) {
+            abort(403, 'You do not have permission to manage users.');
+        }
+
         // Prevent deactivating the current user
         if ($user->id === auth()->id()) {
             return redirect()->route('admin.users.index')
@@ -187,6 +227,10 @@ class UserManagementController extends Controller
      */
     public function roles()
     {
+        // Check if user has permission to assign roles
+        if (!auth()->user()->hasPermission('assign_roles')) {
+            abort(403, 'You do not have permission to manage roles.');
+        }
          
         $roles = Role::with('permissions')->get();
         $permissions = \App\Models\Permission::active()->get()->groupBy('category');
@@ -199,6 +243,11 @@ class UserManagementController extends Controller
      */
     public function updateRolePermissions(Request $request, Role $role)
     {
+        // Check if user has permission to assign roles
+        if (!auth()->user()->hasPermission('assign_roles')) {
+            abort(403, 'You do not have permission to manage roles.');
+        }
+
         $request->validate([
             'permissions' => 'array',
             'permissions.*' => 'exists:permissions,id',
@@ -206,7 +255,7 @@ class UserManagementController extends Controller
 
         $role->permissions()->sync($request->permissions ?? []);
 
-        return redirect()->route('admin.users.roles')
+        return redirect()->route('admin.roles.index')
                         ->with('success', 'Role permissions updated successfully.');
     }
 }

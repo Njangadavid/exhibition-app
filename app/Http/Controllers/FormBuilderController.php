@@ -8,6 +8,7 @@ use App\Models\FormField;
 use App\Models\Event;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use App\Helpers\SidebarHelper;
 
 class FormBuilderController extends Controller
 {
@@ -16,6 +17,14 @@ class FormBuilderController extends Controller
      */
     public function index(Event $event)
     {
+        // Check if user has permission to manage forms
+        if (!auth()->user()->hasPermission('manage_forms') && !auth()->user()->hasPermission('manage_own_forms')) {
+            abort(403, 'You do not have permission to manage forms.');
+        }
+
+        // Set sidebar to expanded by default for form builders index
+        SidebarHelper::expand();
+        
         $formBuilders = $event->formBuilders()->with('fields')->latest()->get();
         
         return view('form-builders.index', compact('event', 'formBuilders'));
@@ -26,6 +35,14 @@ class FormBuilderController extends Controller
      */
     public function create(Event $event)
     {
+        // Check if user has permission to manage forms
+        if (!auth()->user()->hasPermission('manage_forms') && !auth()->user()->hasPermission('manage_own_forms')) {
+            abort(403, 'You do not have permission to manage forms.');
+        }
+
+        // Set sidebar to expanded by default for form builders create
+        SidebarHelper::expand();
+        
         $fieldTypes = FormField::getFieldTypes();
         $widthOptions = FormField::getWidthOptions();
         
@@ -87,6 +104,9 @@ class FormBuilderController extends Controller
      */
     public function show(Event $event, FormBuilder $formBuilder)
     {
+        // Set sidebar to expanded by default for form builders show
+        SidebarHelper::expand();
+        
         $formBuilder->load('fields');
         
         return view('form-builders.show', compact('event', 'formBuilder'));
@@ -97,6 +117,9 @@ class FormBuilderController extends Controller
      */
     public function edit(Event $event, FormBuilder $formBuilder)
     {
+        // Set sidebar to expanded by default for form builders edit
+        SidebarHelper::expand();
+        
         $formBuilder->load('fields');
         
         return view('form-builders.edit', compact('event', 'formBuilder'));
@@ -274,6 +297,9 @@ class FormBuilderController extends Controller
      */
     public function design(Event $event, FormBuilder $formBuilder)
     {
+        // Set sidebar to expanded by default for form builders design
+        SidebarHelper::expand();
+        
         $formBuilder->load('fields');
         $fieldTypes = FormField::getFieldTypes();
         $widthOptions = FormField::getWidthOptions();

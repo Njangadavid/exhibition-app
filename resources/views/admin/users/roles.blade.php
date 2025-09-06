@@ -32,7 +32,7 @@
                 <div class="card-body">
                     <p class="text-muted mb-3">{{ $role->description }}</p>
                     
-                    <form method="POST" action="{{ route('admin.users.roles.permissions', $role) }}">
+                    <form method="POST" action="{{ route('admin.roles.permissions', $role) }}">
                         @csrf
                         @method('PATCH')
                         

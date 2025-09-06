@@ -157,6 +157,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the events assigned to this user
+     */
+    public function assignedEvents()
+    {
+        return $this->belongsToMany(Event::class, 'event_user');
+    }
+
+    /**
      * Scope to get only active users.
      */
     public function scopeActive($query)

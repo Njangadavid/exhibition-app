@@ -22,15 +22,17 @@
                         <i class="bi bi-calendar-event me-1"></i>
                         {{ __('Events') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('events.create')" :active="request()->routeIs('events.create')" class="nav-link me-3">
-                        <i class="bi bi-plus me-1"></i>
-                        {{ __('Create Event') }}
-                    </x-nav-link>
-                    @if(auth()->user()->isAdmin())
-                        <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')" class="nav-link me-3">
-                            <i class="bi bi-people me-1"></i>
-                            {{ __('Manage Users') }}
+                    @if(auth()->user()->hasPermission('create_events'))
+                        <x-nav-link :href="route('events.create')" :active="request()->routeIs('events.create')" class="nav-link me-3">
+                            <i class="bi bi-plus me-1"></i>
+                            {{ __('Create Event') }}
                         </x-nav-link>
+                    @endif
+                    @if(auth()->user()->hasPermission('manage_users'))
+                    <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')" class="nav-link me-3">
+                        <i class="bi bi-people me-1"></i>
+                        {{ __('Manage Users') }}
+                    </x-nav-link>
                     @endif
                 </div>
             </div>
@@ -83,15 +85,17 @@
                 <i class="bi bi-calendar-event me-2"></i>
                 {{ __('Events') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('events.create')" :active="request()->routeIs('events.create')" class="nav-link px-3 py-2">
-                <i class="bi bi-plus me-2"></i>
-                {{ __('Create Event') }}
-            </x-responsive-nav-link>
-            @if(auth()->user()->isAdmin())
-                <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')" class="nav-link px-3 py-2">
-                    <i class="bi bi-people me-2"></i>
-                    {{ __('Manage Users') }}
+            @if(auth()->user()->hasPermission('create_events'))
+                <x-responsive-nav-link :href="route('events.create')" :active="request()->routeIs('events.create')" class="nav-link px-3 py-2">
+                    <i class="bi bi-plus me-2"></i>
+                    {{ __('Create Event') }}
                 </x-responsive-nav-link>
+            @endif
+            @if(auth()->user()->hasPermission('manage_users'))
+            <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')" class="nav-link px-3 py-2">
+                <i class="bi bi-people me-2"></i>
+                {{ __('Manage Users') }}
+            </x-responsive-nav-link>
             @endif
         </div>
 

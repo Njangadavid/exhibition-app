@@ -1,10 +1,6 @@
 <x-event-layout :event="$event">
 
-    <div class="py-4">
-        <div class="container-fluid">
-
-
-            <!-- Quick Stats Dashboard -->
+    <!-- Quick Stats Dashboard -->
             <div class="row mb-4">
                 <div class="col-md-6 col-lg-3 mb-3">
                     <div class="card border-0 shadow-sm h-100">
@@ -78,7 +74,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-6 col-lg-3 mb-3">
+                <div class="col-md-6 col-lg-4 mb-3">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
@@ -96,7 +92,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-6 col-lg-3 mb-3">
+                <div class="col-md-6 col-lg-4 mb-3">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
@@ -118,11 +114,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Additional Stats Row -->
-            <div class="row mb-4">
-                <div class="col-md-6 mb-3">
+                <div class="col-md-6 col-lg-4 mb-3">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
@@ -140,29 +132,9 @@
                     </div>
                 </div>
 
-                <div class="col-md-6 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0">
-                                    <div class="bg-warning bg-opacity-10 rounded-circle p-3">
-                                        <i class="bi bi-cash-stack text-warning fs-2"></i>
-                                    </div>
-                                </div>
-                                <div class="ms-3">
-                                    <div class="text-muted small fw-medium">Revenue Collected</div>
-                                    <div class="h3 fw-bold text-dark mb-0">
-                                        ${{ number_format($event->total_revenue, 2) }}
-                                    </div>
-                                    <div class="text-muted small mt-1">
-                                        {{ $event->payment_rate }}% payment rate
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+               
             </div>
+ 
 
             <!-- Main Dashboard Content -->
             <div class="row">
@@ -202,6 +174,7 @@
                                 </div>
 
                                 <div class="col-md-6">
+                                    @if(auth()->user()->hasPermission('manage_payment_methods'))
                                     <a href="{{ route('admin.payment-methods.index', ['event' => $event->id]) }}" class="card border-0 shadow-sm h-100 text-decoration-none">
                                         <div class="card-body text-center p-4">
                                             <div class="bg-warning bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
@@ -211,6 +184,7 @@
                                             <p class="card-text text-muted small">Configure payment methods like Paystack for your event bookings.</p>
                                         </div>
                                     </a>
+                                    @endif
                                 </div>
 
                                 <div class="col-md-6">
@@ -276,7 +250,5 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
 </x-event-layout>

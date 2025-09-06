@@ -21,9 +21,11 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">Users</h5>
                         <div class="d-flex gap-2">
-                            <a href="{{ route('admin.users.roles') }}" class="btn btn-outline-secondary">
+                            @if(auth()->user()->hasPermission('assign_roles'))
+                            <a href="{{ route('admin.roles.index') }}" class="btn btn-outline-secondary">
                                 <i class="bi bi-shield-check me-1"></i>Manage Roles
                             </a>
+                            @endif
                             <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
                                 <i class="bi bi-plus-circle me-1"></i>Add User
                             </a>

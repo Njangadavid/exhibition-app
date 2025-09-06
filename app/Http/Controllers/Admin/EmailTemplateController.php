@@ -9,6 +9,7 @@ use App\Services\EmailCommunicationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use App\Helpers\SidebarHelper;
 
 class EmailTemplateController extends Controller
 {
@@ -24,10 +25,16 @@ class EmailTemplateController extends Controller
      */
     public function index(Event $event)
     {
+        // Check if user has permission to manage emails
+        if (!auth()->user()->hasPermission('manage_emails') && !auth()->user()->hasPermission('manage_own_emails')) {
+            abort(403, 'You do not have permission to manage emails.');
+        }
+
         $templates = EmailTemplate::where('event_id', $event->id)
             ->orderBy('trigger_type')
             ->orderBy('name')
             ->get();
+        SidebarHelper::expand();
 
         return view('admin.email-templates.index', compact('event', 'templates'));
     }
@@ -37,8 +44,14 @@ class EmailTemplateController extends Controller
      */
     public function create(Event $event)
     {
+        // Check if user has permission to manage emails
+        if (!auth()->user()->hasPermission('manage_emails') && !auth()->user()->hasPermission('manage_own_emails')) {
+            abort(403, 'You do not have permission to manage emails.');
+        }
+
         $triggerTypes = EmailTemplate::getTriggerTypes();
         $mergeFields = (new EmailTemplate())->getAvailableMergeFields();
+        SidebarHelper::expand();
 
         return view('admin.email-templates.create', compact('event', 'triggerTypes', 'mergeFields'));
     }
@@ -64,7 +77,6 @@ class EmailTemplateController extends Controller
             return redirect()
                 ->route('events.email-templates.index', $event)
                 ->with('success', 'Email template created successfully!');
-
         } catch (\Exception $e) {
             Log::error('Failed to create email template', [
                 'event_id' => $event->id,
@@ -84,6 +96,7 @@ class EmailTemplateController extends Controller
     {
         $mergeFields = $emailTemplate->getAvailableMergeFields();
         $sampleData = $this->getSampleData($emailTemplate);
+        SidebarHelper::expand();
 
         return view('admin.email-templates.show', compact('event', 'emailTemplate', 'mergeFields', 'sampleData'));
     }
@@ -120,7 +133,6 @@ class EmailTemplateController extends Controller
             return redirect()
                 ->route('events.email-templates.index', $event)
                 ->with('success', 'Email template updated successfully!');
-
         } catch (\Exception $e) {
             Log::error('Failed to update email template', [
                 'template_id' => $emailTemplate->id,
@@ -144,7 +156,6 @@ class EmailTemplateController extends Controller
             return redirect()
                 ->route('events.email-templates.index', $event)
                 ->with('success', 'Email template deleted successfully!');
-
         } catch (\Exception $e) {
             Log::error('Failed to delete email template', [
                 'template_id' => $emailTemplate->id,
@@ -166,7 +177,6 @@ class EmailTemplateController extends Controller
             return redirect()
                 ->route('events.email-templates.edit', [$event, $clonedTemplate])
                 ->with('success', 'Email template cloned successfully! You can now edit the copy.');
-
         } catch (\Exception $e) {
             Log::error('Failed to clone email template', [
                 'template_id' => $emailTemplate->id,
@@ -187,7 +197,6 @@ class EmailTemplateController extends Controller
             $result = $this->emailService->testTemplate($emailTemplate, $sampleData);
 
             return response()->json($result);
-
         } catch (\Exception $e) {
             Log::error('Failed to test email template', [
                 'template_id' => $emailTemplate->id,
@@ -214,7 +223,6 @@ class EmailTemplateController extends Controller
             return redirect()
                 ->route('events.email-templates.index', $event)
                 ->with('success', "Email template {$status} successfully!");
-
         } catch (\Exception $e) {
             Log::error('Failed to toggle email template status', [
                 'template_id' => $emailTemplate->id,

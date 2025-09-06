@@ -8,6 +8,33 @@
 <?php $attributes = $attributes->except(\App\View\Components\AppLayout::ignoredParameterNames()); ?>
 <?php endif; ?>
 <?php $component->withAttributes([]); ?>
+     <?php $__env->slot('head', null, []); ?> 
+        <style>
+            .clickable-card {
+                transition: all 0.2s ease;
+            }
+            
+            .clickable-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+            }
+            
+            .clickable-card:active {
+                transform: translateY(0);
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+            }
+            
+            .clickable-card .card-title {
+                color: #333;
+                transition: color 0.2s ease;
+            }
+            
+            .clickable-card:hover .card-title {
+                color: #0d6efd;
+            }
+        </style>
+     <?php $__env->endSlot(); ?>
+    
      <?php $__env->slot('header', null, []); ?> 
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="h4 mb-0">
@@ -169,7 +196,9 @@
                              data-title="<?php echo e(strtolower($event->name)); ?>"
                              data-description="<?php echo e(strtolower($event->description)); ?>"
                              data-date="<?php echo e($event->start_date->format('Y-m-d')); ?>">
-                            <div class="card border-0 shadow-sm h-100 event-item">
+                            <div class="card border-0 shadow-sm h-100 event-item clickable-card" 
+                                 onclick="openEventDashboard('<?php echo e($event->slug); ?>')" 
+                                 style="cursor: pointer;">
                                 <!-- Event Logo - Full Width -->
                                 <?php if($event->logo): ?>
                                     <div class="event-logo-container">
@@ -203,7 +232,7 @@
                                         </div>
                                         
                                         <!-- Event Menu -->
-                                        <div class="dropdown">
+                                        <div class="dropdown" onclick="event.stopPropagation()">
                                             <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
                                                 <i class="bi bi-three-dots-vertical"></i>
                                             </button>
@@ -214,6 +243,12 @@
                                                 <li><a class="dropdown-item" href="<?php echo e(route('events.edit', $event)); ?>">
                                                     <i class="bi bi-pencil me-2"></i>Edit Event
                                                 </a></li>
+                                                <?php if(auth()->user()->hasRole('admin')): ?>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item text-warning" href="<?php echo e(route('events.edit', $event)); ?>#ownership-transfer">
+                                                    <i class="bi bi-shield-check me-2"></i>Manage Ownership
+                                                </a></li>
+                                                <?php endif; ?>
                                                 <li><a class="dropdown-item" href="<?php echo e(route('events.dashboard', $event)); ?>">
                                                     <i class="bi bi-speedometer2 me-2"></i>Dashboard
                                                 </a></li>
@@ -224,9 +259,16 @@
                                                 <li><a class="dropdown-item" href="<?php echo e(route('events.public.floorplan', $event)); ?>" target="_blank">
                                                     <i class="bi bi-map me-2"></i>Floorplan
                                                 </a></li>
+                                                <?php if(auth()->user()->hasPermission('manage_payment_methods')): ?>
                                                 <li><a class="dropdown-item" href="<?php echo e(route('admin.payment-methods.index', ['event' => $event->id])); ?>">
                                                     <i class="bi bi-credit-card me-2"></i>Payment Methods
                                                 </a></li>
+                                                <?php endif; ?>
+                                                <?php if(auth()->user()->hasPermission('manage_email_settings')): ?>
+                                                <li><a class="dropdown-item" href="<?php echo e(route('admin.events.email-settings', $event)); ?>">
+                                                    <i class="bi bi-envelope-gear me-2"></i>Email Settings
+                                                </a></li>
+                                                <?php endif; ?>
                                             </ul>
                                         </div>
                                     </div>
@@ -235,10 +277,8 @@
                                 <!-- Event Content -->
                                 <div class="card-body pt-2">
                                     <h5 class="card-title fw-bold mb-2 text-truncate" title="<?php echo e($event->name); ?>">
-                                        <a href="<?php echo e(route('events.dashboard', $event)); ?>" class="text-decoration-none text-dark hover-text-primary" style="transition: color 0.2s ease;">
-                                            <?php echo e($event->name); ?>
+                                        <?php echo e($event->name); ?>
 
-                                        </a>
                                     </h5>
                                     
                                     <p class="text-muted small mb-3 line-clamp-2" title="<?php echo e($event->description); ?>">
@@ -260,6 +300,33 @@
                                         </div>
                                     </div>
 
+                                    <!-- Assigned Users -->
+                                    <?php if($event->getAllAssignedUsers()->count() > 0): ?>
+                                    <div class="mb-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="bi bi-people text-secondary me-2"></i>
+                                            <span class="small fw-medium">Assigned Users</span>
+                                        </div>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            <?php $__currentLoopData = $event->getAllAssignedUsers()->take(3); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $user): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                            <span class="badge <?php echo e($user->id === $event->owner_id ? 'bg-success' : 'bg-light text-dark border'); ?>">
+                                                <i class="bi <?php echo e($user->id === $event->owner_id ? 'bi-crown' : 'bi-person'); ?> me-1"></i>
+                                                <?php echo e($user->name); ?>
+
+                                                <?php if($user->id === $event->owner_id): ?>
+                                                    <small>(Owner)</small>
+                                                <?php endif; ?>
+                                            </span>
+                                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                            <?php if($event->getAllAssignedUsers()->count() > 3): ?>
+                                            <span class="badge bg-light text-dark border">
+                                                +<?php echo e($event->getAllAssignedUsers()->count() - 3); ?> more
+                                            </span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
+
                                     <!-- Progress Indicator for Active Events -->
                                     <?php if($event->status === 'active'): ?>
                                         <?php
@@ -280,7 +347,7 @@
                                 </div>
 
                                 <!-- Action Buttons -->
-                                <div class="card-footer bg-transparent border-0 pt-0">
+                                <div class="card-footer bg-transparent border-0 pt-0" onclick="event.stopPropagation()">
                                     <div class="d-grid gap-2">
                                         <a href="<?php echo e(route('events.dashboard', $event)); ?>" class="btn btn-primary btn-sm">
                                             <i class="bi bi-speedometer2 me-2"></i>Manage Event
@@ -517,6 +584,12 @@
                 filterEvents();
             }
         });
+
+        // Open Event Dashboard Functionality
+        function openEventDashboard(eventSlug) {
+            // Navigate to the event dashboard
+            window.location.href = '<?php echo e(route("events.dashboard", ":slug")); ?>'.replace(':slug', eventSlug);
+        }
 
         // Delete Event Functionality
         let deleteEventSlug = null;

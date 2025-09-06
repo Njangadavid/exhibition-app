@@ -1,28 +1,24 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="d-flex justify-content-between align-items-center">
-            <h2 class="h4 mb-0">
-                <i class="bi bi-eye me-2"></i>
-                {{ $formBuilder->name }} - {{ $event->title }}
-            </h2>
-            <div class="d-flex gap-2">
-                <a href="{{ route('events.form-builders.index', $event) }}" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left me-2"></i>Back to Forms
-                </a>
-                <a href="{{ route('events.form-builders.edit', [$event, $formBuilder]) }}" class="btn btn-warning">
-                    <i class="bi bi-pencil me-2"></i>Edit Form
-                </a>
-                <a href="{{ route('events.form-builders.preview', [$event, $formBuilder]) }}" class="btn btn-info" target="_blank">
-                    <i class="bi bi-eye-fill me-2"></i>Preview
-                </a>
-            </div>
+<x-event-layout :event="$event">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4 mb-0">
+            <i class="bi bi-eye me-2"></i>
+            {{ $formBuilder->name }} - {{ $event->title }}
+        </h2>
+        <div class="d-flex gap-2">
+            <a href="{{ route('events.form-builders.index', $event) }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Back to Forms
+            </a>
+            <a href="{{ route('events.form-builders.edit', [$event, $formBuilder]) }}" class="btn btn-warning">
+                <i class="bi bi-pencil me-2"></i>Edit Form
+            </a>
+            <a href="{{ route('events.form-builders.preview', [$event, $formBuilder]) }}" class="btn btn-info" target="_blank">
+                <i class="bi bi-eye-fill me-2"></i>Preview
+            </a>
         </div>
-    </x-slot>
+    </div>
 
-    <div class="py-4">
-        <div class="container-fluid">
+    <div class="card">
             <!-- Event Header -->
-            <div class="card mb-4">
                 <div class="position-relative">
                     <div class="bg-gradient-to-br from-blue-400 to-purple-600 d-flex align-items-center justify-content-center position-relative overflow-hidden" style="height: 150px;">
                         @if($event->logo)
@@ -355,4 +351,4 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+</x-event-layout>

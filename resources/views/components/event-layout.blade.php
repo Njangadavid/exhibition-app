@@ -17,10 +17,6 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
-        <!-- Bootstrap CSS -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-        
         <!-- Scripts -->
         @vite(['resources/js/app.js'])
         @stack('styles')
@@ -30,153 +26,181 @@
         <div class="min-vh-100 bg-light">
             @include('layouts.navigation')
 
-            <!-- Event Header with Logo and Info -->
             @if(isset($event))
-            <header class="bg-white shadow-sm">
-                <div class="container-fluid">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <div class="d-flex align-items-center">
-                            <div class="me-4">
-                                <div class="bg-gradient-to-br from-blue-400 to-purple-600 rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 64px; height: 64px;">
+            <div class="event-layout-container">
+                <!-- Sidebar -->
+                <div class="sidebar" id="sidebar">
+                <!-- Event Header -->
+                <div class="sidebar-header sticky-top">
+                    <div class="align-items-center">
+                        <div class="me-3">
+                            <div class="bg-gradient-to-br from-blue-400 to-purple-600   d-flex align-items-center justify-content-center" style="max-width:100%;max-height:100px;">
                                     @if($event->logo)
-                                        <img src="{{ Storage::url($event->logo) }}" alt="{{ $event->name }}" class="rounded-circle" style="width: 64px; height: 64px; object-fit: cover;">
+                                    <img src="{{ Storage::url($event->logo) }}" alt="{{ $event->name }}" class="rounded-circle" style="max-width:100%;max-height:100px; object-fit: cover;">
                                     @else
-                                        <i class="bi bi-calendar-event text-white fs-4"></i>
+                                    <i class="bi bi-calendar-event text-white fs-5"></i>
                                     @endif
                                 </div>
                             </div>
-                            <div class="ms-3">
-                                <h1 class="h3 mb-1 fw-bold">{{ $event->name }}</h1>
-                                <div class="d-flex align-items-center gap-3 text-muted">
-                                    <span class="d-flex align-items-center">
+                        <div>
+                            <h6 class="mb-1 fw-bold text-truncate" style="max-width: 200px;">{{ $event->name }}</h6>
+                             
+                        </div>
+                    </div>
+                    
+                    <!-- Event Info -->
+                    <div class="event-info">
+                        <div class="d-flex align-items-center text-muted small">
                                         <i class="bi bi-calendar-event me-2"></i>
-                                        {{ $event->start_date->format('M d, Y') }} - {{ $event->end_date->format('M d, Y') }}
-                                    </span>
-                                    <span class="d-flex align-items-center">
+                            <span>{{ $event->start_date->format('M d, Y') }} - {{ $event->end_date->format('M d, Y') }}</span>
+                        </div>
+                        <div class="d-flex align-items-center text-muted small">
                                         <i class="bi bi-clock me-2"></i>
-                                        {{ $event->duration_in_days }} day{{ $event->duration_in_days > 1 ? 's' : '' }}
-                                    </span>
-                                    <span class="badge 
-                                        @if($event->status === 'active') bg-success
-                                        @elseif($event->status === 'published') bg-primary
-                                        @elseif($event->status === 'completed') bg-info
-                                        @elseif($event->status === 'cancelled') bg-danger
-                                        @else bg-secondary @endif px-3 py-2">
-                                        <i class="bi 
-                                            @if($event->status === 'active') bi-play-circle
-                                            @elseif($event->status === 'published') bi-globe
-                                            @elseif($event->status === 'completed') bi-check-circle
-                                            @elseif($event->status === 'cancelled') bi-x-circle
-                                            @else bi-dash-circle @endif me-2"></i>
-                                        {{ ucfirst($event->status) }}
-                                    </span>
+                            <span>{{ $event->duration_in_days }} day{{ $event->duration_in_days > 1 ? 's' : '' }}</span>
                                 </div>
                             </div>
                         </div>
-                        <div class="d-flex gap-2">
-                            <a href="{{ route('events.edit', $event) }}" class="btn btn-outline-primary">
-                                <i class="bi bi-pencil me-2"></i>Edit Exhibition
-                            </a>
-                            <a href="#" class="btn btn-outline-success">
-                                <i class="bi bi-play-circle me-2"></i>Launch Event
-                            </a>
-                            <a href="{{ route('events.index') }}" class="btn btn-outline-secondary">
-                                <i class="bi bi-arrow-left me-2"></i>Back to Events
-                            </a>
-                        </div>
-                    </div>
 
-                    <!-- Event Navigation Menu -->
-                    <nav class="navbar navbar-expand-lg navbar-light bg-white rounded-3 shadow-sm border">
-                        <div class="container-fluid">
-                            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#eventNavbar">
-                                <span class="navbar-toggler-icon"></span>
-                            </button>
-                            
-                            <div class="collapse navbar-collapse" id="eventNavbar">
-                                <ul class="navbar-nav me-auto">
+                <!-- Sidebar Navigation -->
+                <nav class="sidebar-nav">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            @if(auth()->user()->hasPermission('view_events'))
+                            <a href="{{ route('events.dashboard', $event) }}" class="nav-link {{ request()->routeIs('events.dashboard') ? 'active' : '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Overview">
+                                <i class="bi bi-speedometer2 me-3"></i>
+                                <span>Overview</span>
+                            </a>
+                            @endif
+                        </li>
+                        <li class="nav-item">
+                            @if(auth()->user()->hasPermission('manage_floorplans') || auth()->user()->hasPermission('manage_own_floorplans'))
+                            <a href="{{ route('events.floorplan', $event) }}" class="nav-link {{ request()->routeIs('events.floorplan') ? 'active' : '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Floorplan">
+                                <i class="bi bi-grid-3x3-gap me-3"></i>
+                                <span>Floorplan</span>
+                            </a>
+                            @endif
+                        </li>
                                     <li class="nav-item">
-                                        <a href="{{ route('events.dashboard', $event) }}" class="nav-link fw-medium px-3 py-3 {{ request()->routeIs('events.dashboard') ? 'active' : '' }}">
-                                            <i class="bi bi-speedometer2 me-2"></i>
-                                            Overview
-                                        </a>
+                            @if(auth()->user()->hasPermission('manage_forms') || auth()->user()->hasPermission('manage_own_forms'))
+                            <a href="{{ route('events.form-builders.index', $event) }}" class="nav-link {{ request()->routeIs('events.form-builders.*') ? 'active' : '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Exhibitor Forms">
+                                <i class="bi bi-pencil-square me-3"></i>
+                                <span>Exhibitor Forms</span>
+                            </a>
+                            @endif
                                     </li>
                                     <li class="nav-item">
-                                        <a href="{{ route('events.floorplan', $event) }}" class="nav-link fw-medium px-3 py-3 {{ request()->routeIs('events.floorplan') ? 'active' : '' }}">
-                                            <i class="bi bi-grid-3x3-gap me-2"></i>
-                                            Floorplan
-                                        </a>
+                            @if(auth()->user()->hasPermission('manage_emails') || auth()->user()->hasPermission('manage_own_emails'))
+                            <a href="{{ route('events.email-templates.index', $event) }}" class="nav-link {{ request()->routeIs('events.email-templates.*') ? 'active' : '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Email Templates">
+                                <i class="bi bi-envelope me-3"></i>
+                                <span>Email Templates</span>
+                            </a>
+                            @endif
                                     </li>
                                     <li class="nav-item">
-                                        <a href="{{ route('events.form-builders.index', $event) }}" class="nav-link fw-medium px-3 py-3 {{ request()->routeIs('events.form-builders.*') ? 'active' : '' }}">
-                                            <i class="bi bi-pencil-square me-2"></i>
-                                            Exhibitor Forms
-                                        </a>
+                            @if(auth()->user()->hasPermission('manage_email_settings'))
+                            <a href="{{ route('admin.events.email-settings', $event) }}" class="nav-link {{ request()->routeIs('admin.events.email-settings*') ? 'active' : '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Email Settings">
+                                <i class="bi bi-sliders me-3"></i>
+                                <span>Email Settings</span>
+                            </a>
+                            @endif
                                     </li>
                                     <li class="nav-item">
-                                        <a href="{{ route('events.email-templates.index', $event) }}" class="nav-link fw-medium px-3 py-3 {{ request()->routeIs('events.email-templates.*') ? 'active' : '' }}">
-                                            <i class="bi bi-envelope me-2"></i>
-                                            Email Templates
-                                        </a>
+                            @if(auth()->user()->hasPermission('manage_payment_methods'))
+                            <a href="{{ route('admin.payment-methods.index', ['event' => $event->id]) }}" class="nav-link {{ request()->routeIs('admin.payment-methods.*') ? 'active' : '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Payment Setup">
+                                <i class="bi bi-credit-card me-3"></i>
+                                <span>Payment Setup</span>
+                            </a>
+                            @endif
                                     </li>
                                     <li class="nav-item">
-                                        <a href="{{ route('admin.payment-methods.index', ['event' => $event->id]) }}" class="nav-link fw-medium px-3 py-3 {{ request()->routeIs('admin.payment-methods.*') ? 'active' : '' }}">
-                                            <i class="bi bi-credit-card me-2"></i>
-                                            Payment Setup
-                                        </a>
+                            @if(auth()->user()->hasPermission('view_booking_reports'))
+                            <a href="{{ route('events.reports.bookings', $event) }}" class="nav-link {{ request()->routeIs('events.reports.*') ? 'active' : '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Reports">
+                                <i class="bi bi-bar-chart me-3"></i>
+                                <span>Reports</span>
+                            </a>
+                            @endif
                                     </li>
-                                    <li class="nav-item">
-                                        <a href="{{ route('events.reports.bookings', $event) }}" class="nav-link fw-medium px-3 py-3 {{ request()->routeIs('events.reports.*') ? 'active' : '' }}">
-                                            <i class="bi bi-bar-chart me-2"></i>
-                                            Reports
-                                        </a>
-                                    </li>
-                                    
-                                      
                                 </ul>
                                 
                                 <!-- Quick Actions -->
-                                <div class="navbar-nav">
-                                    <div class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle fw-medium px-3 py-3" href="#" role="button" data-bs-toggle="dropdown">
-                                            <i class="bi bi-gear me-2"></i>Settings
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li><a class="dropdown-item" href="{{ route('events.edit', $event) }}">
-                                                <i class="bi bi-pencil me-2"></i>Edit Event
-                                            </a></li>
-                                            <li><a class="dropdown-item" href="#">
-                                                <i class="bi bi-bell me-2"></i>Notifications
-                                            </a></li> 
+                    <div class="sidebar-section">
+                        <h6 class="sidebar-section-title">Quick Actions</h6>
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                @if(auth()->user()->hasPermission('manage_events') || auth()->user()->hasPermission('manage_own_events'))
+                                <a href="{{ route('events.edit', $event) }}" class="nav-link" data-bs-toggle="tooltip" data-bs-placement="right" title="Edit Event">
+                                    <i class="bi bi-pencil me-3"></i>
+                                    <span>Edit Event</span>
+                                </a>
+                                @endif
+                            </li>
+                            <li class="nav-item">
+                                @if(auth()->user()->hasPermission('view_events'))
+                                <a href="{{ route('events.public.show', $event) }}" target="_blank" class="nav-link" data-bs-toggle="tooltip" data-bs-placement="right" title="Public Page">
+                                    <i class="bi bi-globe me-3"></i>
+                                    <span>Public Page</span>
+                                </a>
+                                @endif
+                            </li>
+                            <li class="nav-item">
+                                @if(auth()->user()->hasPermission('manage_floorplans') || auth()->user()->hasPermission('manage_own_floorplans'))
+                                <a href="{{ route('events.public.floorplan', $event) }}" target="_blank" class="nav-link" data-bs-toggle="tooltip" data-bs-placement="right" title="Public Floorplan">
+                                    <i class="bi bi-grid-3x3-gap me-3"></i>
+                                    <span>Public Floorplan</span>
+                                </a>
+                                @endif
+                            </li>
+                            <li class="nav-item">
+                                @if(auth()->user()->hasPermission('view_events'))
+                                <a href="{{ route('events.index') }}" class="nav-link" data-bs-toggle="tooltip" data-bs-placement="right" title="Back to Events">
+                                    <i class="bi bi-arrow-left me-3"></i>
+                                    <span>Back to Events</span>
+                                </a>
+                                @endif
+                            </li>
                                         </ul>
                                     </div>
-                                    
-                                    <div class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle fw-medium px-3 py-3" href="#" role="button" data-bs-toggle="dropdown">
-                                            <i class="bi bi-eye me-2"></i>Preview
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li><a class="dropdown-item" href="{{ route('events.public.show', $event) }}" target="_blank">
-                                                <i class="bi bi-globe me-2"></i>Public Event Page
-                                            </a></li>
-                                            <li><a class="dropdown-item" href="{{ route('events.public.floorplan', $event) }}" target="_blank">
-                                                <i class="bi bi-grid-3x3-gap me-2"></i>Public Floorplan
-                                            </a></li>
-                                             
-                                        </ul>
+                </nav>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="main-content">
+           
+
+                <!-- Top Bar -->
+                <div class="top-bar">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-outline-secondary d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
+                                <i class="bi bi-list"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary d-none d-lg-inline-flex" type="button" id="sidebarToggle" title="Expand Sidebar" data-bs-toggle="tooltip" style="cursor: pointer;">
+                                <i class="bi bi-chevron-left" id="sidebarToggleIcon"></i>
+                            </button>
                                     </div>
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('events.edit', $event) }}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-pencil me-2"></i>Edit Event
+                            </a>
+                            <a href="#" class="btn btn-outline-success btn-sm">
+                                <i class="bi bi-play-circle me-2"></i>Launch
+                            </a>
                                 </div>
                             </div>
                         </div>
-                    </nav>
-                </div>
-            </header>
-            @endif
 
             <!-- Page Content -->
-            <main>
+                <main class="content">
                 {{ $slot }}
             </main>
+            </div>
+            </div>
+            @else
+            <!-- Page Content without sidebar -->
+            <main class="w-100">
+                {{ $slot }}
+            </main>
+            @endif
         </div>
         <script src="https://cdn.tiny.cloud/1/ymua9kt15x20ok61l6qlh9piih90ojnvq3bkqskll1mrzxgm/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
    
@@ -185,42 +209,355 @@
 
         <!-- Custom Styles -->
         <style>
-            .navbar-nav .nav-link {
-                color: #6c757d;
+            /* Event Layout Container */
+            .event-layout-container {
+                display: flex;
+                height: calc(100vh - 70px);
+                overflow: hidden;
+            }
+
+            /* Sidebar Styles */
+            .sidebar {
+                width: 280px;
+                height: 100%;
+                background: #f8f9fa;
+                border-right: 1px solid #e9ecef;
+                position: relative;
+                z-index: 1000;
+                overflow-y: auto;
                 transition: all 0.3s ease;
-                border-radius: 0.5rem;
-                margin: 0 0.25rem;
+                box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+                flex-shrink: 0;
             }
-            
-            .navbar-nav .nav-link:hover {
-                color: #0d6efd;
-                background-color: #f8f9fa;
+
+            /* Collapsed Sidebar */
+            .sidebar.collapsed {
+                width: 60px;
             }
+
+            .sidebar.collapsed .sidebar-header {
+                padding: 1rem 0rem;
+            }
+
+            .sidebar.collapsed .sidebar-header .d-flex {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .sidebar.collapsed .sidebar-header .me-3 {
+                margin-right: 0 !important;
+                margin-bottom: 0;
+            }
+
+            .sidebar.collapsed .sidebar-header .bg-gradient-to-br {
+                width: 48px !important;
+                height: 48px !important;
+                max-width: 48px !important;
+                max-height: 48px !important;
+            }
+
+            .sidebar.collapsed .sidebar-header .bg-gradient-to-br img {
+                width: 48px !important;
+                height: 48px !important;
+                max-width: 48px !important;
+                max-height: 48px !important;
+            }
+
+            .sidebar.collapsed .sidebar-header h6,
+            .sidebar.collapsed .sidebar-header .badge,
+            .sidebar.collapsed .event-info {
+                display: none;
+            }
+
+            .sidebar.collapsed .sidebar-nav .nav-link {
+               
+                justify-content: center;
+            }
+
+            .sidebar.collapsed .sidebar-nav .nav-link span {
+                display: none;
+            }
+
+            .sidebar.collapsed .sidebar-nav .nav-link i {
+                margin-right: 0 !important;
+                font-size: 1.1rem;
+            }
+
+            .sidebar.collapsed .sidebar-section {
+                display: none;
+            }
+
+            .sidebar-header {
+                padding: 1.5rem 0rem 1rem 1rem;
+                border-bottom: 1px solid #e9ecef;
+                background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }
+
             
-            .navbar-nav .nav-link.active {
-                color: #0d6efd;
-                background-color: #e7f1ff;
+
+            .sidebar-nav .nav-link {
+                color: #6c757d;
+                padding: 0.75rem 1.5rem;
+                border-radius: 0;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                border-left: 3px solid transparent;
+            }
+
+            .sidebar-nav .nav-link:hover {
+                color: #495057;
+                background-color: #e9ecef;
+                border-left-color: #6c757d;
+            }
+
+            .sidebar-nav .nav-link.active {
+                color: #495057;
+                background-color: #e9ecef;
+                border-left-color: #495057;
                 font-weight: 600;
             }
             
-            .navbar {
-                border: 1px solid #dee2e6;
+            .sidebar-section {
+                margin-top: 2rem;
+                padding: 0 1.5rem;
             }
-            
-            .dropdown-menu {
-                border: none;
-                box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-                border-radius: 0.5rem;
+
+            .sidebar-section-title {
+                color: #6c757d;
+                font-size: 0.875rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 1rem;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid #dee2e6;
             }
-            
-            .dropdown-item:hover {
-                background-color: #f8f9fa;
+
+            /* Main Content */
+            .main-content {
+                flex: 1;
+                height: 100%;
+                background: #f8f9fa;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            .top-bar {
+                background: #fff;
+                border-bottom: 1px solid #e9ecef;
+                padding: 1rem 1.5rem;
+                position: sticky;
+                top: 0;
+                z-index: 100;
+            }
+
+            .content {
+                padding: 2rem 1.5rem;
+                flex: 1;
+                overflow-y: auto;
+            }
+
+            /* Mobile Responsive */
+            @media (max-width: 991.98px) {
+                .event-layout-container {
+                    flex-direction: column;
+                    height: auto;
+                    min-height: calc(100vh - 70px);
+                }
+
+                .sidebar {
+                    position: fixed;
+                    left: 0;
+                    top: 70px;
+                    height: calc(100vh - 70px);
+                    transform: translateX(-100%);
+                    z-index: 1050;
+                }
+
+                .sidebar.show {
+                    transform: translateX(0);
+                }
+
+                .main-content {
+                    width: 100%;
+                    height: auto;
+                    min-height: calc(100vh - 70px);
+                }
+            }
+
+            /* Event Info Styles */
+            .event-info {
+                font-size: 0.875rem;
+            }
+
+            /* Scrollbar Styling */
+            .sidebar::-webkit-scrollbar {
+                width: 4px;
+            }
+
+            .sidebar::-webkit-scrollbar-track {
+                background: #f1f1f1;
+            }
+
+            .sidebar::-webkit-scrollbar-thumb {
+                background: #c1c1c1;
+                border-radius: 2px;
+            }
+
+            .sidebar::-webkit-scrollbar-thumb:hover {
+                background: #a8a8a8;
             }
         </style>
         
-        <!-- Bootstrap JavaScript -->
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- Sidebar JavaScript -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const sidebarToggle = document.getElementById('sidebarToggle');
+                const sidebarToggleIcon = document.getElementById('sidebarToggleIcon');
+                const sidebar = document.getElementById('sidebar');
+                const mobileToggle = document.querySelector('[data-bs-toggle="offcanvas"]');
+                
+                // Desktop sidebar toggle
+                if (sidebarToggle && sidebarToggleIcon && sidebar) {
+                    sidebarToggle.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        
+                        sidebar.classList.toggle('collapsed');
+                        
+                        // Update icon and tooltip
+                        if (sidebar.classList.contains('collapsed')) {
+                            sidebarToggleIcon.className = 'bi bi-chevron-right';
+                            sidebarToggle.title = 'Expand Sidebar';
+                        } else {
+                            sidebarToggleIcon.className = 'bi bi-chevron-left';
+                            sidebarToggle.title = 'Collapse Sidebar';
+                        }
+                        
+                        // Update tooltip (check if bootstrap is available)
+                        if (typeof bootstrap !== 'undefined') {
+                            const tooltip = bootstrap.Tooltip.getInstance(sidebarToggle);
+                            if (tooltip) {
+                                tooltip.setContent({ '.tooltip-inner': sidebarToggle.title });
+                            }
+                        }
+                        
+                        // Save global state to localStorage
+                        const isCollapsed = sidebar.classList.contains('collapsed');
+                        localStorage.setItem('sidebarCollapsed', isCollapsed);
+                        
+                        // Update global state indicator
+                        
+                        // Show a brief visual feedback
+                        const originalText = sidebarToggle.innerHTML;
+                        sidebarToggle.innerHTML = isCollapsed ? 
+                            '<i class="bi bi-chevron-right"></i> <small class="ms-1">Collapsed</small>' : 
+                            '<i class="bi bi-chevron-left"></i> <small class="ms-1">Expanded</small>';
+                        
+                        setTimeout(() => {
+                            sidebarToggle.innerHTML = originalText;
+                        }, 1000);
+                    });
+                }
+
+                // Mobile sidebar toggle
+                if (mobileToggle && sidebar) {
+                    mobileToggle.addEventListener('click', function() {
+                        sidebar.classList.toggle('show');
+                    });
+                }
+                
+                // Close sidebar when clicking outside on mobile
+                document.addEventListener('click', function(e) {
+                    if (window.innerWidth <= 991.98) {
+                        if (!sidebar.contains(e.target) && !mobileToggle.contains(e.target)) {
+                            sidebar.classList.remove('show');
+                        }
+                    }
+                });
+                
+                // Handle window resize
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 991.98) {
+                        sidebar.classList.remove('show');
+                    }
+                });
+
+                // Clear localStorage for testing (remove this line after testing)
+                // localStorage.removeItem('sidebarCollapsed');
+                
+                // Load global sidebar state (always use saved preference)
+                const savedState = localStorage.getItem('sidebarCollapsed');
+                
+                // Apply saved state or default to expanded
+                if (savedState === 'true') {
+                    sidebar.classList.add('collapsed');
+                    if (sidebarToggleIcon) {
+                        sidebarToggleIcon.className = 'bi bi-chevron-right';
+                    }
+                    if (sidebarToggle) {
+                        sidebarToggle.title = 'Expand Sidebar';
+                    }
+                } else {
+                    // Default to expanded state
+                    sidebar.classList.remove('collapsed');
+                    if (sidebarToggleIcon) {
+                        sidebarToggleIcon.className = 'bi bi-chevron-left';
+                    }
+                    if (sidebarToggle) {
+                        sidebarToggle.title = 'Collapse Sidebar';
+                    }
+                }
+                
+                // Update global state indicator
+                updateGlobalStateIndicator();
+
+                // Update icon and tooltip based on current state
+                if (sidebar && sidebarToggleIcon && sidebarToggle) {
+                    if (sidebar.classList.contains('collapsed')) {
+                        sidebarToggleIcon.className = 'bi bi-chevron-right';
+                        sidebarToggle.title = 'Expand Sidebar';
+                    } else {
+                        sidebarToggleIcon.className = 'bi bi-chevron-left';
+                        sidebarToggle.title = 'Collapse Sidebar';
+                    }
+                }
+
+                // Initialize tooltips (check if bootstrap is available)
+                let tooltipList = [];
+                if (typeof bootstrap !== 'undefined') {
+                    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                        return new bootstrap.Tooltip(tooltipTriggerEl);
+                    });
+                }
+
+                // Function to update tooltip visibility
+                function updateTooltips() {
+                    const isCollapsed = sidebar.classList.contains('collapsed');
+                    if (typeof bootstrap !== 'undefined') {
+                        tooltipList.forEach(function(tooltip) {
+                            if (isCollapsed) {
+                                tooltip.enable();
+                            } else {
+                                tooltip.disable();
+                            }
+                        });
+                    }
+                }
+
+                // Update tooltips on load
+                updateTooltips();
+                
+            });
+        </script>
         
         @stack('scripts')
     </body>
 </html>
+

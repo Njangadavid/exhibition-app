@@ -1,22 +1,18 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="d-flex justify-content-between align-items-center">
-            <h2 class="h4 mb-0">
-                <i class="bi bi-pencil me-2"></i>
-                Edit Form - {{ $formBuilder->name }}
-            </h2>
-            <div class="d-flex gap-2">
-                <a href="{{ route('events.form-builders.show', [$event, $formBuilder]) }}" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left me-2"></i>Back to Form
-                </a>
-            </div>
+<x-event-layout :event="$event">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4 mb-0">
+            <i class="bi bi-pencil me-2"></i>
+            Edit Form - {{ $formBuilder->name }}
+        </h2>
+        <div class="d-flex gap-2">
+            <a href="{{ route('events.form-builders.show', [$event, $formBuilder]) }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Back to Form
+            </a>
         </div>
-    </x-slot>
+    </div>
 
-    <div class="py-4">
-        <div class="container-fluid">
+    <div class="card mb-4">
             <!-- Event Header -->
-            <div class="card mb-4">
                 <div class="position-relative">
                     <div class="bg-gradient-to-br from-blue-400 to-purple-600 d-flex align-items-center justify-content-center position-relative overflow-hidden" style="height: 150px;">
                         @if($event->logo)
@@ -264,4 +260,4 @@
             </form>
         </div>
     </div>
-</x-app-layout>
+</x-event-layout>

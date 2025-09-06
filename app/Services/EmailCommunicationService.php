@@ -122,7 +122,8 @@ class EmailCommunicationService
                 $booking->owner_email,
                 $processedSubject,
                 $processedContent,
-                $attachmentData
+                $attachmentData,
+                $booking->event_id
             );
             
             // Email log status will be updated by the job
@@ -192,7 +193,9 @@ class EmailCommunicationService
                 $template->id,
                 $memberEmail,
                 $processedSubject,
-                $processedContent
+                $processedContent,
+                null,
+                $booking->event_id
             );
             
             // Email log status will be updated by the job

@@ -143,6 +143,47 @@
                             </div>
                         </div>
 
+                        <!-- Assigned Users -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="bi bi-people me-2"></i>
+                                Assign Users to Event
+                            </label>
+                            <p class="text-muted small mb-3">Select which users can view and manage this event. You will automatically be assigned as the event owner.</p>
+                            
+                            <div class="row">
+                                @foreach($users as $user)
+                                <div class="col-md-6 col-lg-4 mb-2">
+                                    <div class="form-check">
+                                        <input 
+                                            class="form-check-input" 
+                                            type="checkbox" 
+                                            name="assigned_users[]" 
+                                            value="{{ $user->id }}" 
+                                            id="user_{{ $user->id }}"
+                                            {{ in_array($user->id, old('assigned_users', [])) ? 'checked' : '' }}
+                                        />
+                                        <label class="form-check-label" for="user_{{ $user->id }}">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                                    <i class="bi bi-person text-primary"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-medium">{{ $user->name }}</div>
+                                                    <small class="text-muted">{{ $user->email }}</small>
+                                                </div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                            
+                            @error('assigned_users')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @enderror
+                        </div>
+
                         <!-- Form Actions -->
                         <div class="d-flex justify-content-end gap-3 pt-4 border-top">
                             <a href="{{ route('events.index') }}" class="btn btn-outline-secondary">
