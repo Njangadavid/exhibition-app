@@ -45,6 +45,57 @@ $hasCompletedPayment = $booking->hasCompletedPayments();
 
                 @endif
 
+                <!-- Pesapal Payment Iframe -->
+                @if(session('pesapal_redirect') && !$hasCompletedPayment)
+                    @php
+                        $pesapalUrl = session('pesapal_redirect');
+                    @endphp
+                    <div class="card">
+                        <div class="card-header text-center">
+                            <h5 class="mb-0">
+                                <i class="bi bi-credit-card me-2"></i>
+                                Complete Payment
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="pesapal-iframe-container" style="
+                                position: relative; 
+                                width: 100%; 
+                                height: 600px; 
+                                overflow: hidden;
+                                display: flex;
+                                justify-content: center;
+                                align-items: center;
+                                background: #f8f9fa;
+                            ">
+                                <iframe 
+                                    src="{{ $pesapalUrl }}" 
+                                    style="
+                                        position: absolute;
+                                        top: 0;
+                                        left: 0;
+                                        width: 100%;
+                                        height: 100%;
+                                        border: none;
+                                        border-radius: 0.375rem;
+                                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                                    "
+                                    frameborder="0"
+                                    allowtransparency="true"
+                                    scrolling="auto"
+                                    title="Pesapal Payment">
+                                </iframe>
+                            </div>
+                        </div>
+                        <div class="card-footer text-center">
+                            <small class="text-muted">
+                                <i class="bi bi-shield-check me-1"></i>
+                                Secure payment powered by Pesapal
+                            </small>
+                        </div>
+                    </div>
+                @endif
+
                 <!-- Upgrade Information Alert -->
                 
 
@@ -101,7 +152,7 @@ $hasCompletedPayment = $booking->hasCompletedPayments();
                                 <h6 class="fw-bold text-primary mb-3">Payment Summary</h6>
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="small">Space Rental ({{ $booking->floorplanItem->label ?? 'N/A' }} - {{ $booking->boothOwner->form_responses['booth_name'] ?? 'Booth' }})</span>
-                                    <span class="small">${{ number_format($totalAmount, 2) }}</span>
+                                    <span class="small">@formatAmount($totalAmount)</span>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="small">Exhibitors ({{ $booking->boothMembers ? count($booking->boothMembers) : 0 }} registered)</span>
@@ -111,12 +162,12 @@ $hasCompletedPayment = $booking->hasCompletedPayments();
                                 @if($hasCompletedPayment)
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="small">Amount Paid</span>
-                                    <span class="small text-success">${{ number_format($totalPaid, 2) }}</span>
+                                    <span class="small text-success">@formatAmount($totalPaid)</span>
                                 </div>
                                 <hr>
                                 <div class="d-flex justify-content-between align-items-center">
                                     <strong class="fs-6">Remaining Balance</strong>
-                                    <strong class="fs-5 {{ $balance > 0 ? 'text-warning' : 'text-success' }}">${{ number_format($balance, 2) }}</strong>
+                                    <strong class="fs-5 {{ $balance > 0 ? 'text-warning' : 'text-success' }}">@formatAmount($balance)</strong>
                                 </div>
                                 @else
                                 <hr>
@@ -166,7 +217,7 @@ $hasCompletedPayment = $booking->hasCompletedPayments();
                                             <form action="{{ route('bookings.process-payment', ['eventSlug' => $event->slug, 'accessToken' => $booking->boothOwner->access_token]) }}" method="POST" class="d-inline">
                                                 @csrf
                                                 <button type="submit" class="btn btn-success btn-sm">
-                                                    <i class="bi bi-credit-card me-1"></i>Pay ${{ number_format($balance, 2) }}
+                                                    <i class="bi bi-credit-card me-1"></i>Pay @formatAmount($balance)
                                                 </button>
                                             </form>
                                         </div>
@@ -364,6 +415,7 @@ $hasCompletedPayment = $booking->hasCompletedPayments();
         if (firstPaymentCard) {
             firstPaymentCard.classList.add('active');
         }
+
     });
 </script>
 @endpush

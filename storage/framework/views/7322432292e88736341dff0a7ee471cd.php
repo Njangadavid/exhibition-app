@@ -1,9 +1,7 @@
-@extends('layouts.public')
-
-@section('title', 'Payment Receipt - ' . $event->name)
+<?php $__env->startSection('title', 'Payment Receipt - ' . $event->name); ?>
 
 
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="container py-4">
     <div class="receipt-container">
         <!-- Receipt Header -->
@@ -21,9 +19,10 @@
             <div class="row mb-3">
                 <div class="col-md-6">
                     <div class="receipt-number">
-                        Receipt #{{ $payment->id }}
+                        Receipt #<?php echo e($payment->id); ?>
+
                     </div>
-                    <small class="text-muted">Generated on {{ now()->format('M j, Y \a\t g:i A') }}</small>
+                    <small class="text-muted">Generated on <?php echo e(now()->format('M j, Y \a\t g:i A')); ?></small>
                 </div>
                 <div class="col-md-6 text-end">
                     <div class="status-badge">
@@ -34,7 +33,8 @@
 
             <!-- Amount Display -->
             <div class="amount-display">
-                {{ \App\Helpers\CurrencyHelper::formatPaymentAmount($payment->amount, $payment) }}
+                <?php echo e(\App\Helpers\CurrencyHelper::formatPaymentAmount($payment->amount, $payment)); ?>
+
             </div>
 
             <!-- Transaction Details -->
@@ -45,19 +45,19 @@
                     </h5>
                     <div class="info-row">
                         <span class="info-label">Transaction ID:</span>
-                        <span class="info-value">{{ $payment->gateway_transaction_id }}</span>
+                        <span class="info-value"><?php echo e($payment->gateway_transaction_id); ?></span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Payment Method:</span>
-                        <span class="info-value">{{ ucfirst($payment->gateway) }} - {{ucfirst($receipt->data->channel)}}</span>
+                        <span class="info-value"><?php echo e(ucfirst($payment->gateway)); ?> - <?php echo e(ucfirst($receipt->data->channel)); ?></span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Currency:</span>
-                        <span class="info-value">{{ strtoupper($payment->currency) }}</span>
+                        <span class="info-value"><?php echo e(strtoupper($payment->currency)); ?></span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Date:</span>
-                        <span class="info-value">{{ $payment->created_at->format('M j, Y g:i A') }}</span>
+                        <span class="info-value"><?php echo e($payment->created_at->format('M j, Y g:i A')); ?></span>
                     </div>
                 </div>
                 <div class="col-md-6">
@@ -66,25 +66,25 @@
                     </h5>
                     <div class="info-row">
                         <span class="info-label">Event:</span>
-                        <span class="info-value">{{ $event->name }}</span>
+                        <span class="info-value"><?php echo e($event->name); ?></span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Booth Space:</span>
-                        <span class="info-value">{{ $booking->floorplanItem->label ?? 'N/A' }}</span>
+                        <span class="info-value"><?php echo e($booking->floorplanItem->label ?? 'N/A'); ?></span>
                     </div>
-                    @if(isset($booking->boothOwner->form_responses['booth_name']) && !empty($booking->boothOwner->form_responses['booth_name']))
+                    <?php if(isset($booking->boothOwner->form_responses['booth_name']) && !empty($booking->boothOwner->form_responses['booth_name'])): ?>
                     <div class="info-row">
                         <span class="info-label">Booth Name:</span>
-                        <span class="info-value">{{ $booking->boothOwner->form_responses['booth_name'] }}</span>
+                        <span class="info-value"><?php echo e($booking->boothOwner->form_responses['booth_name']); ?></span>
                     </div>
-                    @endif
+                    <?php endif; ?>
                     <div class="info-row">
                         <span class="info-label">Type:</span>
-                        <span class="info-value">{{ ucfirst($booking->floorplanItem->type ?? 'booth') }}</span>
+                        <span class="info-value"><?php echo e(ucfirst($booking->floorplanItem->type ?? 'booth')); ?></span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Booking ID:</span>
-                        <span class="info-value">#{{ $booking->id }}</span>
+                        <span class="info-value">#<?php echo e($booking->id); ?></span>
                     </div>
                 </div>
             </div>
@@ -97,50 +97,50 @@
                     </h5>
                     <div class="info-row">
                         <span class="info-label">Name:</span>
-                        <span class="info-value">{{ $booking->boothOwner->form_responses['name'] ?? 'N/A' }}</span>
+                        <span class="info-value"><?php echo e($booking->boothOwner->form_responses['name'] ?? 'N/A'); ?></span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Email:</span>
-                        <span class="info-value">{{ $booking->boothOwner->form_responses['email'] ?? 'N/A' }}</span>
+                        <span class="info-value"><?php echo e($booking->boothOwner->form_responses['email'] ?? 'N/A'); ?></span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Phone:</span>
-                        <span class="info-value">{{ $booking->boothOwner->form_responses['phone'] ?? 'N/A' }}</span>
+                        <span class="info-value"><?php echo e($booking->boothOwner->form_responses['phone'] ?? 'N/A'); ?></span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Company:</span>
-                        <span class="info-value">{{ $booking->boothOwner->form_responses['company_name'] ?? 'N/A' }}</span>
+                        <span class="info-value"><?php echo e($booking->boothOwner->form_responses['company_name'] ?? 'N/A'); ?></span>
                     </div>
                 </div>
             </div>
 
             <!-- Payment Gateway Receipt Data (if available) -->
-            @if(isset($receipt) && $receipt->status && isset($receipt->data))
+            <?php if(isset($receipt) && $receipt->status && isset($receipt->data)): ?>
             <div class="row mb-3">
                 <div class="col-12">
                     <h5 class="section-title">
-                        <i class="bi bi-receipt me-2"></i>{{ $payment->gateway === 'pesapal' ? 'Pesapal' : 'Paystack' }} Transaction Details
+                        <i class="bi bi-receipt me-2"></i><?php echo e($payment->gateway === 'pesapal' ? 'Pesapal' : 'Paystack'); ?> Transaction Details
                     </h5>
                     <div class="info-row">
                         <span class="info-label">Transaction Reference:</span>
-                        <span class="info-value">{{ $receipt->data->receipt_number ?? 'N/A' }}</span>
+                        <span class="info-value"><?php echo e($receipt->data->receipt_number ?? 'N/A'); ?></span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Payment Channel:</span>
-                        <span class="info-value">{{ ucfirst($receipt->data->channel ?? ($payment->gateway === 'pesapal' ? 'Pesapal' : 'Card')) }}</span>
+                        <span class="info-value"><?php echo e(ucfirst($receipt->data->channel ?? ($payment->gateway === 'pesapal' ? 'Pesapal' : 'Card'))); ?></span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Gateway Response:</span>
                         <span class="info-value">
-                            <span class="badge bg-success" style="font-size: 0.75rem;">{{ ucfirst($receipt->data->gateway_response ?? 'Success') }}</span>
+                            <span class="badge bg-success" style="font-size: 0.75rem;"><?php echo e(ucfirst($receipt->data->gateway_response ?? 'Success')); ?></span>
                         </span>
                     </div>
-                    @if(isset($receipt->data->transaction_date))
+                    <?php if(isset($receipt->data->transaction_date)): ?>
                     <div class="info-row">
                         <span class="info-label">Transaction Date:</span>
-                        <span class="info-value">{{ \Carbon\Carbon::parse($receipt->data->transaction_date)->format('M j, Y g:i A') }}</span>
+                        <span class="info-value"><?php echo e(\Carbon\Carbon::parse($receipt->data->transaction_date)->format('M j, Y g:i A')); ?></span>
                     </div>
-                    @endif
+                    <?php endif; ?>
                     <div class="alert alert-info mt-2">
                         <div class="d-flex align-items-start">
                             <i class="bi bi-info-circle me-2 mt-1"></i>
@@ -152,44 +152,44 @@
                     </div>
                 </div>
             </div>
-            @endif
+            <?php endif; ?>
 
             <!-- Additional Paystack Transaction Details (if available) -->
-            @if(isset($transactionDetails) && $transactionDetails->status && isset($transactionDetails->data))
+            <?php if(isset($transactionDetails) && $transactionDetails->status && isset($transactionDetails->data)): ?>
             <div class="row mb-3">
                 <div class="col-12">
                     <h5 class="section-title">
                         <i class="bi bi-list-ul me-2"></i>Additional Transaction Information
                     </h5>
-                    @if(isset($transactionDetails->data->customer))
+                    <?php if(isset($transactionDetails->data->customer)): ?>
                     <div class="info-row">
                         <span class="info-label">Customer Email:</span>
-                        <span class="info-value">{{ $transactionDetails->data->customer->email ?? 'N/A' }}</span>
+                        <span class="info-value"><?php echo e($transactionDetails->data->customer->email ?? 'N/A'); ?></span>
                     </div>
-                    @endif
-                    @if(isset($transactionDetails->data->authorization))
+                    <?php endif; ?>
+                    <?php if(isset($transactionDetails->data->authorization)): ?>
                     <div class="info-row">
                         <span class="info-label">Authorization Code:</span>
-                        <span class="info-value">{{ $transactionDetails->data->authorization->authorization_code ?? 'N/A' }}</span>
+                        <span class="info-value"><?php echo e($transactionDetails->data->authorization->authorization_code ?? 'N/A'); ?></span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Card Type:</span>
-                        <span class="info-value">{{ $transactionDetails->data->authorization->card_type ?? 'N/A' }}</span>
+                        <span class="info-value"><?php echo e($transactionDetails->data->authorization->card_type ?? 'N/A'); ?></span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Last 4 Digits:</span>
-                        <span class="info-value">{{ $transactionDetails->data->authorization->last4 ?? 'N/A' }}</span>
+                        <span class="info-value"><?php echo e($transactionDetails->data->authorization->last4 ?? 'N/A'); ?></span>
                     </div>
-                    @endif
-                    @if(isset($transactionDetails->data->fees))
+                    <?php endif; ?>
+                    <?php if(isset($transactionDetails->data->fees)): ?>
                     <div class="info-row">
                         <span class="info-label">Transaction Fee:</span>
-                        <span class="info-value">{{ \App\Helpers\CurrencyHelper::formatAmount(($transactionDetails->data->fees / 100), $transactionDetails->data->currency ?? 'NGN') }}</span>
+                        <span class="info-value"><?php echo e(\App\Helpers\CurrencyHelper::formatAmount(($transactionDetails->data->fees / 100), $transactionDetails->data->currency ?? 'NGN')); ?></span>
                     </div>
-                    @endif
+                    <?php endif; ?>
                 </div>
             </div>
-            @endif
+            <?php endif; ?>
 
             <!-- Terms and Notes -->
             <div class="row">
@@ -212,12 +212,14 @@
             <div class="row">
                 <div class="col-md-6 text-start">
                     <small class="footer-text">
-                        <strong>Generated by:</strong> {{ config('app.name') }}
+                        <strong>Generated by:</strong> <?php echo e(config('app.name')); ?>
+
                     </small>
                 </div>
                 <div class="col-md-6 text-end">
                     <small class="footer-text">
-                        <strong>Powered by:</strong> {{ ucfirst($payment->gateway ?? 'Paystack') }}
+                        <strong>Powered by:</strong> <?php echo e(ucfirst($payment->gateway ?? 'Paystack')); ?>
+
                     </small>
                 </div>
             </div>
@@ -237,9 +239,9 @@
                
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 function resendPaymentEmail() {
     if (confirm('Are you sure you want to resend the payment confirmation email? This will send the email again with the receipt attached.')) {
@@ -250,10 +252,10 @@ function resendPaymentEmail() {
         button.disabled = true;
         
         // Make AJAX request to resend payment email
-        fetch('{{ route("bookings.resend-payment-email", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token]) }}', {
+        fetch('<?php echo e(route("bookings.resend-payment-email", ["eventSlug" => $event->slug, "accessToken" => $booking->boothOwner->access_token])); ?>', {
             method: 'POST',
             headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>',
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             }
@@ -278,9 +280,9 @@ function resendPaymentEmail() {
     }
 }
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@push('styles')
+<?php $__env->startPush('styles'); ?>
 <style>
     @media print {
         .no-print { display: none !important; }
@@ -426,4 +428,6 @@ function resendPaymentEmail() {
         padding: 10px 20px;
     }
 </style>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.public', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\exhibition-app\resources\views/bookings/receipt.blade.php ENDPATH**/ ?>

@@ -1,8 +1,8 @@
-@extends('layouts.public')
 
-@section('title', 'Booking Successful - ' . $event->name)
 
-@section('content')
+<?php $__env->startSection('title', 'Booking Successful - ' . $event->name); ?>
+
+<?php $__env->startSection('content'); ?>
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-8">
@@ -15,7 +15,7 @@
                 <p class="lead text-muted">Your booking has been confirmed and payment processed successfully.</p>
                 <div class="alert alert-success d-inline-block">
                     <strong>Status:</strong> 
-                    <span class="badge bg-success fs-6">{{ ucfirst($booking->status) }}</span>
+                    <span class="badge bg-success fs-6"><?php echo e(ucfirst($booking->status)); ?></span>
                 </div>
             </div>
 
@@ -37,7 +37,7 @@
                                     <i class="bi bi-building text-muted me-2"></i>
                                     <strong>Event:</strong>
                                 </div>
-                                <div class="ms-4">{{ $event->name }}</div>
+                                <div class="ms-4"><?php echo e($event->name); ?></div>
                             </div>
                             <div class="mb-3">
                                 <div class="d-flex align-items-center mb-2">
@@ -45,26 +45,27 @@
                                     <strong>Booth Space:</strong>
                                 </div>
                                 <div class="ms-4">
-                                    {{ $booking->floorplanItem->label ?? 'N/A' }}
-                                    <span class="badge bg-primary ms-2">{{ ucfirst($booking->floorplanItem->type ?? 'booth') }}</span>
+                                    <?php echo e($booking->floorplanItem->label ?? 'N/A'); ?>
+
+                                    <span class="badge bg-primary ms-2"><?php echo e(ucfirst($booking->floorplanItem->type ?? 'booth')); ?></span>
                                 </div>
                             </div>
-                            @if($booking->boothOwner->form_responses['booth_name'] ?? null)
+                            <?php if($booking->boothOwner->form_responses['booth_name'] ?? null): ?>
                             <div class="mb-3">
                                 <div class="d-flex align-items-center mb-2">
                                     <i class="bi bi-tag text-muted me-2"></i>
                                     <strong>Booth Name:</strong>
                                 </div>
-                                <div class="ms-4">{{ $booking->boothOwner->form_responses['booth_name'] }}</div>
+                                <div class="ms-4"><?php echo e($booking->boothOwner->form_responses['booth_name']); ?></div>
                             </div>
-                            @endif
+                            <?php endif; ?>
                             <div class="mb-3">
                                 <div class="d-flex align-items-center mb-2">
                                     <i class="bi bi-people text-muted me-2"></i>
                                     <strong>Team Members:</strong>
                                 </div>
                                 <div class="ms-4">
-                                    {{ count($booking->member_details ?? []) + 1 }} total
+                                    <?php echo e(count($booking->member_details ?? []) + 1); ?> total
                                     <small class="text-muted d-block">(including you)</small>
                                 </div>
                             </div>
@@ -78,28 +79,28 @@
                                     <i class="bi bi-person text-muted me-2"></i>
                                     <strong>Name:</strong>
                                 </div>
-                                <div class="ms-4">{{ $booking->boothOwner->form_responses['name'] ?? 'N/A' }}</div>
+                                <div class="ms-4"><?php echo e($booking->boothOwner->form_responses['name'] ?? 'N/A'); ?></div>
                             </div>
                             <div class="mb-3">
                                 <div class="d-flex align-items-center mb-2">
                                     <i class="bi bi-envelope text-muted me-2"></i>
                                     <strong>Email:</strong>
                                 </div>
-                                <div class="ms-4">{{ $booking->boothOwner->form_responses['email'] ?? 'N/A' }}</div>
+                                <div class="ms-4"><?php echo e($booking->boothOwner->form_responses['email'] ?? 'N/A'); ?></div>
                             </div>
                             <div class="mb-3">
                                 <div class="d-flex align-items-center mb-2">
                                     <i class="bi bi-telephone text-muted me-2"></i>
                                     <strong>Phone:</strong>
                                 </div>
-                                <div class="ms-4">{{ $booking->boothOwner->form_responses['phone'] ?? 'N/A' }}</div>
+                                <div class="ms-4"><?php echo e($booking->boothOwner->form_responses['phone'] ?? 'N/A'); ?></div>
                             </div>
                             <div class="mb-3">
                                 <div class="d-flex align-items-center mb-2">
                                     <i class="bi bi-briefcase text-muted me-2"></i>
                                     <strong>Company:</strong>
                                 </div>
-                                <div class="ms-4">{{ $booking->boothOwner->form_responses['company_name'] ?? 'N/A' }}</div>
+                                <div class="ms-4"><?php echo e($booking->boothOwner->form_responses['company_name'] ?? 'N/A'); ?></div>
                             </div>
                         </div>
                     </div>
@@ -171,7 +172,7 @@
                         <h6 class="alert-heading">Important Information</h6>
                         <ul class="mb-0 small">
                             <li>Keep your access link safe - you'll need it to manage your booking</li>
-                            <li>All communications will be sent to: <strong>{{ $booking->owner_details['email'] ?? 'N/A' }}</strong></li>
+                            <li>All communications will be sent to: <strong><?php echo e($booking->owner_details['email'] ?? 'N/A'); ?></strong></li>
                             <li>For any questions, contact the event organizers</li>
                         </ul>
                     </div>
@@ -184,23 +185,23 @@
                     <h5 class="text-success">Next Step: Get Your Receipt</h5>
                     <p class="text-muted">Download and print your payment receipt for your records</p>
                 </div>
-                @if($booking->payments && $booking->payments->where('status', 'completed')->count() > 0)
-                    <a href="{{ route('bookings.receipt', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token]) }}" class="btn btn-success btn-lg">
+                <?php if($booking->payments && $booking->payments->where('status', 'completed')->count() > 0): ?>
+                    <a href="<?php echo e(route('bookings.receipt', ['eventSlug' => $event->slug, 'accessToken' => $booking->access_token])); ?>" class="btn btn-success btn-lg">
                         <i class="bi bi-receipt me-2"></i>View & Print Receipt
                     </a>
-                @else
+                <?php else: ?>
                     <div class="alert alert-warning">
                         <i class="bi bi-exclamation-triangle me-2"></i>
                         Receipt will be available once payment is confirmed
                     </div>
-                @endif
+                <?php endif; ?>
             </div>
         </div>
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('styles')
+<?php $__env->startPush('styles'); ?>
 <style>
 @media print {
     .btn, nav, footer {
@@ -223,4 +224,6 @@
     background-color: rgba(var(--bs-info-rgb), 0.1) !important;
 }
 </style>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.public', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\exhibition-app\resources\views/bookings/success.blade.php ENDPATH**/ ?>

@@ -301,7 +301,7 @@
                                     Manage Events
                                 </a>
                                 @if(auth()->user()->hasPermission('manage_payment_methods'))
-                                <a href="{{ route('admin.payment-methods.index') }}" class="btn btn-outline-secondary btn-sm">
+                                <a href="{{ route('events.index') }}" class="btn btn-outline-secondary btn-sm">
                                     <i class="bi bi-credit-card me-2"></i>
                                     Payment Methods
                                 </a>

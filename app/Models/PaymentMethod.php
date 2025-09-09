@@ -14,6 +14,7 @@ class PaymentMethod extends Model
         'name',
         'code',
         'type',
+        'gateway',
         'description',
         'config',
         'is_active',
@@ -79,6 +80,80 @@ class PaymentMethod extends Model
     }
 
     /**
+     * Check if this is a Paystack payment method
+     */
+    public function isPaystack()
+    {
+        // Check explicit gateway first
+        if ($this->gateway === 'paystack') {
+            return true;
+        }
+        
+        // Check if it's explicitly NOT Pesapal and has Paystack-style keys
+        if ($this->gateway === 'pesapal' || $this->type === 'pesapal') {
+            return false;
+        }
+        
+        // Check for Paystack-specific configuration
+        return $this->type === 'card' && 
+               $this->getConfig('public_key') && 
+               str_starts_with($this->getConfig('public_key'), 'pk_');
+    }
+
+    /**
+     * Check if this is a Pesapal payment method
+     */
+    public function isPesapal()
+    {
+        // Check explicit gateway
+        if ($this->gateway === 'pesapal') {
+            return true;
+        }
+        
+        // Check type
+        if ($this->type === 'pesapal') {
+            return true;
+        }
+        
+        // Check Pesapal-specific configuration
+        if ($this->getConfig('consumer_key') && $this->getConfig('consumer_secret')) {
+            return true;
+        }
+        
+        // Check standard configuration (public_key/secret_key) for Pesapal
+        // Only if it's not explicitly Paystack and has the right type
+        if (($this->type === 'card' || $this->type === 'digital_wallet') && 
+            $this->getConfig('public_key') && $this->getConfig('secret_key') && 
+            !str_starts_with($this->getConfig('public_key'), 'pk_')) {
+            return true;
+        }
+        
+        return false;
+    }
+
+
+    /**
+     * Get the payment gateway name
+     */
+    public function getGatewayName()
+    {
+        if ($this->gateway) {
+            return ucfirst($this->gateway);
+        }
+
+        // Auto-detect based on configuration
+        if ($this->isPaystack()) {
+            return 'Paystack';
+        } elseif ($this->isPesapal()) {
+            return 'Pesapal';
+        } elseif ($this->isBankTransfer()) {
+            return 'Bank Transfer';
+        }
+
+        return ucfirst($this->type);
+    }
+
+    /**
      * Get gateway configuration value
      */
     public function getConfig($key, $default = null)
@@ -118,6 +193,22 @@ class PaymentMethod extends Model
     public function getWebhookSecret()
     {
         return $this->getConfig('webhook_secret');
+    }
+
+    /**
+     * Get consumer key for gateways like Pesapal
+     */
+    public function getConsumerKey()
+    {
+        return $this->getConfig('consumer_key');
+    }
+
+    /**
+     * Get consumer secret for gateways like Pesapal
+     */
+    public function getConsumerSecret()
+    {
+        return $this->getConfig('consumer_secret');
     }
 
     /**

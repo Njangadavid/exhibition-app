@@ -563,4 +563,5 @@
     </body>
 </html>
 
+
 <?php /**PATH C:\xampp\htdocs\exhibition-app\resources\views/components/event-layout.blade.php ENDPATH**/ ?>

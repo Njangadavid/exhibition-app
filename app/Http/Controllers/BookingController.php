@@ -738,10 +738,11 @@ class BookingController extends Controller
         return view('bookings.payment', compact('event', 'booking'));
     }
 
+
     /**
-     * Process payment for booking.
+     * Show success page after payment.
      */
-    public function processPayment(Request $request, $eventSlug, $accessToken)
+    public function showSuccess($eventSlug, $accessToken)
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
 
@@ -760,31 +761,19 @@ class BookingController extends Controller
                 ->with('error', 'Invalid or expired access link. Please start over.');
         }
 
-        try {
-            // Get the default payment method for this event
-            $paymentMethod = $event->paymentMethods->where('is_active', true)->where('is_default', true)->first();
-
-            if (!$paymentMethod) {
-                return back()->with('error', 'No payment method available for this event.');
-            }
-
-            // Check if it's a Paystack payment method
-            if ($paymentMethod->code === 'paystack') {
-                return $this->processPaystackPayment($request, $event, $booking, $paymentMethod);
-            }
-
-            // For other payment methods, use the old logic
-            return $this->processLegacyPayment($request, $event, $booking);
-        } catch (\Exception $e) {
-            Log::error('Payment processing failed', [
-                'booking_id' => $booking->id,
-                'error' => $e->getMessage(),
-                'event_slug' => $eventSlug
-            ]);
-
-            return back()->with('error', 'Payment processing failed. Please try again.');
+        // Verify that a successful payment exists
+        if (!$booking->hasCompletedPayments()) {
+            return redirect()->route('bookings.payment', ['eventSlug' => $eventSlug, 'accessToken' => $accessToken])
+                ->with('error', 'No successful payment found. Please complete your payment first.');
         }
+
+        // Set current step to 5 (Receipt) and show progress
+        $currentStep = 5;
+        $showProgress = true;
+
+        return view('bookings.success', compact('event', 'booking', 'currentStep', 'showProgress'));
     }
+
 
     /**
      * Process Paystack payment
@@ -962,6 +951,157 @@ class BookingController extends Controller
     }
 
     /**
+     * Handle Pesapal payment callback
+     */
+    public function pesapalCallback(Request $request, $eventSlug, $accessToken)
+    {
+        $event = Event::where('slug', $eventSlug)->firstOrFail();
+
+        // Find booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
+        $booking = $boothOwner->booking;
+
+        if (!$booking) {
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'No booking found for this access token. Please start over.');
+        }
+
+        try {
+            $pesapalService = app(\App\Services\PesapalService::class);
+
+            // Get the payment method
+            $paymentMethod = $event->paymentMethods->where('type', 'pesapal')->where('is_active', true)->first();
+            if (!$paymentMethod) {
+                return redirect()->route('events.public.floorplan', $eventSlug)
+                    ->with('error', 'Pesapal payment method not configured.');
+            }
+
+            $pesapalService->initializeWithPaymentMethod($paymentMethod);
+
+            // Get the order tracking ID from the request
+            $orderTrackingId = $request->input('OrderTrackingId');
+            $orderMerchantReference = $request->input('OrderMerchantReference');
+
+            if (!$orderTrackingId) {
+                return redirect()->route('events.public.floorplan', $eventSlug)
+                    ->with('error', 'Invalid payment response');
+            }
+
+            // Verify the payment
+            $paymentStatus = $pesapalService->verifyPayment([
+                'orderTrackingId' => $orderTrackingId,
+                'orderMerchantReference' => $orderMerchantReference,
+                'orderNotificationType' => 'CHANGE'
+            ]);
+
+            if ($paymentStatus && $paymentStatus['payment_status'] === 'COMPLETED') {
+                // Payment successful
+                $payment = \App\Models\Payment::where('gateway_transaction_id', $orderMerchantReference)->first();
+
+                if ($payment) {
+                    $payment->status = 'completed';
+                    $payment->gateway_response = json_encode($paymentStatus);
+                    $payment->save();
+                }
+
+                // Update booking status to booked
+                $booking->status = 'booked';
+                $booking->save();
+
+                Log::info('Pesapal payment completed successfully', [
+                    'booking_id' => $booking->id,
+                    'order_tracking_id' => $orderTrackingId,
+                    'order_merchant_reference' => $orderMerchantReference
+                ]);
+
+                return redirect()->route('bookings.success', ['eventSlug' => $eventSlug, 'bookingId' => $booking->id])
+                    ->with('success', 'Payment completed successfully! Your booking has been confirmed.');
+            } else {
+                return redirect()->route('bookings.success', ['eventSlug' => $eventSlug, 'bookingId' => $booking->id])
+                    ->with('error', 'Payment was not completed. Please try again.');
+            }
+        } catch (\Exception $e) {
+            Log::error('Pesapal callback handling failed', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+                'event_slug' => $eventSlug
+            ]);
+
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'Payment verification failed');
+        }
+    }
+
+    /**
+     * Detect payment gateway based on payment method configuration
+     */
+    private function detectGateway($paymentMethod)
+    {
+        // If gateway is explicitly set, use it
+        if ($paymentMethod->gateway) {
+            Log::info('Using explicit gateway', ['gateway' => $paymentMethod->gateway]);
+            return $paymentMethod->gateway;
+        }
+
+        // Auto-detect based on configuration
+        if ($paymentMethod->isPaystack()) {
+            Log::info('Detected as Paystack');
+            return 'paystack';
+        } elseif ($paymentMethod->isPesapal()) {
+            Log::info('Detected as Pesapal');
+            return 'pesapal';
+        } elseif ($paymentMethod->isBankTransfer()) {
+            Log::info('Detected as Manual/Bank Transfer');
+            return 'manual';
+        }
+
+        // Default fallback - if we have public_key/secret_key but not Paystack, assume Pesapal
+        if ($paymentMethod->getConfig('public_key') && $paymentMethod->getConfig('secret_key')) {
+            Log::info('Fallback: Detected as Pesapal based on public_key/secret_key');
+            return 'pesapal';
+        }
+
+        Log::info('Default fallback: Manual');
+        return 'manual';
+    }
+
+    /**
+     * Handle Pesapal payment cancellation
+     */
+    public function pesapalCancel(Request $request, $eventSlug, $accessToken)
+    {
+        $event = Event::where('slug', $eventSlug)->firstOrFail();
+
+        // Find booth owner by access token, then get the booking
+        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
+        $booking = $boothOwner->booking;
+
+        if (!$booking) {
+            return redirect()->route('events.public.floorplan', $eventSlug)
+                ->with('error', 'No booking found for this access token. Please start over.');
+        }
+
+        // Update booking status to cancelled
+        $booking->status = 'cancelled';
+        $booking->save();
+
+        // Update payment status if exists
+        $payment = \App\Models\Payment::where('booking_id', $booking->id)->first();
+        if ($payment) {
+            $payment->status = 'cancelled';
+            $payment->save();
+        }
+
+        Log::info('Pesapal payment cancelled', [
+            'booking_id' => $booking->id,
+            'event_slug' => $eventSlug
+        ]);
+
+        return redirect()->route('events.public.floorplan', $eventSlug)
+            ->with('info', 'Payment was cancelled. You can try again anytime.');
+    }
+
+    /**
      * Handle Paystack payment callback
      */
     public function paystackCallback(Request $request, $eventSlug, $accessToken)
@@ -1039,41 +1179,6 @@ class BookingController extends Controller
             return redirect()->route('bookings.payment', ['eventSlug' => $eventSlug, 'accessToken' => $booking->boothOwner->access_token])
                 ->with('error', 'Payment verification failed. Please contact support.');
         }
-    }
-
-    /**
-     * Show success page after payment.
-     */
-    public function showSuccess($eventSlug, $accessToken)
-    {
-        $event = Event::where('slug', $eventSlug)->firstOrFail();
-
-        // Find booth owner by access token, then get the booking
-        $boothOwner = \App\Models\BoothOwner::where('access_token', $accessToken)->firstOrFail();
-        $booking = $boothOwner->booking;
-
-        if (!$booking) {
-            return redirect()->route('events.public.floorplan', $eventSlug)
-                ->with('error', 'No booking found for this access token. Please start over.');
-        }
-
-        // Verify access token is valid
-        if (!$booking->isAccessTokenValid()) {
-            return redirect()->route('events.public.floorplan', $eventSlug)
-                ->with('error', 'Invalid or expired access link. Please start over.');
-        }
-
-        // Verify that a successful payment exists
-        if (!$booking->hasCompletedPayments()) {
-            return redirect()->route('bookings.payment', ['eventSlug' => $eventSlug, 'accessToken' => $accessToken])
-                ->with('error', 'No successful payment found. Please complete your payment first.');
-        }
-
-        // Set current step to 5 (Receipt) and show progress
-        $currentStep = 5;
-        $showProgress = true;
-
-        return view('bookings.success', compact('event', 'booking', 'currentStep', 'showProgress'));
     }
 
     /**
@@ -1852,7 +1957,7 @@ class BookingController extends Controller
         }
 
         // Debug logging
-        \Log::info('Delete booking request', [
+        Log::info('Delete booking request', [
             'booking_id' => $booking->id,
             'user_id' => $user->id,
             'user_email' => $user->email,

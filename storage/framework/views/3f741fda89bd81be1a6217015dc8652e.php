@@ -211,8 +211,7 @@
                                         <div class="text-muted small">
                                             <strong>Owner:</strong> <?php echo e($existingBooking->boothOwner->form_responses['name'] ?? 'N/A'); ?> | 
                                             <strong>Members:</strong> <?php echo e($existingBooking->boothMembers ? count($existingBooking->boothMembers) : 0); ?> | 
-                                            <strong>Price:</strong> $<?php echo e(number_format($existingBooking->floorplanItem->price ?? 0, 2)); ?>
-
+                                            <strong>Price:</strong> <?php echo App\Helpers\CurrencyHelper::formatEventAmount($existingBooking->floorplanItem->price ?? 0, $event); ?>
                                         </div>
                                     </div>
                                     <div class="col-md-4 text-md-end">
@@ -315,7 +314,7 @@
                                                 </div>
                                                 <div class="col-6">
                                                     <div class="text-center p-1 bg-light rounded border border-1 border-success border-opacity-10">
-                                                        <div class="text-success fw-bold small mb-0" id="itemPrice">$100</div>
+                                                        <div class="text-success fw-bold small mb-0" id="itemPrice">@currency100</div>
                                                         <small class="text-muted" style="font-size: 0.7rem;">
                                                             <i class="bi bi-currency-dollar me-1"></i>Price
                                                         </small>
@@ -490,8 +489,7 @@
                                     <p class="card-text small text-muted">
                                         <strong>Type:</strong> <?php echo e(ucfirst($existingBooking->floorplanItem->type ?? 'booth')); ?><br>
                                         <strong>Booth members allowed:</strong> <?php echo e($existingBooking->floorplanItem->max_capacity ?? 5); ?><br>
-                                        <strong>Price:</strong> $<?php echo e(number_format($existingBooking->floorplanItem->price ?? 0, 2)); ?>
-
+                                        <strong>Price:</strong> <?php echo App\Helpers\CurrencyHelper::formatEventAmount($existingBooking->floorplanItem->price ?? 0, $event); ?>
                                     </p>
                                     <div class="d-flex align-items-center">
                                         <span class="badge bg-primary me-2">Current</span>
@@ -622,6 +620,9 @@
                         fontSize: <?php echo e($floorplanDesign->font_size ?? 12); ?>
 
                     };
+                    
+                    // Set currency symbol for JavaScript
+                    window.currencySymbol = '<?php echo App\Helpers\CurrencyHelper::getEventCurrencySymbol($event); ?>';
 
                 <?php endif; ?>
                 
@@ -1480,7 +1481,7 @@
                 // Populate panel with shape data
                 document.getElementById('itemName').textContent = shape.item_name || shape.label || shape.type;
                 document.getElementById('itemMaxCapacity').textContent = shape.max_capacity || 5;
-                document.getElementById('itemPrice').textContent = `$${shape.price || 100}`;
+                document.getElementById('itemPrice').textContent = `${window.currencySymbol}${shape.price || 0}`;
                 
                 // Show/hide and populate booth size information
                 const boothSizeInfo = document.getElementById('boothSizeInfo');
@@ -1541,7 +1542,7 @@
                             
                             // Add price difference info
                             const priceDiff = newPrice - currentPrice;
-                            statusText.innerHTML = `Upgrade available! Additional cost: $${priceDiff.toFixed(2)}`;
+                            statusText.innerHTML = `Upgrade available! Additional cost: ${window.currencySymbol}${priceDiff.toFixed(2)}`;
                         } else {
                             // Hide button for same price or cheaper booths
                             bookNowBtn.style.display = 'none';
@@ -4920,7 +4921,7 @@
                                     <small class="text-muted">
                                         <strong>Type:</strong> ${item.type} | 
                                         <strong>Booth members allowed:</strong> ${item.max_capacity || 5} | 
-                                        <strong>Price:</strong> $${item.price || 100}
+                                        <strong>Price:</strong> ${window.currencySymbol}${item.price || 100}
                                     </small>
                                 </div>
                                 <button type="button" class="btn btn-success btn-sm" onclick="changeToNewSpace(${item.id})">

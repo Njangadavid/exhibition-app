@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\PaymentMethod;
 use Illuminate\Support\Facades\Log;
-use App\Helpers\SidebarHelper;
+// use App\Helpers\SidebarHelper;
 
 class PaymentMethodController extends Controller
 {
@@ -27,10 +27,17 @@ class PaymentMethodController extends Controller
         if ($request->has('event')) {
             $event = \App\Models\Event::findOrFail($request->event);
             $paymentMethods = $paymentMethods->where('event_id', $event->id);
+        } else {
+            // If no event specified, show all payment methods for admin users
+            // or redirect to events list if user doesn't have admin access
+            if (!auth()->user()->hasRole('admin')) {
+                return redirect()->route('events.index')
+                    ->with('info', 'Please select an event to manage payment methods.');
+            }
         }
 
         $paymentMethods = $paymentMethods->get();
-        SidebarHelper::expand();
+        // SidebarHelper::expand();
 
         return view('admin.payment-methods.index', compact('paymentMethods', 'event'));
     }
@@ -55,9 +62,10 @@ class PaymentMethodController extends Controller
             'bank_transfer' => 'Bank Transfer',
             'digital_wallet' => 'Digital Wallet',
             'mobile_money' => 'Mobile Money',
+            'pesapal' => 'Pesapal',
             'crypto' => 'Cryptocurrency',
         ];
-        SidebarHelper::expand();
+        // SidebarHelper::expand();
 
         return view('admin.payment-methods.create', compact('types', 'event'));
     }
@@ -76,15 +84,20 @@ class PaymentMethodController extends Controller
             'event_id' => 'required|exists:events,id',
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:100', // Made optional since it's auto-generated
-            'type' => 'required|string|in:card,bank_transfer,digital_wallet,mobile_money,crypto',
+            'type' => 'required|string|in:card,bank_transfer,digital_wallet,mobile_money,pesapal,crypto',
+            'gateway' => 'nullable|string|in:paystack,pesapal,manual',
             'description' => 'nullable|string',
             'is_active' => 'boolean',
-            'is_default' => 'boolean',
+            'is_default' => 'nullable|boolean',
             'sort_order' => 'integer|min:0',
             'icon' => 'nullable|string|max:100',
             'color' => 'nullable|string|max:7',
             'config' => 'array',
         ]);
+
+        // Handle checkbox values that might not be present
+        $validated['is_active'] = $request->has('is_active') ? (bool) $request->input('is_active') : false;
+        $validated['is_default'] = $request->has('is_default') ? (bool) $request->input('is_default') : false;
 
         // Auto-generate code if not provided
         if (empty($validated['code'])) {
@@ -101,8 +114,8 @@ class PaymentMethodController extends Controller
                 ->update(['is_default' => false]);
         }
 
-        // Handle configuration based on type
-        $config = $this->buildConfig($validated['type'], $request->input('config', []));
+        // Handle configuration based on type and gateway
+        $config = $this->buildConfig($validated['type'], $request->input('config', []), $validated['gateway']);
         $validated['config'] = $config;
 
         try {
@@ -132,7 +145,7 @@ class PaymentMethodController extends Controller
      */
     public function show(PaymentMethod $paymentMethod)
     {
-        SidebarHelper::expand();
+        // SidebarHelper::expand();
 
         return view('admin.payment-methods.show', compact('paymentMethod'));
     }
@@ -152,6 +165,7 @@ class PaymentMethodController extends Controller
             'bank_transfer' => 'Bank Transfer',
             'digital_wallet' => 'Digital Wallet',
             'mobile_money' => 'Mobile Money',
+            'pesapal' => 'Pesapal',
             'crypto' => 'Cryptocurrency',
         ];
 
@@ -175,15 +189,20 @@ class PaymentMethodController extends Controller
             'event_id' => 'required|exists:events,id',
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:100|unique:payment_methods,code,' . $paymentMethod->id, // Made optional
-            'type' => 'required|string|in:card,bank_transfer,digital_wallet,mobile_money,crypto',
+            'type' => 'required|string|in:card,bank_transfer,digital_wallet,mobile_money,pesapal,crypto',
+            'gateway' => 'nullable|string|in:paystack,pesapal,manual',
             'description' => 'nullable|string',
             'is_active' => 'boolean',
-            'is_default' => 'boolean',
+            'is_default' => 'nullable|boolean',
             'sort_order' => 'integer|min:0',
             'icon' => 'nullable|string|max:100',
             'color' => 'nullable|string|max:7',
             'config' => 'array',
         ]);
+
+        // Handle checkbox values that might not be present
+        $validated['is_active'] = $request->has('is_active') ? (bool) $request->input('is_active') : false;
+        $validated['is_default'] = $request->has('is_default') ? (bool) $request->input('is_default') : false;
 
         // Auto-generate code if not provided
         if (empty($validated['code'])) {
@@ -201,8 +220,8 @@ class PaymentMethodController extends Controller
                 ->update(['is_default' => false]);
         }
 
-        // Handle configuration based on type
-        $config = $this->buildConfig($validated['type'], $request->input('config', []));
+        // Handle configuration based on type and gateway
+        $config = $this->buildConfig($validated['type'], $request->input('config', []), $validated['gateway']);
         $validated['config'] = $config;
 
         try {
@@ -332,10 +351,51 @@ class PaymentMethodController extends Controller
     }
 
     /**
-     * Build configuration based on payment method type
+     * Build configuration based on payment method type and gateway
      */
-    private function buildConfig($type, $config)
+    private function buildConfig($type, $config, $gateway = null)
     {
+        // If gateway is specified, use gateway-specific configuration
+        if ($gateway) {
+            switch ($gateway) {
+                case 'paystack':
+                    return [
+                        'public_key' => $config['public_key'] ?? '',
+                        'secret_key' => $config['secret_key'] ?? '',
+                        'webhook_secret' => $config['webhook_secret'] ?? '',
+                        'test_mode' => $config['test_mode'] ?? false,
+                        'currency' => $config['currency'] ?? 'NGN',
+                        'supported_countries' => $config['supported_countries'] ?? [],
+                    ];
+
+
+                case 'pesapal':
+                    return [
+                        'consumer_key' => $config['consumer_key'] ?? $config['public_key'] ?? '',
+                        'consumer_secret' => $config['consumer_secret'] ?? $config['secret_key'] ?? '',
+                        'test_mode' => $config['test_mode'] ?? false,
+                        'currency' => $config['currency'] ?? 'KES',
+                        // Keep original fields for backward compatibility
+                        'public_key' => $config['public_key'] ?? '',
+                        'secret_key' => $config['secret_key'] ?? '',
+                        'webhook_secret' => $config['webhook_secret'] ?? '',
+                        'supported_countries' => $config['supported_countries'] ?? [],
+                    ];
+
+                case 'manual':
+                    return [
+                        'bank_name' => $config['bank_name'] ?? '',
+                        'account_name' => $config['account_name'] ?? '',
+                        'account_number' => $config['account_number'] ?? '',
+                        'sort_code' => $config['sort_code'] ?? '',
+                        'swift_code' => $config['swift_code'] ?? '',
+                        'currency' => $config['currency'] ?? 'USD',
+                        'instructions' => $config['instructions'] ?? '',
+                    ];
+            }
+        }
+
+        // Fallback to type-based configuration
         switch ($type) {
             case 'card':
                 return [
@@ -366,6 +426,14 @@ class PaymentMethodController extends Controller
                     'test_mode' => $config['test_mode'] ?? false,
                     'currency' => $config['currency'] ?? 'USD',
                     'supported_countries' => $config['supported_countries'] ?? [],
+                ];
+
+            case 'pesapal':
+                return [
+                    'consumer_key' => $config['consumer_key'] ?? '',
+                    'consumer_secret' => $config['consumer_secret'] ?? '',
+                    'test_mode' => $config['test_mode'] ?? false,
+                    'currency' => $config['currency'] ?? 'KES',
                 ];
 
             default:

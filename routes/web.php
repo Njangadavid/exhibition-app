@@ -4,7 +4,8 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\FormBuilderController;
 use App\Http\Controllers\BookingController;
-use App\Http\Controllers\PaystackController;
+use App\Http\Controllers\PaymentController;
+// use App\Http\Controllers\PaystackController; // removed legacy controller
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -106,9 +107,12 @@ Route::get('/test-delete/{booking}', function ($bookingId) {
 });
 Route::post('/event/{eventSlug}/booking/{accessToken}/member/{memberId}/update', [BookingController::class, 'updateMember'])->name('bookings.update-member');
 Route::get('/event/{eventSlug}/booking/{accessToken}/payment', [BookingController::class, 'showPayment'])->name('bookings.payment');
-Route::post('/event/{eventSlug}/booking/{accessToken}/payment', [PaystackController::class, 'initializePayment'])->name('bookings.process-payment');
-Route::get('/event/{eventSlug}/booking/{accessToken}/paystack/callback', [PaystackController::class, 'handleCallback'])->name('paystack.callback');
+Route::post('/event/{eventSlug}/booking/{accessToken}/payment', [PaymentController::class, 'processPayment'])->name('bookings.process-payment');
+Route::get('/event/{eventSlug}/booking/{accessToken}/paystack/callback', [PaymentController::class, 'paystackCallback'])->name('payments.paystack.callback');
 Route::get('/event/{eventSlug}/booking/{accessToken}/paystack/status', [PaystackController::class, 'showPaymentStatus'])->name('paystack.status');
+Route::get('/event/{eventSlug}/booking/{accessToken}/pesapal/callback', [PaymentController::class, 'pesapalCallback'])->name('payments.pesapal.callback');
+Route::get('/event/{eventSlug}/booking/{accessToken}/pesapal/cancel', [PaymentController::class, 'pesapalCancel'])->name('payments.pesapal.cancel');
+Route::post('/event/{eventSlug}/pesapal/ipn', [PaymentController::class, 'pesapalIPN'])->name('payments.pesapal.ipn');
 Route::get('/event/{eventSlug}/booking/{accessToken}/success', [BookingController::class, 'showSuccess'])->name('bookings.success');
 
 Route::get('/dashboard', function () {
@@ -194,13 +198,10 @@ Route::middleware('auth')->group(function () {
 
 });
 
-// Paystack routes
-Route::post('/event/{eventSlug}/booking/{accessToken}/process-payment', [PaystackController::class, 'initializePayment'])->name('bookings.process-payment');
-Route::get('/event/{eventSlug}/booking/{accessToken}/paystack-callback', [PaystackController::class, 'handleCallback'])->name('paystack.callback');
-Route::get('/event/{eventSlug}/booking/{accessToken}/paystack-status', [PaystackController::class, 'showPaymentStatus'])->name('paystack.status');
+// Removed legacy PaystackController routes; callbacks handled by PaymentController
 
 // Receipt generation route
-Route::get('/event/{eventSlug}/booking/{accessToken}/receipt', [PaystackController::class, 'generateReceipt'])->name('bookings.receipt');
+Route::get('/event/{eventSlug}/booking/{accessToken}/receipt', [PaymentController::class, 'generateReceipt'])->name('bookings.receipt');
 
 // Resend payment email route
 Route::post('/event/{eventSlug}/booking/{accessToken}/resend-payment-email', [BookingController::class, 'resendPaymentEmail'])->name('bookings.resend-payment-email');
@@ -608,4 +609,6 @@ Route::prefix('artisan')->group(function () {
     })->name('artisan.seeder-status');
 });
 
+
 require __DIR__.'/auth.php';
+ 

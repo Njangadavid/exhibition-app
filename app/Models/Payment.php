@@ -9,6 +9,8 @@ class Payment extends Model
 {
     protected $fillable = [
         'booking_id',
+        'payment_method_id',
+        'event_id',
         'payment_reference',
         'type',
         'status',
@@ -45,6 +47,22 @@ class Payment extends Model
     public function booking(): BelongsTo
     {
         return $this->belongsTo(Booking::class);
+    }
+
+    /**
+     * Get the payment method used for this payment.
+     */
+    public function paymentMethod(): BelongsTo
+    {
+        return $this->belongsTo(PaymentMethod::class);
+    }
+
+    /**
+     * Get the event this payment belongs to.
+     */
+    public function event(): BelongsTo
+    {
+        return $this->belongsTo(Event::class);
     }
 
     /**

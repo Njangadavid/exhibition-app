@@ -142,6 +142,10 @@
                                 </li>
                                 <li class="mb-2">
                                     <i class="bi bi-check-circle text-success me-2"></i>
+                                    <strong>Pesapal:</strong> Popular in East Africa (Kenya, Uganda, Tanzania)
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi bi-check-circle text-success me-2"></i>
                                     <strong>Stripe:</strong> Global payment processing
                                 </li>
                                 <li class="mb-2">
