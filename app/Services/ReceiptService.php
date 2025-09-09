@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Booking;
 use App\Models\Payment;
+use App\Models\PaymentMethod;
+use App\Helpers\CurrencyHelper;
 use Illuminate\Support\Facades\Log;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Route;
@@ -53,6 +55,34 @@ class ReceiptService
         $receiptNumber = 'RCP-' . str_pad($payment->id, 6, '0', STR_PAD_LEFT);
         $paymentDate = $payment->created_at->format('F d, Y \a\t g:i A');
         
+        // Get payment method details
+        $paymentMethod = $payment->paymentMethod;
+        $gatewayName = $paymentMethod ? $paymentMethod->getGatewayName() : ucfirst($payment->gateway ?? 'Unknown');
+        
+        // Format amount with proper currency
+        $formattedAmount = CurrencyHelper::formatPaymentAmount($payment->amount, $payment);
+        $currency = CurrencyHelper::getPaymentCurrency($payment);
+        
+        // Get gateway-specific transaction details
+        $transactionId = $this->getGatewayTransactionId($payment);
+        $gatewayResponse = $this->getGatewayResponse($payment);
+        
+        // Sanitize all text content to prevent UTF-8 issues
+        $eventName = $this->sanitizeText($event->name ?? '');
+        $eventDate = $event->start_date ? $event->start_date->format('F d, Y') : 'TBD';
+        $venue = $this->sanitizeText($event->venue ?? 'TBD');
+        $companyName = $this->sanitizeText($booking->boothOwner->form_responses['company_name'] ?? '');
+        $contactName = $this->sanitizeText($booking->boothOwner->form_responses['name'] ?? '');
+        $email = $this->sanitizeText($booking->boothOwner->form_responses['email'] ?? '');
+        $boothSpace = $this->sanitizeText($booking->floorplanItem->label ?? '');
+        $boothName = $this->sanitizeText($booking->boothOwner->form_responses['booth_name'] ?? '');
+        $gatewayNameSafe = $this->sanitizeText($gatewayName);
+        $transactionIdSafe = $this->sanitizeText($transactionId);
+        $formattedAmountSafe = $this->sanitizeText($formattedAmount);
+        $currencySafe = $this->sanitizeText($currency);
+        $statusSafe = $this->sanitizeText(ucfirst($payment->status ?? 'Completed'));
+        $gatewayResponseSafe = $this->sanitizeText($gatewayResponse ?? '');
+        
         return '
         <!DOCTYPE html>
         <html>
@@ -72,6 +102,7 @@ class ReceiptService
                 .amount { font-size: 20px; font-weight: bold; color: #28a745; }
                 .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 12px; }
                 .logo { max-width: 200px; max-height: 80px; }
+                .gateway-badge { display: inline-block; background: #007bff; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-left: 10px; }
             </style>
         </head>
         <body>
@@ -85,15 +116,15 @@ class ReceiptService
                 <div class="section-title">Event Information</div>
                 <div class="row">
                     <div class="label">Event Name:</div>
-                    <div class="value">' . htmlspecialchars($event->name) . '</div>
+                    <div class="value">' . $eventName . '</div>
                 </div>
                 <div class="row">
                     <div class="label">Event Date:</div>
-                    <div class="value">' . ($event->start_date ? $event->start_date->format('F d, Y') : 'TBD') . '</div>
+                    <div class="value">' . $eventDate . '</div>
                 </div>
                 <div class="row">
                     <div class="label">Venue:</div>
-                    <div class="value">' . htmlspecialchars($event->venue ?? 'TBD') . '</div>
+                    <div class="value">' . $venue . '</div>
                 </div>
             </div>
             
@@ -101,49 +132,60 @@ class ReceiptService
                 <div class="section-title">Exhibitor Information</div>
                 <div class="row">
                     <div class="label">Company Name:</div>
-                    <div class="value">' . htmlspecialchars($booking->owner_details['company_name'] ?? '') . '</div>
+                    <div class="value">' . $companyName . '</div>
                 </div>
                 <div class="row">
                     <div class="label">Contact Person:</div>
-                    <div class="value">' . htmlspecialchars($booking->owner_details['name'] ?? '') . '</div>
+                    <div class="value">' . $contactName . '</div>
                 </div>
                 <div class="row">
                     <div class="label">Email:</div>
-                    <div class="value">' . htmlspecialchars($booking->owner_details['email'] ?? '') . '</div>
+                    <div class="value">' . $email . '</div>
                 </div>
                 <div class="row">
-                    <div class="label">Booth/Space:</div>
-                    <div class="value">' . htmlspecialchars($booking->floorplanItem->label ?? '') . '</div>
+                    <div class="label">Booth Space:</div>
+                    <div class="value">' . $boothSpace . '</div>
                 </div>
+                ' . ($boothName ? '
+                <div class="row">
+                    <div class="label">Booth Name:</div>
+                    <div class="value">' . $boothName . '</div>
+                </div>' : '') . '
             </div>
             
             <div class="section">
                 <div class="section-title">Payment Details</div>
                 <div class="row">
-                    <div class="label">Payment Method:</div>
-                    <div class="value">' . ucfirst($payment->payment_method ?? 'Paystack') . '</div>
+                    <div class="label">Payment Gateway:</div>
+                    <div class="value">' . $gatewayNameSafe . ' <span class="gateway-badge">' . strtoupper($payment->gateway ?? 'UNKNOWN') . '</span></div>
                 </div>
                 <div class="row">
                     <div class="label">Transaction ID:</div>
-                    <div class="value">' . htmlspecialchars($payment->gateway_transaction_id ?? '') . '</div>
+                    <div class="value">' . $transactionIdSafe . '</div>
                 </div>
                 <div class="row">
                     <div class="label">Amount Paid:</div>
-                    <div class="value amount">$' . number_format($payment->amount, 2) . '</div>
+                    <div class="value amount">' . $formattedAmountSafe . '</div>
                 </div>
                 <div class="row">
                     <div class="label">Currency:</div>
-                    <div class="value">' . strtoupper($payment->currency ?? 'USD') . '</div>
+                    <div class="value">' . strtoupper($currencySafe) . '</div>
                 </div>
                 <div class="row">
                     <div class="label">Status:</div>
-                    <div class="value">' . ucfirst($payment->status ?? 'Completed') . '</div>
+                    <div class="value">' . $statusSafe . '</div>
                 </div>
+                ' . ($gatewayResponseSafe ? '
+                <div class="row">
+                    <div class="label">Gateway Response:</div>
+                    <div class="value">' . $gatewayResponseSafe . '</div>
+                </div>' : '') . '
             </div>
             
             <div class="footer">
                 <p>Thank you for your payment. This receipt serves as proof of your transaction.</p>
                 <p>For any questions, please contact the event organizers.</p>
+                <p><strong>Generated by:</strong> ' . $gatewayNameSafe . ' Payment System</p>
             </div>
         </body>
         </html>';
@@ -157,12 +199,86 @@ class ReceiptService
         $booking = $payment->booking;
         $event = $booking->event;
         $date = $payment->created_at->format('Y-m-d');
+        $gateway = strtolower($payment->gateway ?? 'unknown');
         
         return sprintf(
-            'receipt_%s_%s_%s.pdf',
+            'receipt_%s_%s_%s_%s.pdf',
             $event->slug ?? 'event',
             $booking->booking_reference ?? 'booking',
+            $gateway,
             $date
         );
+    }
+    
+    /**
+     * Get gateway-specific transaction ID
+     */
+    private function getGatewayTransactionId(Payment $payment): string
+    {
+        switch ($payment->gateway) {
+            case 'paystack':
+                return $payment->gateway_reference ?? $payment->gateway_transaction_id ?? 'N/A';
+                
+            case 'pesapal':
+                // Extract from gateway response if available
+                if ($payment->gateway_response && is_array($payment->gateway_response)) {
+                    return $payment->gateway_response['order_tracking_id'] ?? 
+                           $payment->gateway_response['order_id'] ?? 
+                           $payment->gateway_reference ?? 'N/A';
+                }
+                return $payment->gateway_reference ?? 'N/A';
+                
+            default:
+                return $payment->gateway_reference ?? $payment->gateway_transaction_id ?? 'N/A';
+        }
+    }
+    
+    /**
+     * Get gateway-specific response message
+     */
+    private function getGatewayResponse(Payment $payment): ?string
+    {
+        if (!$payment->gateway_response || !is_array($payment->gateway_response)) {
+            return null;
+        }
+        
+        switch ($payment->gateway) {
+            case 'paystack':
+                return $payment->gateway_response['message'] ?? 
+                       $payment->gateway_response['status'] ?? null;
+                       
+            case 'pesapal':
+                return $payment->gateway_response['payment_status_description'] ?? 
+                       $payment->gateway_response['payment_status'] ?? 
+                       $payment->gateway_response['status'] ?? null;
+                       
+            default:
+                return $payment->gateway_response['message'] ?? 
+                       $payment->gateway_response['status'] ?? null;
+        }
+    }
+    
+    /**
+     * Sanitize text to prevent UTF-8 encoding issues
+     */
+    private function sanitizeText(?string $text): string
+    {
+        if (empty($text)) {
+            return '';
+        }
+        
+        // Remove or replace problematic characters
+        $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+        
+        // Remove any remaining non-UTF-8 characters
+        $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text);
+        
+        // Ensure proper UTF-8 encoding
+        if (!mb_check_encoding($text, 'UTF-8')) {
+            $text = mb_convert_encoding($text, 'UTF-8', 'auto');
+        }
+        
+        // Trim and return
+        return trim($text);
     }
 }

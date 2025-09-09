@@ -30,11 +30,12 @@ class SendEmailJob implements ShouldQueue
     protected $content;
     protected $attachmentData;
     protected $eventId;
+    protected $shouldAttachReceipt;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(int $emailLogId, int $templateId, string $recipientEmail, string $subject, string $content, ?array $attachmentData = null, ?int $eventId = null)
+    public function __construct(int $emailLogId, int $templateId, string $recipientEmail, string $subject, string $content, ?array $attachmentData = null, ?int $eventId = null, bool $shouldAttachReceipt = false)
     {
         $this->emailLogId = $emailLogId;
         $this->templateId = $templateId;
@@ -43,6 +44,7 @@ class SendEmailJob implements ShouldQueue
         $this->content = $content;
         $this->attachmentData = $attachmentData;
         $this->eventId = $eventId;
+        $this->shouldAttachReceipt = $shouldAttachReceipt;
     }
 
     /**
@@ -93,9 +95,11 @@ class SendEmailJob implements ShouldQueue
                     ->subject($this->subject)
                     ->html($htmlContent);
                 
-                // Add attachment if provided
+                // Add attachment if provided or generate receipt PDF
                 if ($this->attachmentData) {
                     $email->attach($this->attachmentData['content'], $this->attachmentData['filename'], $this->attachmentData['mime_type']);
+                } elseif ($this->shouldAttachReceipt) {
+                    $this->attachReceiptPdf($email);
                 }
                 
                 // Send the email using the custom mailer
@@ -106,13 +110,15 @@ class SendEmailJob implements ShouldQueue
                     $message->to($this->recipientEmail)
                             ->subject($this->subject);
                     
-                    // Add attachment if provided
+                    // Add attachment if provided or generate receipt PDF
                     if ($this->attachmentData) {
                         $message->attachData(
                             $this->attachmentData['content'],
                             $this->attachmentData['filename'],
                             ['mime' => $this->attachmentData['mime_type']]
                         );
+                    } elseif ($this->shouldAttachReceipt) {
+                        $this->attachReceiptPdfToMessage($message);
                     }
                 });
             }
@@ -288,5 +294,75 @@ class SendEmailJob implements ShouldQueue
         $cleaned = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $cleaned);
         
         return $cleaned;
+    }
+    
+    /**
+     * Attach receipt PDF to Symfony email
+     */
+    private function attachReceiptPdf($email): void
+    {
+        try {
+            $emailLog = \App\Models\EmailLog::find($this->emailLogId);
+            if (!$emailLog || !$emailLog->booking) {
+                return;
+            }
+            
+            $booking = $emailLog->booking;
+            $payment = $booking->payments()
+                ->where('status', 'completed')
+                ->latest()
+                ->first();
+                
+            if (!$payment) {
+                return;
+            }
+            
+            $receiptService = app(\App\Services\ReceiptService::class);
+            $pdfContent = $receiptService->generateReceiptPdf($payment);
+            $filename = $receiptService->getReceiptFilename($payment);
+            
+            $email->attach($pdfContent, $filename, 'application/pdf');
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to attach receipt PDF to email', [
+                'email_log_id' => $this->emailLogId,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+    
+    /**
+     * Attach receipt PDF to Laravel Mail message
+     */
+    private function attachReceiptPdfToMessage($message): void
+    {
+        try {
+            $emailLog = \App\Models\EmailLog::find($this->emailLogId);
+            if (!$emailLog || !$emailLog->booking) {
+                return;
+            }
+            
+            $booking = $emailLog->booking;
+            $payment = $booking->payments()
+                ->where('status', 'completed')
+                ->latest()
+                ->first();
+                
+            if (!$payment) {
+                return;
+            }
+            
+            $receiptService = app(\App\Services\ReceiptService::class);
+            $pdfContent = $receiptService->generateReceiptPdf($payment);
+            $filename = $receiptService->getReceiptFilename($payment);
+            
+            $message->attachData($pdfContent, $filename, ['mime' => 'application/pdf']);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to attach receipt PDF to Laravel Mail message', [
+                'email_log_id' => $this->emailLogId,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 }

@@ -105,26 +105,45 @@ class EmailCommunicationService
         ]);
 
         try {
+            Log::info('Preparing email data', [
+                'booking_id' => $booking->id,
+                'owner_email' => $booking->owner_email,
+                'template_id' => $template->id
+            ]);
+            
             $data = $this->prepareEmailData($booking, 'owner');
             $processedContent = $template->processMergeFields($template->content, $data);
             $processedSubject = $template->processMergeFields($template->subject, $data);
+            
+            Log::info('Email data prepared successfully', [
+                'subject_length' => strlen($processedSubject),
+                'content_length' => strlen($processedContent)
+            ]);
 
-            // For payment_successful trigger, include receipt PDF
-            $attachmentData = null;
-            if ($template->trigger_type === 'payment_successful') {
-                $attachmentData = $this->prepareReceiptAttachment($booking);
-            }
+            // For payment_successful trigger, we'll generate the PDF in the job
+            $shouldAttachReceipt = ($template->trigger_type === 'payment_successful');
 
             // Dispatch email job to queue
+            Log::info('Dispatching SendEmailJob to queue', [
+                'email_log_id' => $emailLog->id,
+                'template_id' => $template->id,
+                'recipient_email' => $booking->owner_email,
+                'should_attach_receipt' => $shouldAttachReceipt,
+                'event_id' => $booking->event_id
+            ]);
+            
             SendEmailJob::dispatch(
                 $emailLog->id,
                 $template->id,
                 $booking->owner_email,
                 $processedSubject,
                 $processedContent,
-                $attachmentData,
-                $booking->event_id
+                null, // Don't pass attachment data through queue
+                $booking->event_id,
+                $shouldAttachReceipt // Pass flag to generate receipt in job
             );
+            
+            Log::info('SendEmailJob dispatched successfully');
             
             // Email log status will be updated by the job
 
