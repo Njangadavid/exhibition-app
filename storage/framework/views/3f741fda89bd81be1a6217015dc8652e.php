@@ -1037,12 +1037,12 @@
                 ctx.lineWidth = shape.border_width || window.floorplanDefaults?.border_width || 2;
                 ctx.font = `${shape.font_size || window.floorplanDefaults?.font_size || 12}px ${shape.font_family || window.floorplanDefaults?.font_family || 'Arial'}`;
                 
-                // Apply rotation if exists
-                if (shape.rotation && shape.rotation !== 0) {
+                // Apply rotation if exists (skip for vertical shapes as they handle their own rotation)
+                if (shape.rotation && shape.rotation !== 0 && shape.type !== 'vertical_line' && shape.type !== 'vertical_arrow') {
                     const centerX = shape.x + shape.width / 2;
                     const centerY = shape.y + shape.height / 2;
                     ctx.translate(centerX, centerY);
-                    ctx.rotate(shape.rotation * Math.PI / 180);
+                    ctx.rotate(-shape.rotation * Math.PI / 180); // Reverse rotation direction
                     ctx.translate(-centerX, -centerY);
                 }
                 
@@ -1210,6 +1210,23 @@
                     case 'garden':
                         drawGarden(shape);
                         break;
+                        
+                    case 'arrow':
+                        drawArrow(shape, fillColor, strokeColor);
+                        break;
+                        
+                    case 'line':
+                        drawLine(shape, fillColor, strokeColor);
+                        break;
+                        
+                    case 'vertical_line':
+                        drawVerticalLine(shape, fillColor, strokeColor);
+                        break;
+                        
+                    case 'vertical_arrow':
+                        drawVerticalArrow(shape, fillColor, strokeColor);
+                        break;
+                        
                     case 'text':
                         // For text shapes, create HTML overlay instead of drawing on canvas
                         createTextOverlay(shape);
@@ -1336,6 +1353,12 @@
             // Check if point is inside shape for click detection
             function isPointInShape(x, y, shape) {
                 // Shape values should already be converted to numbers in drawShape
+                
+                // For rotated shapes, we need to account for the rotation
+                if (shape.rotation && shape.rotation !== 0) {
+                    return isPointInRotatedShape(x, y, shape);
+                }
+                
                 switch(shape.type) {
                     case 'rectangle':
                         return x >= shape.x && x <= shape.x + shape.width && 
@@ -1356,10 +1379,45 @@
                         return x >= shape.x && x <= shape.x + shape.size && 
                                y >= shape.y && y <= shape.y + shape.size;
                         
+                    case 'arrow':
+                    case 'line':
+                        return x >= shape.x && x <= shape.x + shape.width && 
+                               y >= shape.y && y <= shape.y + shape.height;
+                        
+                    case 'vertical_arrow':
+                    case 'vertical_line':
+                        // For vertical shapes, use swapped dimensions for click detection
+                        return x >= shape.x && x <= shape.x + shape.height && 
+                               y >= shape.y && y <= shape.y + shape.width;
+                        
                     default:
                         return x >= shape.x && x <= shape.x + shape.width && 
                                y >= shape.y && y <= shape.y + shape.height;
                 }
+            }
+            
+            // Check if point is inside a rotated shape
+            function isPointInRotatedShape(x, y, shape) {
+                const centerX = shape.x + shape.width / 2;
+                const centerY = shape.y + shape.height / 2;
+                
+                // Convert rotation to radians
+                const angle = -shape.rotation * Math.PI / 180;
+                
+                // Translate point to origin
+                const translatedX = x - centerX;
+                const translatedY = y - centerY;
+                
+                // Rotate point back
+                const rotatedX = translatedX * Math.cos(angle) - translatedY * Math.sin(angle);
+                const rotatedY = translatedX * Math.sin(angle) + translatedY * Math.cos(angle);
+                
+                // Check if point is within the unrotated bounds
+                const halfWidth = shape.width / 2;
+                const halfHeight = shape.height / 2;
+                
+                return rotatedX >= -halfWidth && rotatedX <= halfWidth && 
+                       rotatedY >= -halfHeight && rotatedY <= halfHeight;
             }
             
             // Canvas click event for item selection
@@ -4759,6 +4817,149 @@
                 ctx.textAlign = 'center';
                 ctx.fillText('GARDEN', shape.x + width/2, shape.y + height + 10);
                 ctx.textAlign = 'start';
+                
+                // Restore canvas context if rotation was applied
+                if (shape.rotation && shape.rotation !== 0) {
+                    ctx.restore();
+                }
+            }
+            
+            function drawArrow(shape, fillColor, strokeColor) {
+                const width = shape.width || 80;
+                const height = shape.height || 20;
+                const centerX = shape.x + width / 2;
+                const centerY = shape.y + height / 2;
+                
+                // Note: Rotation is handled by the main drawing logic
+                
+                // Use only stroke color for both shaft and head
+                ctx.strokeStyle = strokeColor;
+                ctx.fillStyle = strokeColor; // Use stroke color as fill too
+                ctx.lineWidth = shape.border_width || 1;
+                
+                // Arrow shaft (rectangle)
+                const shaftWidth = width * 0.7; // 70% of total width
+                const shaftHeight = height * 0.4; // 40% of total height
+                const shaftX = shape.x;
+                const shaftY = shape.y + (height - shaftHeight) / 2;
+                
+                // Draw shaft with stroke color
+                ctx.fillRect(shaftX, shaftY, shaftWidth, shaftHeight);
+                ctx.strokeRect(shaftX, shaftY, shaftWidth, shaftHeight);
+                
+                // Arrow head (triangle) - pointing right
+                const headWidth = width * 0.3; // 30% of total width
+                const headHeight = height;
+                const headX = shape.x + shaftWidth;
+                const headY = shape.y;
+                
+                ctx.beginPath();
+                ctx.moveTo(headX + headWidth, headY + headHeight / 2); // Point of arrow (right side)
+                ctx.lineTo(headX, headY); // Top-left of arrow head
+                ctx.lineTo(headX, headY + headHeight); // Bottom-left of arrow head
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            }
+            
+            function drawLine(shape, fillColor, strokeColor) {
+                const width = shape.width || 80;
+                const height = Math.max(shape.height || 2, 8); // Minimum height for visibility
+                const centerX = shape.x + width / 2;
+                const centerY = shape.y + height / 2;
+                
+                // Apply rotation if shape has rotation
+                if (shape.rotation && shape.rotation !== 0) {
+                    ctx.save();
+                    ctx.translate(centerX, centerY);
+                    ctx.rotate(shape.rotation * Math.PI / 180);
+                    ctx.translate(-centerX, -centerY);
+                }
+                
+                // Draw line as a rectangle - stroke only
+                ctx.strokeStyle = strokeColor;
+                ctx.fillStyle = strokeColor; // Use stroke color as fill too
+                ctx.lineWidth = shape.border_width || 2;
+                ctx.fillRect(shape.x, shape.y, width, height);
+                ctx.strokeRect(shape.x, shape.y, width, height);
+                
+                // Restore canvas context if rotation was applied
+                if (shape.rotation && shape.rotation !== 0) {
+                    ctx.restore();
+                }
+            }
+            
+            function drawVerticalLine(shape, fillColor, strokeColor) {
+                // For vertical line: width becomes thickness, height becomes length
+                const thickness = shape.width || 2; // Thickness (was width)
+                const length = shape.height || 80; // Length (was height)
+                const centerX = shape.x + thickness / 2;
+                const centerY = shape.y + length / 2;
+                
+                // Apply rotation if shape has rotation
+                if (shape.rotation && shape.rotation !== 0) {
+                    ctx.save();
+                    ctx.translate(centerX, centerY);
+                    ctx.rotate(shape.rotation * Math.PI / 180);
+                    ctx.translate(-centerX, -centerY);
+                }
+                
+                // Draw vertical line as a rectangle (thickness x length) - stroke only
+                ctx.strokeStyle = strokeColor;
+                ctx.fillStyle = strokeColor; // Use stroke color as fill too
+                ctx.lineWidth = shape.border_width || 2;
+                ctx.fillRect(shape.x, shape.y, thickness, length);
+                ctx.strokeRect(shape.x, shape.y, thickness, length);
+                
+                // Restore canvas context if rotation was applied
+                if (shape.rotation && shape.rotation !== 0) {
+                    ctx.restore();
+                }
+            }
+            
+            function drawVerticalArrow(shape, fillColor, strokeColor) {
+                // For vertical arrow: width becomes thickness, height becomes length
+                const thickness = shape.width || 2; // Thickness (was width)
+                const length = shape.height || 80; // Length (was height)
+                const centerX = shape.x + thickness / 2;
+                const centerY = shape.y + length / 2;
+                
+                // Apply rotation if shape has rotation
+                if (shape.rotation && shape.rotation !== 0) {
+                    ctx.save();
+                    ctx.translate(centerX, centerY);
+                    ctx.rotate(shape.rotation * Math.PI / 180);
+                    ctx.translate(-centerX, -centerY);
+                }
+                
+                // Use only stroke color for both shaft and head
+                ctx.strokeStyle = strokeColor;
+                ctx.fillStyle = strokeColor; // Use stroke color as fill too
+                ctx.lineWidth = shape.border_width || 1;
+                
+                // Arrow shaft (rectangle) - vertical
+                const shaftThickness = thickness;
+                const shaftLength = length * 0.7; // 70% of total length
+                const shaftX = shape.x;
+                const shaftY = shape.y;
+                
+                // Draw shaft with stroke color
+                ctx.fillRect(shaftX, shaftY, shaftThickness, shaftLength);
+                ctx.strokeRect(shaftX, shaftY, shaftThickness, shaftLength);
+                
+                // Arrow head (triangle) - pointing down (matching events floorplan)
+                const headLength = length * 0.3; // 30% of total length
+                const headThickness = thickness * 2; // Make head wider than shaft
+                const headX = shape.x - (headThickness - thickness) / 2; // Center the head
+                const headY = shape.y + shaftLength;
+                
+                ctx.beginPath();
+                ctx.moveTo(centerX, headY + headLength); // Point of arrow (bottom)
+                ctx.lineTo(headX, headY); // Top-left of arrow head
+                ctx.lineTo(headX + headThickness, headY); // Top-right of arrow head
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
                 
                 // Restore canvas context if rotation was applied
                 if (shape.rotation && shape.rotation !== 0) {

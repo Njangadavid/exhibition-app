@@ -36,6 +36,12 @@ class PermissionSeeder extends Seeder
 
             // Event Management
             [
+                'name' => 'create_events',
+                'display_name' => 'Create Events',
+                'description' => 'Create new events',
+                'category' => 'event_management',
+            ],
+            [
                 'name' => 'manage_events',
                 'display_name' => 'Manage All Events',
                 'description' => 'Create, edit, delete, and manage all events',
@@ -96,6 +102,12 @@ class PermissionSeeder extends Seeder
                 'category' => 'payment_management',
             ],
             [
+                'name' => 'manage_payment_methods',
+                'display_name' => 'Manage Payment Methods',
+                'description' => 'Configure and manage payment gateways and methods',
+                'category' => 'payment_management',
+            ],
+            [
                 'name' => 'view_payment_reports',
                 'display_name' => 'View Payment Reports',
                 'description' => 'Access payment reports and analytics',
@@ -127,6 +139,12 @@ class PermissionSeeder extends Seeder
                 'name' => 'manage_own_emails',
                 'display_name' => 'Manage Own Emails',
                 'description' => 'Send emails for own events',
+                'category' => 'email_management',
+            ],
+            [
+                'name' => 'manage_email_settings',
+                'display_name' => 'Manage Email Settings',
+                'description' => 'Configure email settings and SMTP for events',
                 'category' => 'email_management',
             ],
 

@@ -538,6 +538,8 @@
                                             <li><a class="dropdown-item shape-tool" href="#" data-shape="hexagon"><i class="bi bi-hexagon me-2"></i>Hexagon</a></li>
                                             <li><a class="dropdown-item shape-tool" href="#" data-shape="arrow"><i class="bi bi-arrow-right me-2"></i>Arrow</a></li>
                                             <li><a class="dropdown-item shape-tool" href="#" data-shape="line"><i class="bi bi-dash me-2"></i>Line</a></li>
+                                            <li><a class="dropdown-item shape-tool" href="#" data-shape="vertical_arrow"><i class="bi bi-arrow-down me-2"></i>Vertical Arrow</a></li>
+                                            <li><a class="dropdown-item shape-tool" href="#" data-shape="vertical_line"><i class="bi bi-vertical-line me-2"></i>Vertical Line</a></li>
                                             <li><a class="dropdown-item" href="#" onclick="addText(); return false;"><i class="bi bi-type me-2"></i>Text</a></li>
                                         </ul>
                                     </div>
@@ -964,6 +966,10 @@
                     // Polygon shapes use size
                     width = shape.size || 40;
                     height = shape.size || 40;
+                } else if (shape.type === 'vertical_arrow' || shape.type === 'vertical_line') {
+                    // For vertical shapes, use actual dimensions for selection box
+                    width = shape.width || 2; // Thickness (actual width)
+                    height = shape.height || 80; // Length (actual height)
                 } else if (shape.width || shape.height) {
                     // Regular shapes with width/height
                     width = shape.width || 40;
@@ -1093,6 +1099,10 @@
                     // Polygon shapes use size
                     width = shape.size || 40;
                     height = shape.size || 40;
+                } else if (shape.type === 'vertical_arrow' || shape.type === 'vertical_line') {
+                    // For vertical shapes, use actual dimensions for handle detection
+                    width = shape.width || 2; // Thickness (actual width)
+                    height = shape.height || 80; // Length (actual height)
                 } else if (shape.width || shape.height) {
                     // Regular shapes with width/height
                     width = shape.width || 40;
@@ -1142,6 +1152,12 @@
                     // Arrow and line use width/height with special handling
                     width = shape.width || 80;
                     height = shape.type === 'line' ? Math.max(shape.height || 2, 8) : shape.height || 20; // Make line easier to select
+                } else if (shape.type === 'vertical_arrow' || shape.type === 'vertical_line') {
+                    // For vertical shapes, use actual dimensions for click detection with larger click area
+                    const thickness = shape.width || 2; // Thickness (actual width)
+                    const length = shape.height || 80; // Length (actual height)
+                    width = Math.max(thickness, 8); // Minimum 8px click area
+                    height = length;
                 } else if (shape.width || shape.height) {
                     // Regular shapes with width/height
                     width = shape.width || 40;
@@ -1150,6 +1166,35 @@
                     // Fallback for other shapes
                     width = shape.size || 40;
                     height = shape.size || 40;
+                }
+                
+                // Special handling for vertical shapes with centered click area
+                if (shape.type === 'vertical_arrow' || shape.type === 'vertical_line') {
+                    const thickness = shape.width || 2;
+                    const length = shape.height || 80;
+                    const clickWidth = Math.max(thickness, 8);
+                    const clickX = shape.x - (clickWidth - thickness) / 2;
+                    
+                    // If shape has rotation, transform the point to check against rotated bounds
+                    if (shape.rotation && shape.rotation !== 0) {
+                        const centerX = shape.x + thickness / 2;
+                        const centerY = shape.y + length / 2;
+                        const angle = -shape.rotation * Math.PI / 180; // Negative because we're transforming the point back
+                        
+                        // Transform the point to the shape's local coordinate system
+                        const dx = x - centerX;
+                        const dy = y - centerY;
+                        const rotatedX = dx * Math.cos(angle) - dy * Math.sin(angle);
+                        const rotatedY = dx * Math.sin(angle) + dy * Math.cos(angle);
+                        
+                        // Check if the transformed point is within the unrotated bounds
+                        return rotatedX >= -clickWidth/2 && rotatedX <= clickWidth/2 &&
+                               rotatedY >= -length/2 && rotatedY <= length/2;
+                    } else {
+                        // No rotation - use simple rectangular bounds check
+                        return x >= clickX && x <= clickX + clickWidth &&
+                               y >= shape.y && y <= shape.y + length;
+                    }
                 }
                 
                 // If shape has rotation, transform the point to check against rotated bounds
@@ -1271,6 +1316,14 @@
                         
                     case 'line':
                         drawLine(shape);
+                        return;
+                        
+                    case 'vertical_line':
+                        drawVerticalLine(shape);
+                        return;
+                        
+                    case 'vertical_arrow':
+                        drawVerticalArrow(shape);
                         return;
                         
                     case 'text':
@@ -1492,8 +1545,7 @@
                     ctx.translate(-centerX, -centerY);
                 }
                 
-                // Get effective colors
-                const fillColor = shape.fillColor || document.getElementById('fillColor').value;
+                // Get effective colors - use only stroke color
                 const strokeColor = shape.strokeColor || document.getElementById('strokeColor').value;
                 const borderWidth = shape.borderWidth || parseInt(document.getElementById('borderWidth').value);
                 
@@ -1503,13 +1555,13 @@
                 const headWidth = height * 0.8; // 80% of height for head width
                 const shaftWidth = height * 0.3; // 30% of height for shaft thickness
                 
-                // Draw arrow shaft (rectangle)
-                ctx.fillStyle = fillColor;
-                ctx.fillRect(shape.x, centerY - shaftWidth/2, shaftLength, shaftWidth);
-                
-                // Draw shaft border
+                // Set stroke color for both shaft and head
                 ctx.strokeStyle = strokeColor;
+                ctx.fillStyle = strokeColor; // Use stroke color as fill too
                 ctx.lineWidth = borderWidth;
+                
+                // Draw arrow shaft (rectangle) - use stroke color for both fill and stroke
+                ctx.fillRect(shape.x, centerY - shaftWidth/2, shaftLength, shaftWidth);
                 ctx.strokeRect(shape.x, centerY - shaftWidth/2, shaftLength, shaftWidth);
                 
                 // Draw arrow head (triangle) - pointing to the right
@@ -1519,13 +1571,8 @@
                 ctx.lineTo(shape.x + shaftLength, centerY + headWidth/2); // Bottom of head
                 ctx.closePath();
                 
-                // Fill arrow head
-                ctx.fillStyle = fillColor;
+                // Use stroke color for both fill and stroke
                 ctx.fill();
-                
-                // Stroke arrow head
-                ctx.strokeStyle = strokeColor;
-                ctx.lineWidth = borderWidth;
                 ctx.stroke();
                 
                 // Restore canvas context if rotation was applied
@@ -1554,6 +1601,90 @@
                 ctx.moveTo(shape.x, centerY);
                 ctx.lineTo(shape.x + width, centerY);
                 ctx.lineWidth = height;
+                ctx.stroke();
+                
+                // Restore canvas context if rotation was applied
+                if (shape.rotation && shape.rotation !== 0) {
+                    ctx.restore();
+                }
+            }
+            
+            // Draw vertical line shape
+            function drawVerticalLine(shape) {
+                // For vertical line: width becomes thickness, height becomes length
+                const thickness = shape.width || 2; // Thickness (was width)
+                const length = shape.height || 80; // Length (was height)
+                const centerX = shape.x + thickness/2;
+                const centerY = shape.y + length/2;
+                
+                // Apply rotation if shape has rotation
+                if (shape.rotation && shape.rotation !== 0) {
+                    ctx.save();
+                    ctx.translate(centerX, centerY);
+                    ctx.rotate(shape.rotation * Math.PI / 180);
+                    ctx.translate(-centerX, -centerY);
+                }
+                
+                // Vertical line
+                ctx.lineWidth = thickness;
+                ctx.beginPath();
+                ctx.moveTo(centerX, shape.y);
+                ctx.lineTo(centerX, shape.y + length);
+                ctx.stroke();
+                
+                // Restore canvas context if rotation was applied
+                if (shape.rotation && shape.rotation !== 0) {
+                    ctx.restore();
+                }
+            }
+            
+            // Draw vertical arrow shape
+            function drawVerticalArrow(shape) {
+                // For vertical arrow: width becomes thickness, height becomes length
+                const thickness = shape.width || 2; // Thickness (was width)
+                const length = shape.height || 80; // Length (was height)
+                const centerX = shape.x + thickness/2;
+                const centerY = shape.y + length/2;
+                
+                // Apply rotation if shape has rotation
+                if (shape.rotation && shape.rotation !== 0) {
+                    ctx.save();
+                    ctx.translate(centerX, centerY);
+                    ctx.rotate(shape.rotation * Math.PI / 180);
+                    ctx.translate(-centerX, -centerY);
+                }
+                
+                // Get effective colors - use only stroke color
+                const strokeColor = shape.strokeColor || document.getElementById('strokeColor').value;
+                const borderWidth = shape.borderWidth || parseInt(document.getElementById('borderWidth').value);
+                
+                // Set stroke color for both shaft and head
+                ctx.strokeStyle = strokeColor;
+                ctx.fillStyle = strokeColor; // Use stroke color as fill too
+                ctx.lineWidth = borderWidth;
+                
+                // Arrow shaft (vertical rectangle)
+                const shaftLength = length * 0.7; // 70% of total length
+                const shaftThickness = thickness; // Use thickness for shaft width
+                
+                // Draw shaft as a rectangle (not a line)
+                ctx.fillRect(shape.x, shape.y, shaftThickness, shaftLength);
+                ctx.strokeRect(shape.x, shape.y, shaftThickness, shaftLength);
+                
+                // Arrow head (triangle) - pointing down
+                const headLength = length * 0.3; // 30% of total length
+                const headThickness = thickness * 2; // Make head wider than shaft
+                const headX = shape.x - (headThickness - thickness) / 2; // Center the head
+                const headY = shape.y + shaftLength;
+                
+                ctx.beginPath();
+                ctx.moveTo(centerX, headY + headLength); // Point of arrow (bottom)
+                ctx.lineTo(headX, headY); // Top-left of arrow head
+                ctx.lineTo(headX + headThickness, headY); // Top-right of arrow head
+                ctx.closePath();
+                
+                // Use stroke color for both fill and stroke
+                ctx.fill();
                 ctx.stroke();
                 
                 // Restore canvas context if rotation was applied
@@ -4580,6 +4711,16 @@
                         shape.height = 2;
                         shape.bookable = false; // Line is not bookable
                         break;
+                    case 'vertical_line':
+                        shape.width = 2; // Thickness
+                        shape.height = 80; // Length
+                        shape.bookable = false; // Vertical line is not bookable
+                        break;
+                    case 'vertical_arrow':
+                        shape.width = 2; // Thickness
+                        shape.height = 80; // Length
+                        shape.bookable = false; // Vertical arrow is not bookable
+                        break;
                     case 'chair':
                         shape.width = 25;
                         shape.height = 25;
@@ -4938,6 +5079,10 @@
                                 if (selectedShape.type === 'circle') {
                                     const newRadius = Math.max(minSize/2, selectedShape._originalWidth/2 + deltaX/2);
                                     selectedShape.radius = newRadius;
+                                } else if (selectedShape.type === 'vertical_arrow' || selectedShape.type === 'vertical_line') {
+                                    // For vertical shapes: width=thickness, height=length
+                                    selectedShape.width = Math.max(minSize, selectedShape._originalWidth + deltaX); // Thickness changes with deltaX
+                                    selectedShape.height = Math.max(minSize, selectedShape._originalHeight + deltaY); // Length changes with deltaY
                                 } else if (selectedShape.width && selectedShape.height) {
                                     selectedShape.width = Math.max(minSize, selectedShape._originalWidth + deltaX);
                                     selectedShape.height = Math.max(minSize, selectedShape._originalHeight + deltaY);
@@ -4953,6 +5098,9 @@
                                 if (selectedShape.type === 'circle') {
                                     const newRadius = Math.max(minSize/2, selectedShape._originalWidth/2 + deltaX/2);
                                     selectedShape.radius = newRadius;
+                                } else if (selectedShape.type === 'vertical_arrow' || selectedShape.type === 'vertical_line') {
+                                    // For vertical shapes: East handle changes thickness (width)
+                                    selectedShape.width = Math.max(minSize, selectedShape._originalWidth + deltaX);
                                 } else if (selectedShape.type === 'triangle' || selectedShape.type === 'pentagon' || selectedShape.type === 'hexagon') {
                                     const newSize = Math.max(minSize, selectedShape._originalWidth + deltaX);
                                     selectedShape.size = newSize;
@@ -4967,6 +5115,9 @@
                                 if (selectedShape.type === 'circle') {
                                     const newRadius = Math.max(minSize/2, selectedShape._originalHeight/2 + deltaY/2);
                                     selectedShape.radius = newRadius;
+                                } else if (selectedShape.type === 'vertical_arrow' || selectedShape.type === 'vertical_line') {
+                                    // For vertical shapes: South handle changes length (height)
+                                    selectedShape.height = Math.max(minSize, selectedShape._originalHeight + deltaY);
                                 } else if (selectedShape.type === 'triangle' || selectedShape.type === 'pentagon' || selectedShape.type === 'hexagon') {
                                     const newSize = Math.max(minSize, selectedShape._originalHeight + deltaY);
                                     selectedShape.size = newSize;
@@ -5200,6 +5351,37 @@
                         if (x >= shape.x && x <= shape.x + width &&
                             y >= shape.y && y <= shape.y + height) {
                             return shape;
+                        }
+                    } else if (shape.type === 'vertical_arrow' || shape.type === 'vertical_line') {
+                        // For vertical shapes, use actual dimensions for click detection with larger click area
+                        const thickness = shape.width || 2; // Thickness (actual width)
+                        const length = shape.height || 80; // Length (actual height)
+                        const clickWidth = Math.max(thickness, 8); // Minimum 8px click area
+                        const clickX = shape.x - (clickWidth - thickness) / 2; // Center the click area
+                        
+                        // If shape has rotation, transform the point to check against rotated bounds
+                        if (shape.rotation && shape.rotation !== 0) {
+                            const centerX = shape.x + thickness / 2;
+                            const centerY = shape.y + length / 2;
+                            const angle = -shape.rotation * Math.PI / 180; // Negative because we're transforming the point back
+                            
+                            // Transform the point to the shape's local coordinate system
+                            const dx = x - centerX;
+                            const dy = y - centerY;
+                            const rotatedX = dx * Math.cos(angle) - dy * Math.sin(angle);
+                            const rotatedY = dx * Math.sin(angle) + dy * Math.cos(angle);
+                            
+                            // Check if the transformed point is within the unrotated bounds
+                            if (rotatedX >= -clickWidth/2 && rotatedX <= clickWidth/2 &&
+                                rotatedY >= -length/2 && rotatedY <= length/2) {
+                                return shape;
+                            }
+                        } else {
+                            // No rotation - use simple rectangular bounds check
+                            if (x >= clickX && x <= clickX + clickWidth &&
+                                y >= shape.y && y <= shape.y + length) {
+                                return shape;
+                            }
                         }
                     } else if (shape.type === 'group') {
                         // Group uses width and height from shape properties
