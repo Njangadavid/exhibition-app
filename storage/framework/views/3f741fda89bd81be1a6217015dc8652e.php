@@ -869,13 +869,21 @@
                 overlay.id = `text-overlay-${shape.item_id}`;
                 overlay.className = 'text-overlay';
                 
-                // Set position and size
+                // Set position and size - account for canvas container positioning
                 const canvasRect = canvas.getBoundingClientRect();
+                const canvasContainer = canvas.parentElement;
+                const containerRect = canvasContainer.getBoundingClientRect();
+                
+                // Calculate scale factors
                 const scaleX = canvasRect.width / canvas.width;
                 const scaleY = canvasRect.height / canvas.height;
                 
-                overlay.style.left = `${shape.x * scaleX}px`;
-                overlay.style.top = `${shape.y * scaleY}px`;
+                // Calculate position relative to the canvas container
+                const relativeX = (canvasRect.left - containerRect.left) + (shape.x * scaleX);
+                const relativeY = (canvasRect.top - containerRect.top) + (shape.y * scaleY);
+                
+                overlay.style.left = `${relativeX}px`;
+                overlay.style.top = `${relativeY}px`;
                 overlay.style.width = `${(shape.width || 120) * scaleX}px`;
                 overlay.style.height = `${(shape.height || 30) * scaleY}px`;
                 
@@ -5181,14 +5189,41 @@
                 });
             }
             
-            // Handle window resize to update text overlay positions
-            window.addEventListener('resize', () => {
-                // Update text overlay positions when window is resized
-                shapes.forEach(shape => {
-                    if (shape.type === 'text') {
-                        createTextOverlay(shape);
+            // Handle orientation change and significant window resize with page refresh
+            let resizeTimeout;
+            let lastWindowWidth = window.innerWidth;
+            let lastWindowHeight = window.innerHeight;
+            
+            function handleResize() {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    const currentWidth = window.innerWidth;
+                    const currentHeight = window.innerHeight;
+                    
+                    // Check if there's a significant size change (more than 100px difference)
+                    const widthDiff = Math.abs(currentWidth - lastWindowWidth);
+                    const heightDiff = Math.abs(currentHeight - lastWindowHeight);
+                    
+                    if (widthDiff > 100 || heightDiff > 100) {
+                        // Significant size change - refresh the page
+                        window.location.reload();
                     }
-                });
+                    
+                    // Update stored dimensions
+                    lastWindowWidth = currentWidth;
+                    lastWindowHeight = currentHeight;
+                }, 500); // Wait 500ms to ensure resize is complete
+            }
+            
+            // Handle window resize
+            window.addEventListener('resize', handleResize);
+            
+            // Handle orientation change (mobile devices) - always refresh
+            window.addEventListener('orientationchange', () => {
+                // Wait for orientation change to complete, then refresh
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
             });
         }
     </script>
